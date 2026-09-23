@@ -1,0 +1,7 @@
+# services:
+#   api:
+#     build: .
+#   postgres:
+#     image: postgres:16
+#   vector-db:
+#     image: pgvector/pgvector:pg16

@@ -1,0 +1,19 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "ombuds"
+version = "0.1.0"
+description = "Ombuds - agentic claims-triage system"
+requires-python = ">=3.11"
+dependencies = [
+    # "fastapi",
+    # "pydantic",
+    # "langgraph",
+    # "anthropic",
+    # "openai",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/ombuds"]
