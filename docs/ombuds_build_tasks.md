@@ -7,8 +7,10 @@ Legend: [x] Done · [~] Learning/in progress · [ ] Not started. Priority shown 
 ## Week 1 — Raw API Fundamentals + Engineering Foundation
 
 - [x] Design the folder structure to the project — 🔴 High
+- [x] Implement EU261 rules engine (`verticals/airline/rules.py`) + unit tests — 🔴 High
 - [~] Call OpenAI & Anthropic APIs directly, compare outputs — 🟡 Medium
-- [ ] Define tool schemas (`create_ticket`, `check_sla`) + parse tool-use loop — 🔴 High
+- [ ] Stub `approval_gate` as deny-all before any state-changing tool is registered — 🔴 High
+- [ ] Define tool schemas (`check_eligibility`, `log_claim`) + parse tool-use loop — 🔴 High
 - [ ] Build FastAPI `/triage` endpoint (raw SDK, no framework) — 🔴 High
 - [ ] Write unit tests for tool-calling parser + endpoint — 🟡 Medium
 - [ ] Implement streaming (SSE) + buffered JSON parsing — 🟡 Medium
@@ -18,11 +20,11 @@ Legend: [x] Done · [~] Learning/in progress · [ ] Not started. Priority shown 
 ## Week 2 — Agentic Loop + MCP
 
 - [ ] Rebuild tool-calling loop in LangGraph — 🔴 High
-- [ ] Stand up MCP server (`search_kb`, `check_sla`, `create_ticket`, `escalate_ticket`) — 🔴 High
+- [ ] Stand up MCP server (`search_kb`, `check_eligibility`, `log_claim`, `issue_payment`) — 🔴 High
 - [ ] Connect LangGraph agent to tools over MCP — 🔴 High
 - [ ] Add short-term + long-term memory to agent state — 🟡 Medium
 - [ ] Add escalation/retry loop on low confidence — 🟡 Medium
-- [ ] Add human-approval gate before state-changing tool calls — 🔴 High
+- [ ] Replace deny-all stub with human-approval gate before state-changing tool calls — 🔴 High
 
 ## Week 3 — RAG, Data Layer, Docker, Guardrails
 
@@ -36,10 +38,11 @@ Legend: [x] Done · [~] Learning/in progress · [ ] Not started. Priority shown 
 
 ## Week 4 — Observability, Governance, Polish
 
-- [ ] Write one OPA/Rego policy (block auto-escalate above priority X) — 🔴 High
+- [ ] Add OpenTelemetry tracing (span per LLM/tool call) — 🟡 Medium
+- [ ] Write one OPA/Rego policy (block auto-payout above €X) — 🔴 High
 - [ ] Build audit trail — log every tool call + decision — 🟡 Medium
 - [ ] Write architecture diagram + README (problem, design, trade-offs) — 🔴 High
 
 ---
 
-Note: there's a gap in the Notion ordering between "integration test for `/triage`" (W3) and "OPA/Rego policy" (W4) — one task (likely OpenTelemetry tracing, per the roadmap's week 4 plan) doesn't currently have a row in this view. Worth checking the board directly in case it exists elsewhere or was dropped.
+Tool names follow ADR-0004 (EU261 tool set, not generic helpdesk tools). Last synced with Notion 2026-09-24.

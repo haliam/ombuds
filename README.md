@@ -68,10 +68,3 @@ Project structure is in place; implementation follows the 4-week build plan belo
 ## Stack
 
 FastAPI · LangGraph · MCP · Anthropic/OpenAI APIs · PostgreSQL + pgvector/Chroma · Docker Compose · OpenTelemetry · OPA/Rego
-```
-
-A couple of notes on choices I made:
-
-- Kept it factual and scoped to what we've actually decided (single vertical, no UI, no autonomy) rather than oversell — this doubles as the document you'd hand an interviewer, so overclaiming would be a liability, not a selling point.
-- Left out implementation specifics that will go stale fast (exact file paths, specific model names) — those belong in `docs/architecture.md`, not the README.
-- If you want, I can also draft `docs/architecture.md` (the fuller version with the diagram, the "why airline" reasoning in more depth, and the ADR summaries) as a companion piece — just say the word.
