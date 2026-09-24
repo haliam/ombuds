@@ -10,8 +10,11 @@ Python ≥3.11 · FastAPI · LangGraph · MCP · PostgreSQL + pgvector (or Chrom
 
 ## Commands
 Keep this section accurate or delete a stale line — a wrong command here is worse than no command.
-**Status (2026-09-24): nothing is wired yet.** `pyproject.toml` has no dependencies and every `Makefile` target (`up`, `down`, `test`, `eval`) is a no-op placeholder. Add a command here only once it actually works.
-- Planned: `make test` → `pytest tests/unit`, `make eval` → `python evals/run_evals.py`, `make up` → `docker compose up`
+**Status (2026-09-24):** only `make test`, `make lint` and `make format` are wired; `up` and `eval` are still no-op placeholders. Add a command here only once it actually works.
+- `make test` → `make lint` then `uv run pytest tests/unit` (uv creates `.venv` and installs deps on first run)
+- `make lint` → `ruff check` + `ruff format --check` + `mypy`; `make format` → ruff auto-fix. Config in `pyproject.toml`
+- `uv run pre-commit install` → one-time, runs the same checks on every commit
+- Planned: `make eval` → `python evals/run_evals.py`, `make up` → `docker compose up`
 - Planned: MCP standalone → `python -m ombuds.platform.mcp.server`; API app factory lives in `src/ombuds/api_app.py`
 
 ## Layout (feature-sliced — see ADR-0002)
@@ -34,10 +37,7 @@ Keep this section accurate or delete a stale line — a wrong command here is wo
   - `prompts/<feature>/vN.txt` — versioned prompts, see "Prompt versioning" below.
 
 ## Code style
-- Type-hint everything; Pydantic models for anything crossing a layer boundary (API payloads, tool arguments/results, structured LLM output).
-- Business rules (EU261 distance tiers, notice-period exemptions, SLA thresholds) live only in `domain/` or `features/claims_triage/verticals/airline/rules.py` — never inline in a prompt, a tool, or an agent node. If a threshold is hardcoded in `agent/nodes/`, that's a bug, not a shortcut.
-- Every new tool in `features/<feature>/tools/` needs a unit test, and once it's agent-callable, an entry in the eval dataset it affects.
-- No bare `except:` — the retry path folded into `platform/ai/providers/fallback.py` is the one place broad exception handling is intentional; comment why there.
+Read `docs/code-style.md` before writing code — it holds the judgement-call rules (structure, types, where business rules live, docstrings, errors, tests). Formatting, lint and types are enforced by `make lint` (ruff + mypy strict); don't hand-argue what a tool already checks.
 
 ## Guardrails (non-negotiable)
 Any tool that changes state (`log_claim`, `issue_payment`, an escalation) must pass through `platform/guardrails/approval_gate.py` and be checked against `platform/guardrails/policy_engine.py`. A tool being registered and callable is not the same as having permission to execute — this boundary is the one thing not to relax for build-speed during the sprint.

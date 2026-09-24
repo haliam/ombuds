@@ -8,12 +8,39 @@ version = "0.1.0"
 description = "Ombuds - agentic claims-triage system"
 requires-python = ">=3.11"
 dependencies = [
-    # "fastapi",
-    # "pydantic",
-    # "langgraph",
-    # "anthropic",
-    # "openai",
+    "pydantic>=2.7",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8",
+    "ruff>=0.6",
+    "mypy>=1.11",
+    "pre-commit>=3.8",
 ]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/ombuds"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+
+[tool.ruff.lint]
+# pycodestyle, pyflakes, isort, pep8-naming, pyupgrade, bugbear, simplify
+select = ["E", "W", "F", "I", "N", "UP", "B", "SIM"]
+
+[tool.mypy]
+files = ["src", "tests"]
+python_version = "3.11"
+strict = true
+plugins = ["pydantic.mypy"]
+
+[[tool.mypy.overrides]]
+# Tests stay typed where it helps, but test helpers may take loose kwargs.
+module = "tests.*"
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
