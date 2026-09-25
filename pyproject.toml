@@ -9,6 +9,9 @@ description = "Ombuds - agentic claims-triage system"
 requires-python = ">=3.11"
 dependencies = [
     "pydantic>=2.7",
+    "anthropic>=0.40",
+    "openai>=1.55",
+    "python-dotenv>=1.0",
 ]
 
 [dependency-groups]
