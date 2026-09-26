@@ -1,10 +1,12 @@
 """Provider-agnostic contract for one LLM turn: send a conversation and tool list, get an assistant turn back."""
 
+from collections.abc import Iterator
 from typing import Protocol
 
 from pydantic import BaseModel, ConfigDict
 
 from ombuds.platform.ai.schemas.tool_calls import ToolCall, ToolDefinition
+from ombuds.platform.ai.streaming import StreamEvent
 
 
 class ProviderTurn(BaseModel):
@@ -27,4 +29,10 @@ class LLMProvider(Protocol):
 
     def run_turn(self, messages: list[dict[str, object]], tools: list[ToolDefinition], *, system: str) -> ProviderTurn:
         """Send `messages` (provider-native wire format) plus `tools` and `system`, and return the assistant turn."""
+        ...
+
+    def stream_turn(
+        self, messages: list[dict[str, object]], tools: list[ToolDefinition], *, system: str
+    ) -> Iterator[StreamEvent]:
+        """Like `run_turn`, but yield incremental `StreamEvent`s as they arrive, ending with a `TurnDone`."""
         ...

@@ -1,8 +1,11 @@
+from collections.abc import Iterator
+
 import pytest
 
-from ombuds.features.claims_triage.application.triage_use_case import MAX_TOOL_TURNS, run_triage
+from ombuds.features.claims_triage.application.triage_use_case import MAX_TOOL_TURNS, run_triage, stream_triage
 from ombuds.platform.ai.providers.base import ProviderTurn
 from ombuds.platform.ai.schemas.tool_calls import ToolCall, ToolDefinition
+from ombuds.platform.ai.streaming import StreamEvent, TextDelta, ToolCallDelta, ToolResultEvent, TurnDone
 
 
 class _FakeProvider:
@@ -15,6 +18,17 @@ class _FakeProvider:
     def run_turn(self, messages: list[dict[str, object]], tools: list[ToolDefinition], *, system: str) -> ProviderTurn:
         self.calls += 1
         return self._turns.pop(0)
+
+    def stream_turn(
+        self, messages: list[dict[str, object]], tools: list[ToolDefinition], *, system: str
+    ) -> Iterator[StreamEvent]:
+        self.calls += 1
+        turn = self._turns.pop(0)
+        if turn.text:
+            yield TextDelta(text=turn.text)
+        for call in turn.tool_calls:
+            yield ToolCallDelta(call=call)
+        yield TurnDone(text=turn.text, tool_calls=turn.tool_calls, stop_reason=turn.stop_reason, content=turn.content)
 
 
 def _disruption_args() -> dict[str, object]:
@@ -92,3 +106,50 @@ def test_run_triage_gives_up_after_max_tool_turns() -> None:
 
     with pytest.raises(RuntimeError, match="did not converge"):
         run_triage("claim", provider=provider)
+
+
+def test_stream_triage_yields_text_delta_and_turn_done_when_no_tools_are_called() -> None:
+    provider = _FakeProvider(
+        [ProviderTurn(text="Please provide your flight details.", tool_calls=(), stop_reason="end_turn", content=[])]
+    )
+
+    events = list(stream_triage("My flight was delayed.", provider=provider))
+
+    assert events[0] == TextDelta(text="Please provide your flight details.")
+    final = events[-1]
+    assert isinstance(final, TurnDone)
+    assert final.text == "Please provide your flight details."
+    assert final.tool_calls == ()
+
+
+def test_stream_triage_emits_tool_call_and_tool_result_events() -> None:
+    call = ToolCall(id="call-1", name="check_eligibility", arguments=_disruption_args())
+    provider = _FakeProvider(
+        [
+            ProviderTurn(text="", tool_calls=(call,), stop_reason="tool_use", content=[]),
+            ProviderTurn(text="You are eligible for EUR 250.", tool_calls=(), stop_reason="end_turn", content=[]),
+        ]
+    )
+
+    events = list(stream_triage("My flight from Berlin to Lisbon was cancelled.", provider=provider))
+
+    tool_call_events = [event for event in events if isinstance(event, ToolCallDelta)]
+    result_events = [event for event in events if isinstance(event, ToolResultEvent)]
+    assert tool_call_events == [ToolCallDelta(call=call)]
+    assert len(result_events) == 1
+    assert result_events[0].result.name == "check_eligibility"
+    assert result_events[0].result.is_error is False
+    assert provider.calls == 2
+
+
+def test_stream_triage_gives_up_after_max_tool_turns() -> None:
+    looping_turn = ProviderTurn(
+        text="",
+        tool_calls=(ToolCall(id="call-1", name="check_eligibility", arguments=_disruption_args()),),
+        stop_reason="tool_use",
+        content=[],
+    )
+    provider = _FakeProvider([looping_turn] * MAX_TOOL_TURNS)
+
+    with pytest.raises(RuntimeError, match="did not converge"):
+        list(stream_triage("claim", provider=provider))

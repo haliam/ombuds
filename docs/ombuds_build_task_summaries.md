@@ -141,4 +141,27 @@ Template — copy this block per finished task, filling in the fields (omit **De
 
 ---
 
+### Implement streaming (SSE) + buffered JSON parsing
+
+**Week:** W1
+**Goal:** Stream the triage answer and tool calls to the client as they happen instead of blocking until the whole tool-use loop finishes, and correctly assemble a tool call's arguments from the partial JSON fragments a streaming provider sends them in.
+**Source:** follow-up from the FastAPI `/triage` endpoint task
+
+**Files & responsibilities:**
+- `src/ombuds/platform/ai/streaming.py` — `StreamEvent` union (`TextDelta`, `ToolCallDelta`, `ToolResultEvent`, `TurnDone`) that any provider's stream is normalized to; `JSONBuffer` accumulates one tool call's `input_json_delta` fragments (keyed by call id) and parses them into a dict once that content block closes.
+- `src/ombuds/platform/ai/providers/base.py` — `LLMProvider` Protocol gains `stream_turn()` alongside the existing `run_turn()`, returning `Iterator[StreamEvent]`.
+- `src/ombuds/platform/ai/providers/anthropic.py` — `AnthropicProvider.stream_turn()` uses `client.messages.stream()`, yielding `TextDelta`/`ToolCallDelta` as raw SDK events arrive, then a final `TurnDone` built from `stream.get_final_message()` (not the accumulated deltas) so it matches `run_turn()`'s output exactly regardless of chunking.
+- `src/ombuds/features/claims_triage/application/triage_use_case.py` — `stream_triage()`: the same tool-use loop as `run_triage()`, but yields every `StreamEvent` from each turn plus a `ToolResultEvent` per dispatched tool call, instead of returning one final `TriageResult`.
+- `src/ombuds/features/claims_triage/api/routes.py` — `POST /claims/triage/stream`: `StreamingResponse` over `text/event-stream`, formatting each `StreamEvent` as one `data: <json>\n\n` frame. The original blocking `POST /claims/triage` is unchanged and kept alongside it.
+- `tests/unit/platform/ai/test_streaming.py` (new) — `JSONBuffer` fragment assembly, independent tracking per call id, and the malformed/non-object-JSON error paths.
+- `tests/unit/features/claims_triage/application/test_triage_use_case.py` — `_FakeProvider.stream_turn()` added so `stream_triage()` can be tested against the same fixtures as `run_triage()`, without a real API call.
+- `tests/unit/features/claims_triage/api/test_routes.py` — SSE frame shape for the streaming endpoint, via `monkeypatch`ing `stream_triage` the same way `run_triage` is monkeypatched elsewhere.
+
+**Notable libraries:** `anthropic`'s `messages.stream()` context manager (`MessageStreamManager`) and its raw event types (`content_block_start`/`_delta`/`_stop`) — distinct from the `messages.create()` path `run_turn()` uses.
+
+**Decisions/trade-offs:** `stream_turn()`'s final `TurnDone` is rebuilt from `get_final_message()` rather than trusted to the deltas accumulated during the loop, so a provider-SDK quirk in delta chunking can't silently diverge the streamed result from what `run_turn()` would have returned for the same request. No unit test mocks the raw Anthropic SDK stream events directly (there's no existing precedent for that in this codebase, and the SDK's event types are a lot of surface to fake) — coverage instead treats `LLMProvider.stream_turn()` as the tested boundary, same as `run_turn()`/`ProviderTurn` today.
+**Follow-up:** structured-output validation with retry/repair, and retries/backoff/fallback-model, are still open W1 tasks; a streaming path adds a new failure mode worth covering there (a stream that drops mid-tool-call).
+
+---
+
 Library/framework/stdlib-concept entries live in [`ombuds_build_glossary.md`](ombuds_build_glossary.md) — append there, not here, whenever a summary's **Notable libraries** introduces something not already listed.
