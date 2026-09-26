@@ -186,4 +186,24 @@ Template — copy this block per finished task, filling in the fields (omit **De
 
 ---
 
+### Add retries/backoff, timeouts, fallback model, idempotency
+
+**Week:** W1
+**Goal:** Stop treating the Anthropic call as always-succeeds — add timeouts and backoff-retries for transient failures, fail over to a cheaper/secondary model if the primary keeps failing, and make retried requests idempotent so a retry (ours or the SDK's own) can't double-execute the same logical call.
+
+**Files & responsibilities:**
+- `src/ombuds/platform/ai/providers/anthropic.py` — `AnthropicProvider.__init__` now builds its `anthropic.Anthropic` client with `timeout`/`max_retries` (defaults 30s / 2 retries), delegating transient connection/429/5xx handling to the SDK's own exponential backoff instead of hand-rolling it. Added `_idempotency_key()`: a sha256 of `(model, system, messages, tool names)` sent as the `idempotency-key` header on both `run_turn()` and `stream_turn()`, so the same logical request (SDK retry, or a same-model retry from the layer below) dedupes server-side instead of re-running; a new turn (grown conversation) naturally gets a new key.
+- `src/ombuds/platform/ai/providers/fallback.py` — `FallbackProvider`: wraps a `primary` and `fallback` `LLMProvider`, retrying `run_turn()` against `primary` with its own exponential backoff (`max_attempts`, default 3) before failing over to `fallback` entirely. `stream_turn()` does the same, but only fails over if the primary errors *before* any event has reached the caller — once output has started, a mid-stream failure is re-raised as-is rather than risking duplicate/replayed output. Also provides `build_default_provider()`, composing `ANTHROPIC_MODEL` as primary and `ANTHROPIC_FALLBACK_MODEL` as fallback from `config.py`.
+- `src/ombuds/config.py`, `.env.example` — new `ANTHROPIC_FALLBACK_MODEL` (default `claude-haiku-4-5`), `ANTHROPIC_TIMEOUT_SECONDS` (30), `ANTHROPIC_MAX_RETRIES` (2).
+- `src/ombuds/features/claims_triage/application/triage_use_case.py` — `run_triage()`/`stream_triage()` now default to `build_default_provider()` instead of a bare `AnthropicProvider()`, so triage gets retry/fallback behavior without callers changing anything (tests still inject `_FakeProvider` directly).
+- `tests/unit/platform/ai/providers/test_fallback.py` (new) — primary succeeds without retry; primary recovers within its retry budget; primary exhausts retries and `fallback` answers instead; a streaming failure before any output falls back; a streaming failure after output has started is re-raised, not swallowed. Uses an injectable `sleep` callable so backoff delays don't slow the test suite.
+- `tests/unit/platform/ai/providers/test_anthropic.py` (new) — `_idempotency_key()` is stable for an identical request, changes once the conversation grows, and changes with model.
+
+**Notable libraries:** `anthropic.Anthropic(timeout=, max_retries=)` — the SDK's built-in httpx-based timeout/retry handling; no new third-party retry/backoff library was added since one layer's needs (client-level transient-error retry) were already covered by the SDK, and the other (cross-model fallback) needed custom fallover logic a generic decorator wouldn't express well.
+
+**Decisions/trade-offs:** split the work into two layers rather than one: the SDK's own `timeout`/`max_retries` handle transient network/429/5xx blips within a single model, while `FallbackProvider` handles the case where that model is unavailable altogether and a *different* model should try. `FallbackProvider.run_turn()`/`stream_turn()` catch bare `Exception` — flagged as the one intentional exception to the no-bare-except rule in `docs/code-style.md`, since this layer is provider-agnostic by design (Anthropic today, OpenAI/others later per ADR-0001) and can't enumerate every wrapped provider's own exception hierarchy. Idempotency is scoped to the Anthropic provider's own header (derived from request content, not a random key), rather than a cross-provider idempotency scheme, since retrying against `fallback` is already a different model/request and doesn't need to dedupe against `primary`'s attempts.
+**Follow-up:** `OpenAIProvider`/`fallback.py`'s provider-agnosticism is still untested against a live second provider (only two `AnthropicProvider` instances are composed today, since `OpenAIProvider` remains a stub); wiring OpenAI in as the fallback instead of a cheaper Anthropic model is a natural next step once that provider is implemented.
+
+---
+
 Library/framework/stdlib-concept entries live in [`ombuds_build_glossary.md`](ombuds_build_glossary.md) — append there, not here, whenever a summary's **Notable libraries** introduces something not already listed.
