@@ -75,6 +75,25 @@ Template — copy this block per finished task, filling in the fields (omit **De
 
 ---
 
+### Define tool schemas (`check_eligibility`, `log_claim`) + parse tool-use loop
+
+**Goal:** Give both tools a provider-agnostic schema an LLM's tool-use request can validate against, and a dispatcher that turns a provider turn's tool calls into results without an if/elif per tool.
+**Source:** ADR-0004 (EU261 tool set)
+
+**Files & responsibilities:**
+- `src/ombuds/platform/ai/schemas/tool_calls.py` — `ToolDefinition` (name, description, `args_model`), `ToolCall`, `ToolResult`: the provider-agnostic shape a tool-use turn is parsed into/out of, independent of any specific SDK's response type.
+- `src/ombuds/platform/ai/tool_loop.py` — `ToolRegistry`: maps tool name → schema + handler; `dispatch()`/`dispatch_all()` validate arguments against the tool's `args_model` and run the handler, turning an unknown tool or a validation failure into an error `ToolResult` rather than an exception, so one bad call can't abort the rest of a turn.
+- `src/ombuds/features/claims_triage/tools/check_eligibility.py` — read-only tool; reuses `FlightDisruption` as its own `args_model` and dispatches straight to `verticals/airline/rules.evaluate()`.
+- `src/ombuds/features/claims_triage/tools/log_claim.py` — state-changing tool; `log_claim()` calls `approval_gate.check_approval()` before anything else and returns a denial result while the gate is the deny-all stub — persistence code isn't written yet since it's unreachable until W2.
+- `tests/unit/platform/ai/test_tool_loop.py`, `tests/unit/features/claims_triage/tools/test_check_eligibility.py`, `tests/unit/features/claims_triage/tools/test_log_claim.py`.
+
+**Notable libraries:** none new — same Pydantic/`StrEnum` patterns as the rules engine and approval gate.
+
+**Decisions/trade-offs:** `check_eligibility`'s tool schema is `FlightDisruption` itself rather than a separate `CheckEligibilityArgs` wrapper — the tool takes exactly the rules engine's facts, so a second model would just duplicate the fields it's read-only over. `log_claim` raises `NotImplementedError` on the (currently unreachable) approved path rather than stubbing persistence, since there's no infrastructure layer yet to write to.
+**Follow-up:** `issue_payment` still has no schema — deferred until it's wired up alongside `log_claim` in a later task; `tool_loop.ToolRegistry` isn't yet wired to a real provider response (that's the FastAPI `/triage` endpoint task next).
+
+---
+
 ## Glossary
 
 One entry per library, framework, or notable Python concept the first time it shows up in a task above. Append here whenever a summary's **Notable libraries** introduces something not already listed — don't duplicate an entry, just link back to the task that first used it.
