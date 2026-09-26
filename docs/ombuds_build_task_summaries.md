@@ -7,6 +7,7 @@ Template — copy this block per finished task, filling in the fields (omit **De
 ```
 ### <task name from checklist>
 
+**Week:** <W1/W2/W3/W4, matching the section in ombuds_build_tasks.md>
 **Goal:** <one sentence — the problem this task solves>
 **Source:** <ADR # / Notion task, if any>
 
@@ -23,6 +24,7 @@ Template — copy this block per finished task, filling in the fields (omit **De
 
 ### Implement EU261 rules engine (`verticals/airline/rules.py`) + unit tests
 
+**Week:** W1
 **Goal:** Give the agent a deterministic, legally-grounded eligibility/compensation calculator so the LLM never invents EU261 numbers itself.
 **Source:** ADR-0004 (EU261 tool set); Regulation (EC) 261/2004, CJEU *Sturgeon* (C-402/07)
 
@@ -43,8 +45,9 @@ Template — copy this block per finished task, filling in the fields (omit **De
 
 ### Call OpenAI & Anthropic APIs directly, compare outputs
 
+**Week:** W1
 **Goal:** Eyeball raw provider SDKs (text, latency, cost) on the same prompt before building any shared abstraction over them.
-**Source:** W1 checklist, "Raw API Fundamentals"
+**Source:** "Raw API Fundamentals" checklist
 
 **Files & responsibilities:**
 - `scripts/compare_providers.py` — throwaway script, not part of the runtime provider layer (`platform/ai/providers/` is still stubbed). Calls Anthropic, OpenAI, and DeepSeek with the same EU261 prompt and prints text + latency + estimated cost side by side.
@@ -60,6 +63,7 @@ Template — copy this block per finished task, filling in the fields (omit **De
 
 ### Stub `approval_gate` as deny-all before any state-changing tool is registered
 
+**Week:** W1
 **Goal:** Guarantee a state-changing tool (`log_claim`, `issue_payment`) can never execute before a real approval mechanism exists — even temporarily.
 **Source:** ADR-0004
 
@@ -75,16 +79,24 @@ Template — copy this block per finished task, filling in the fields (omit **De
 
 ---
 
-## Glossary
+### Define tool schemas (`check_eligibility`, `log_claim`) + parse tool-use loop
 
-One entry per library, framework, or notable Python concept the first time it shows up in a task above. Append here whenever a summary's **Notable libraries** introduces something not already listed — don't duplicate an entry, just link back to the task that first used it.
+**Week:** W1
+**Goal:** Give both tools a provider-agnostic schema an LLM's tool-use request can validate against, and a dispatcher that turns a provider turn's tool calls into results without an if/elif per tool.
+**Source:** ADR-0004 (EU261 tool set)
 
-| Term | What it is | First seen in |
-|---|---|---|
-| Pydantic (`BaseModel`, `ConfigDict(frozen=True)`) | Data-validation library: declares a model's shape and types once, validates on construction, and (with `frozen=True`) makes instances immutable after creation. Used for anything crossing a layer boundary (API payloads, tool args, domain results) per `docs/code-style.md`. | Implement EU261 rules engine |
-| `enum.StrEnum` (stdlib) | An `Enum` whose members are also `str`, so they serialize as plain strings but are still a closed, typo-proof set at the type level — used for reason codes and action names. | Implement EU261 rules engine |
-| `datetime.timedelta` (stdlib) | Represents a duration as a first-class type instead of a bare int — prevents unit mistakes (hours vs. days) and supports direct comparison/arithmetic. | Implement EU261 rules engine |
-| `dataclasses.dataclass` (stdlib) | Lightweight, boilerplate-free way to define a plain data record (auto-generates `__init__`, `__repr__`, `__eq__`); unlike Pydantic it does no validation, so it's reserved for values that never cross a layer boundary. | Call OpenAI & Anthropic APIs directly |
-| `python-dotenv` (`load_dotenv`) | Reads a `.env` file into `os.environ` at runtime — used for scripts/local dev; the app's own config path is separate. | Call OpenAI & Anthropic APIs directly |
-| `anthropic` / `openai` SDKs | Official provider client libraries. DeepSeek has no dedicated SDK — it exposes an OpenAI-compatible API, so the `openai` client works against it with a different `base_url`. | Call OpenAI & Anthropic APIs directly |
-| pytest `@pytest.mark.parametrize` | Runs one test function once per listed input, instead of copy-pasting near-identical test bodies — output shows each case as its own pass/fail. | Stub `approval_gate` |
+**Files & responsibilities:**
+- `src/ombuds/platform/ai/schemas/tool_calls.py` — `ToolDefinition` (name, description, `args_model`), `ToolCall`, `ToolResult`: the provider-agnostic shape a tool-use turn is parsed into/out of, independent of any specific SDK's response type.
+- `src/ombuds/platform/ai/tool_loop.py` — `ToolRegistry`: maps tool name → schema + handler; `dispatch()`/`dispatch_all()` validate arguments against the tool's `args_model` and run the handler, turning an unknown tool or a validation failure into an error `ToolResult` rather than an exception, so one bad call can't abort the rest of a turn.
+- `src/ombuds/features/claims_triage/tools/check_eligibility.py` — read-only tool; reuses `FlightDisruption` as its own `args_model` and dispatches straight to `verticals/airline/rules.evaluate()`.
+- `src/ombuds/features/claims_triage/tools/log_claim.py` — state-changing tool; `log_claim()` calls `approval_gate.check_approval()` before anything else and returns a denial result while the gate is the deny-all stub — persistence code isn't written yet since it's unreachable until W2.
+- `tests/unit/platform/ai/test_tool_loop.py`, `tests/unit/features/claims_triage/tools/test_check_eligibility.py`, `tests/unit/features/claims_triage/tools/test_log_claim.py`.
+
+**Notable libraries:** none new — same Pydantic/`StrEnum` patterns as the rules engine and approval gate.
+
+**Decisions/trade-offs:** `check_eligibility`'s tool schema is `FlightDisruption` itself rather than a separate `CheckEligibilityArgs` wrapper — the tool takes exactly the rules engine's facts, so a second model would just duplicate the fields it's read-only over. `log_claim` raises `NotImplementedError` on the (currently unreachable) approved path rather than stubbing persistence, since there's no infrastructure layer yet to write to.
+**Follow-up:** `issue_payment` still has no schema — deferred until it's wired up alongside `log_claim` in a later task; `tool_loop.ToolRegistry` isn't yet wired to a real provider response (that's the FastAPI `/triage` endpoint task next).
+
+---
+
+Library/framework/stdlib-concept entries live in [`ombuds_build_glossary.md`](ombuds_build_glossary.md) — append there, not here, whenever a summary's **Notable libraries** introduces something not already listed.
