@@ -7,6 +7,7 @@ Template — copy this block per finished task, filling in the fields (omit **De
 ```
 ### <task name from checklist>
 
+**Week:** <W1/W2/W3/W4, matching the section in ombuds_build_tasks.md>
 **Goal:** <one sentence — the problem this task solves>
 **Source:** <ADR # / Notion task, if any>
 
@@ -23,6 +24,7 @@ Template — copy this block per finished task, filling in the fields (omit **De
 
 ### Implement EU261 rules engine (`verticals/airline/rules.py`) + unit tests
 
+**Week:** W1
 **Goal:** Give the agent a deterministic, legally-grounded eligibility/compensation calculator so the LLM never invents EU261 numbers itself.
 **Source:** ADR-0004 (EU261 tool set); Regulation (EC) 261/2004, CJEU *Sturgeon* (C-402/07)
 
@@ -43,8 +45,9 @@ Template — copy this block per finished task, filling in the fields (omit **De
 
 ### Call OpenAI & Anthropic APIs directly, compare outputs
 
+**Week:** W1
 **Goal:** Eyeball raw provider SDKs (text, latency, cost) on the same prompt before building any shared abstraction over them.
-**Source:** W1 checklist, "Raw API Fundamentals"
+**Source:** "Raw API Fundamentals" checklist
 
 **Files & responsibilities:**
 - `scripts/compare_providers.py` — throwaway script, not part of the runtime provider layer (`platform/ai/providers/` is still stubbed). Calls Anthropic, OpenAI, and DeepSeek with the same EU261 prompt and prints text + latency + estimated cost side by side.
@@ -60,6 +63,7 @@ Template — copy this block per finished task, filling in the fields (omit **De
 
 ### Stub `approval_gate` as deny-all before any state-changing tool is registered
 
+**Week:** W1
 **Goal:** Guarantee a state-changing tool (`log_claim`, `issue_payment`) can never execute before a real approval mechanism exists — even temporarily.
 **Source:** ADR-0004
 
@@ -77,6 +81,7 @@ Template — copy this block per finished task, filling in the fields (omit **De
 
 ### Define tool schemas (`check_eligibility`, `log_claim`) + parse tool-use loop
 
+**Week:** W1
 **Goal:** Give both tools a provider-agnostic schema an LLM's tool-use request can validate against, and a dispatcher that turns a provider turn's tool calls into results without an if/elif per tool.
 **Source:** ADR-0004 (EU261 tool set)
 
@@ -94,16 +99,4 @@ Template — copy this block per finished task, filling in the fields (omit **De
 
 ---
 
-## Glossary
-
-One entry per library, framework, or notable Python concept the first time it shows up in a task above. Append here whenever a summary's **Notable libraries** introduces something not already listed — don't duplicate an entry, just link back to the task that first used it.
-
-| Term | What it is | First seen in |
-|---|---|---|
-| Pydantic (`BaseModel`, `ConfigDict(frozen=True)`) | Data-validation library: declares a model's shape and types once, validates on construction, and (with `frozen=True`) makes instances immutable after creation. Used for anything crossing a layer boundary (API payloads, tool args, domain results) per `docs/code-style.md`. | Implement EU261 rules engine |
-| `enum.StrEnum` (stdlib) | An `Enum` whose members are also `str`, so they serialize as plain strings but are still a closed, typo-proof set at the type level — used for reason codes and action names. | Implement EU261 rules engine |
-| `datetime.timedelta` (stdlib) | Represents a duration as a first-class type instead of a bare int — prevents unit mistakes (hours vs. days) and supports direct comparison/arithmetic. | Implement EU261 rules engine |
-| `dataclasses.dataclass` (stdlib) | Lightweight, boilerplate-free way to define a plain data record (auto-generates `__init__`, `__repr__`, `__eq__`); unlike Pydantic it does no validation, so it's reserved for values that never cross a layer boundary. | Call OpenAI & Anthropic APIs directly |
-| `python-dotenv` (`load_dotenv`) | Reads a `.env` file into `os.environ` at runtime — used for scripts/local dev; the app's own config path is separate. | Call OpenAI & Anthropic APIs directly |
-| `anthropic` / `openai` SDKs | Official provider client libraries. DeepSeek has no dedicated SDK — it exposes an OpenAI-compatible API, so the `openai` client works against it with a different `base_url`. | Call OpenAI & Anthropic APIs directly |
-| pytest `@pytest.mark.parametrize` | Runs one test function once per listed input, instead of copy-pasting near-identical test bodies — output shows each case as its own pass/fail. | Stub `approval_gate` |
+Library/framework/stdlib-concept entries live in [`ombuds_build_glossary.md`](ombuds_build_glossary.md) — append there, not here, whenever a summary's **Notable libraries** introduces something not already listed.

@@ -47,7 +47,7 @@ Legend: [x] Done · [~] Learning/in progress · [ ] Not started. Priority shown 
 
 Tool names follow ADR-0004 (EU261 tool set, not generic helpdesk tools). Last synced with Notion 2026-09-24.
 
-Per-task recaps (goal, files touched, libraries used) live in [`ombuds_build_task_summaries.md`](ombuds_build_task_summaries.md) — each `[x]` item above links to its entry.
+Per-task recaps (goal, files touched, libraries used) live in [`ombuds_build_task_summaries.md`](ombuds_build_task_summaries.md) — each `[x]` item above links to its entry. Library/framework glossary lives separately in [`ombuds_build_glossary.md`](ombuds_build_glossary.md).
 
 ## Notion sync pending
 
