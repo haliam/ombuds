@@ -2,6 +2,7 @@
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from ombuds.features.claims_triage.application.decision import TriageDecision
 from ombuds.platform.ai.schemas.tool_calls import ToolResult
 
 
@@ -19,4 +20,5 @@ class TriageResponse(BaseModel):
     model_config = ConfigDict(frozen=True)
 
     answer: str
+    decision: TriageDecision | None
     tool_results: tuple[ToolResult, ...]

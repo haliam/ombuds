@@ -5,6 +5,7 @@ from fastapi.testclient import TestClient
 
 from ombuds.api_app import app
 from ombuds.features.claims_triage.api import routes
+from ombuds.features.claims_triage.application.decision import TriageDecision
 from ombuds.features.claims_triage.application.triage_use_case import TriageResult
 from ombuds.platform.ai.schemas.tool_calls import ToolCall, ToolResult
 from ombuds.platform.ai.streaming import StreamEvent, TextDelta, ToolCallDelta, ToolResultEvent, TurnDone
@@ -15,14 +16,18 @@ client = TestClient(app)
 def test_triage_endpoint_returns_the_use_case_result(monkeypatch) -> None:
     def _fake_run_triage(claim_text: str, *, provider=None) -> TriageResult:
         assert claim_text == "My flight was cancelled."
-        return TriageResult(answer="You are eligible for EUR 250.", tool_results=())
+        return TriageResult(answer="Please provide your flight details.", decision=None, tool_results=())
 
     monkeypatch.setattr(routes, "run_triage", _fake_run_triage)
 
     response = client.post("/claims/triage", json={"claim_text": "My flight was cancelled."})
 
     assert response.status_code == 200
-    assert response.json() == {"answer": "You are eligible for EUR 250.", "tool_results": []}
+    assert response.json() == {
+        "answer": "Please provide your flight details.",
+        "decision": None,
+        "tool_results": [],
+    }
 
 
 def test_triage_endpoint_rejects_an_empty_claim() -> None:
@@ -40,7 +45,8 @@ def test_triage_endpoint_rejects_a_missing_claim_text_field() -> None:
 def test_triage_endpoint_serializes_tool_results(monkeypatch) -> None:
     def _fake_run_triage(claim_text: str, *, provider=None) -> TriageResult:
         return TriageResult(
-            answer="You are eligible for EUR 250.",
+            answer='{"eligible": true, "explanation": "You are eligible for EUR 250."}',
+            decision=TriageDecision(eligible=True, explanation="You are eligible for EUR 250."),
             tool_results=(ToolResult(call_id="call-1", name="check_eligibility", content="{}", is_error=False),),
         )
 
