@@ -67,3 +67,25 @@ def test_dispatch_all_preserves_call_order() -> None:
     results = registry.dispatch_all(calls)
 
     assert [r.call_id for r in results] == ["a", "b"]
+
+
+def test_dispatch_all_does_not_abort_after_a_failing_call() -> None:
+    registry = _registry()
+    calls = [
+        ToolCall(id="a", name="nonexistent", arguments={}),
+        ToolCall(id="b", name="echo", arguments={"message": "second"}),
+    ]
+
+    results = registry.dispatch_all(calls)
+
+    assert results[0].is_error is True
+    assert results[1].is_error is False
+    assert results[1].content == '{"echoed":"second"}'
+
+
+def test_definitions_returns_every_registered_tool() -> None:
+    registry = _registry()
+
+    definitions = registry.definitions()
+
+    assert [d.name for d in definitions] == ["echo"]

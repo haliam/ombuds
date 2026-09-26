@@ -12,7 +12,7 @@ Legend: [x] Done · [~] Learning/in progress · [ ] Not started. Priority shown 
 - [x] Stub `approval_gate` as deny-all before any state-changing tool is registered — 🔴 High — [summary](ombuds_build_task_summaries.md#stub-approval_gate-as-deny-all-before-any-state-changing-tool-is-registered)
 - [x] Define tool schemas (`check_eligibility`, `log_claim`) + parse tool-use loop — 🔴 High — [summary](ombuds_build_task_summaries.md#define-tool-schemas-check_eligibility-log_claim--parse-tool-use-loop)
 - [x] Build FastAPI `/triage` endpoint (raw SDK, no framework) — 🔴 High — [summary](ombuds_build_task_summaries.md#build-fastapi-triage-endpoint-raw-sdk-no-framework)
-- [ ] Write unit tests for tool-calling parser + endpoint — 🟡 Medium
+- [x] Write unit tests for tool-calling parser + endpoint — 🟡 Medium — [summary](ombuds_build_task_summaries.md#write-unit-tests-for-tool-calling-parser--endpoint)
 - [ ] Implement streaming (SSE) + buffered JSON parsing — 🟡 Medium
 - [ ] Add structured output validation with Pydantic + retry/repair — 🔴 High
 - [ ] Add retries/backoff, timeouts, fallback model, idempotency — 🔴 High

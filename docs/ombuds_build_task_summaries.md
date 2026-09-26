@@ -123,4 +123,22 @@ Template — copy this block per finished task, filling in the fields (omit **De
 
 ---
 
+### Write unit tests for tool-calling parser + endpoint
+
+**Week:** W1
+**Goal:** Close edge-case gaps left after the FastAPI `/triage` task — the schemas, dispatch loop, and route had only happy-path coverage.
+**Source:** follow-up from the FastAPI `/triage` endpoint task
+
+**Files & responsibilities:**
+- `tests/unit/platform/ai/test_tool_calls.py` (new) — `ToolDefinition.input_schema()` produces valid JSON Schema for its `args_model`; `ToolCall` is frozen (assignment raises); `ToolResult.is_error` defaults to `False`.
+- `tests/unit/platform/ai/test_tool_loop.py` — added: `dispatch_all` doesn't abort the batch after one call fails (an unknown-tool error alongside a successful call in the same list); `definitions()` returns every registered `ToolDefinition`.
+- `tests/unit/features/claims_triage/api/test_routes.py` — added: a request missing `claim_text` entirely (not just empty) returns 422; a non-empty `tool_results` tuple round-trips through JSON correctly; an unhandled exception from `run_triage` (e.g. the `MAX_TOOL_TURNS`-exceeded `RuntimeError`) propagates rather than being silently swallowed.
+
+**Notable libraries:** none new — same pytest/`monkeypatch`/`TestClient` patterns as the existing route tests.
+
+**Decisions/trade-offs:** the max-turns-exceeded `RuntimeError` is asserted to propagate as-is (via `pytest.raises`) rather than expecting a translated 500 response — the route currently has no exception handler, so this test documents current behavior rather than asserting a design that doesn't exist yet.
+**Follow-up:** if `routes.py` later gets an explicit exception handler mapping use-case errors to a specific HTTP status, update this propagation test to assert on the response instead.
+
+---
+
 Library/framework/stdlib-concept entries live in [`ombuds_build_glossary.md`](ombuds_build_glossary.md) — append there, not here, whenever a summary's **Notable libraries** introduces something not already listed.
