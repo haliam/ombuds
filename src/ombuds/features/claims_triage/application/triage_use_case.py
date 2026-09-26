@@ -5,25 +5,52 @@ from collections.abc import Iterator
 from pydantic import BaseModel, ConfigDict
 
 from ombuds.config import load_prompt
+from ombuds.features.claims_triage.application.decision import TriageDecision
 from ombuds.features.claims_triage.tools.check_eligibility import CHECK_ELIGIBILITY_TOOL, check_eligibility
 from ombuds.features.claims_triage.tools.log_claim import LOG_CLAIM_TOOL, LogClaimArgs, log_claim
 from ombuds.features.claims_triage.verticals.airline.evidence_schema import FlightDisruption
 from ombuds.platform.ai.providers.anthropic import AnthropicProvider
 from ombuds.platform.ai.providers.base import LLMProvider
+from ombuds.platform.ai.schemas.structured_output import StructuredOutputError, parse_structured_output
 from ombuds.platform.ai.schemas.tool_calls import ToolResult
 from ombuds.platform.ai.streaming import StreamEvent, ToolResultEvent, TurnDone
 from ombuds.platform.ai.tool_loop import ToolRegistry
 
 MAX_TOOL_TURNS = 8
+MAX_REPAIR_ATTEMPTS = 2
 
 
 class TriageResult(BaseModel):
-    """Outcome of running the triage loop over one claim: the model's final answer plus every tool call made."""
+    """Outcome of running the triage loop over one claim: the model's final answer plus every tool call made.
+
+    `decision` is the validated `TriageDecision` when the model's final reply was a JSON verdict, or `None`
+    when it instead asked the passenger a plain-text clarifying question (see prompt v3's "final answer
+    format" — not every final turn is a decision).
+    """
 
     model_config = ConfigDict(frozen=True)
 
     answer: str
+    decision: TriageDecision | None
     tool_results: tuple[ToolResult, ...]
+
+
+def _repair_message(error: StructuredOutputError) -> dict[str, object]:
+    return {
+        "role": "user",
+        "content": f"Your reply didn't validate: {error}. Resend a corrected JSON object only, no other text.",
+    }
+
+
+def _parse_final_turn(text: str) -> TriageDecision | None:
+    """Parse `text` as a `TriageDecision` if it looks like JSON, or `None` if it's a plain-text question.
+
+    Raises `StructuredOutputError` when the model clearly attempted JSON (a `{` is present) but it doesn't
+    parse or validate — that's the case callers should repair, as opposed to a legitimate plain-text reply.
+    """
+    if "{" not in text:
+        return None
+    return parse_structured_output(text, TriageDecision)
 
 
 def _check_eligibility(args: BaseModel) -> BaseModel:
@@ -54,13 +81,22 @@ def run_triage(claim_text: str, *, provider: LLMProvider | None = None) -> Triag
     system = load_prompt("claims_triage")
     messages: list[dict[str, object]] = [{"role": "user", "content": claim_text}]
     all_results: list[ToolResult] = []
+    repair_attempts = 0
 
     for _ in range(MAX_TOOL_TURNS):
         turn = provider.run_turn(messages, registry.definitions(), system=system)
         messages.append({"role": "assistant", "content": turn.content})
 
         if not turn.tool_calls:
-            return TriageResult(answer=turn.text, tool_results=tuple(all_results))
+            try:
+                decision = _parse_final_turn(turn.text)
+            except StructuredOutputError as exc:
+                if repair_attempts >= MAX_REPAIR_ATTEMPTS:
+                    raise
+                repair_attempts += 1
+                messages.append(_repair_message(exc))
+                continue
+            return TriageResult(answer=turn.text, decision=decision, tool_results=tuple(all_results))
 
         results = registry.dispatch_all(list(turn.tool_calls))
         all_results.extend(results)

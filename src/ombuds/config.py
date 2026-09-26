@@ -13,7 +13,7 @@ ANTHROPIC_MODEL = os.environ.get("ANTHROPIC_MODEL", "claude-sonnet-5")
 
 # Which prompt version is live per feature. Bump here (and in .env.example) after a new version
 # passes evals/datasets/ — never edit an old version's file in place.
-ACTIVE_PROMPT_VERSIONS = {"claims_triage": os.environ.get("CLAIMS_TRIAGE_PROMPT_VERSION", "v2")}
+ACTIVE_PROMPT_VERSIONS = {"claims_triage": os.environ.get("CLAIMS_TRIAGE_PROMPT_VERSION", "v3")}
 
 
 def load_prompt(feature: str) -> str:

@@ -14,7 +14,7 @@ Legend: [x] Done · [~] Learning/in progress · [ ] Not started. Priority shown 
 - [x] Build FastAPI `/triage` endpoint (raw SDK, no framework) — 🔴 High — [summary](ombuds_build_task_summaries.md#build-fastapi-triage-endpoint-raw-sdk-no-framework)
 - [x] Write unit tests for tool-calling parser + endpoint — 🟡 Medium — [summary](ombuds_build_task_summaries.md#write-unit-tests-for-tool-calling-parser--endpoint)
 - [x] Implement streaming (SSE) + buffered JSON parsing — 🟡 Medium — [summary](ombuds_build_task_summaries.md#implement-streaming-sse--buffered-json-parsing)
-- [ ] Add structured output validation with Pydantic + retry/repair — 🔴 High
+- [x] Add structured output validation with Pydantic + retry/repair — 🔴 High — [summary](ombuds_build_task_summaries.md#add-structured-output-validation-with-pydantic--retryrepair)
 - [ ] Add retries/backoff, timeouts, fallback model, idempotency — 🔴 High
 
 ## Week 2 — Agentic Loop + MCP
