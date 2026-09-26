@@ -8,7 +8,7 @@ Legend: [x] Done · [~] Learning/in progress · [ ] Not started. Priority shown 
 
 - [x] Design the folder structure to the project — 🔴 High
 - [x] Implement EU261 rules engine (`verticals/airline/rules.py`) + unit tests — 🔴 High
-- [~] Call OpenAI & Anthropic APIs directly, compare outputs — 🟡 Medium
+- [x] Call OpenAI & Anthropic APIs directly, compare outputs — 🟡 Medium
 - [ ] Stub `approval_gate` as deny-all before any state-changing tool is registered — 🔴 High
 - [ ] Define tool schemas (`check_eligibility`, `log_claim`) + parse tool-use loop — 🔴 High
 - [ ] Build FastAPI `/triage` endpoint (raw SDK, no framework) — 🔴 High
@@ -46,3 +46,7 @@ Legend: [x] Done · [~] Learning/in progress · [ ] Not started. Priority shown 
 ---
 
 Tool names follow ADR-0004 (EU261 tool set, not generic helpdesk tools). Last synced with Notion 2026-09-24.
+
+## Notion sync pending
+
+- 2026-09-25: "Call OpenAI & Anthropic APIs directly, compare outputs" marked `[x]` here. No Notion connector was available in that session to update the board itself — mark it done on the Notion page manually, or re-run the sync from a session with Notion access. See the "Done, W1: provider comparison" note below for what to paste into the page.
