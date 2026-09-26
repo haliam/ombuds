@@ -11,7 +11,7 @@ Legend: [x] Done · [~] Learning/in progress · [ ] Not started. Priority shown 
 - [x] Call OpenAI & Anthropic APIs directly, compare outputs — 🟡 Medium — [summary](ombuds_build_task_summaries.md#call-openai--anthropic-apis-directly-compare-outputs)
 - [x] Stub `approval_gate` as deny-all before any state-changing tool is registered — 🔴 High — [summary](ombuds_build_task_summaries.md#stub-approval_gate-as-deny-all-before-any-state-changing-tool-is-registered)
 - [x] Define tool schemas (`check_eligibility`, `log_claim`) + parse tool-use loop — 🔴 High — [summary](ombuds_build_task_summaries.md#define-tool-schemas-check_eligibility-log_claim--parse-tool-use-loop)
-- [ ] Build FastAPI `/triage` endpoint (raw SDK, no framework) — 🔴 High
+- [x] Build FastAPI `/triage` endpoint (raw SDK, no framework) — 🔴 High — [summary](ombuds_build_task_summaries.md#build-fastapi-triage-endpoint-raw-sdk-no-framework)
 - [ ] Write unit tests for tool-calling parser + endpoint — 🟡 Medium
 - [ ] Implement streaming (SSE) + buffered JSON parsing — 🟡 Medium
 - [ ] Add structured output validation with Pydantic + retry/repair — 🔴 High

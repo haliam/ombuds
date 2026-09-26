@@ -99,4 +99,28 @@ Template — copy this block per finished task, filling in the fields (omit **De
 
 ---
 
+### Build FastAPI `/triage` endpoint (raw SDK, no framework)
+
+**Week:** W1
+**Goal:** Wire the existing `ToolRegistry` to a real provider turn and expose it as an HTTP endpoint — a raw `anthropic` SDK tool-use loop, not the LangGraph agent (that's a separate, later task).
+**Source:** follow-up from the tool-schemas task
+
+**Files & responsibilities:**
+- `src/ombuds/platform/ai/providers/base.py` — `LLMProvider` Protocol (`run_turn`) and `ProviderTurn` (text, tool calls, stop reason, raw content), so `triage_use_case` isn't coupled to Anthropic's SDK types.
+- `src/ombuds/platform/ai/providers/anthropic.py` — `AnthropicProvider.run_turn()`: converts `ToolDefinition`s to Anthropic's `input_schema` tool format, sends one `messages.create` call, and parses `tool_use`/`text` content blocks back into a `ProviderTurn`.
+- `src/ombuds/config.py` — `load_prompt()` reads the active versioned prompt file per AGENTS.md's prompt-versioning rule; `CLAIMS_TRIAGE_PROMPT_VERSION` in `.env.example` records which version (`v2`) is live.
+- `src/ombuds/platform/prompts/claims_triage/v2.txt` — filled in the previously-empty stub with the system prompt: always call `check_eligibility` rather than reasoning about EU261 itself, cite its reason codes, and expect `log_claim` may be denied by the approval gate.
+- `src/ombuds/features/claims_triage/application/triage_use_case.py` — `run_triage()`: registers `check_eligibility`/`log_claim` on a `ToolRegistry`, loops `provider.run_turn()` → `registry.dispatch_all()` → feed `tool_result` blocks back, until the model stops requesting tools or `MAX_TOOL_TURNS` (8) is hit.
+- `src/ombuds/features/claims_triage/api/schemas.py`, `api/routes.py` — `TriageRequest`/`TriageResponse` and `POST /claims/triage`, thin per AGENTS.md.
+- `src/ombuds/api_app.py` — `create_app()` factory mounting the claims-triage router.
+- `tests/unit/features/claims_triage/application/test_triage_use_case.py` — a fake `LLMProvider` (no real API calls) pins the no-tool-call, single-tool-call, unknown-tool, and max-turns-exceeded paths.
+- `tests/unit/features/claims_triage/api/test_routes.py` — `TestClient` against the real app, `monkeypatch`ing `run_triage` so the route test doesn't depend on the use case's internals.
+
+**Notable libraries:** FastAPI (`APIRouter`, `TestClient`) and its `httpx` dev dependency — both newly added to `pyproject.toml`.
+
+**Decisions/trade-offs:** `LLMProvider.run_turn()` takes provider-native message dicts and returns a provider-specific `content` blob that's only ever replayed back into that same provider's next call — full provider-agnosticism across the message history was deferred since only Anthropic is wired up; `OpenAIProvider`/`fallback.py` stay stubs. `run_triage()` takes `provider` as an optional keyword so tests can inject a fake without a mocking framework.
+**Follow-up:** streaming (SSE), structured-output retry/repair, and retries/backoff/fallback-model are their own W1 tasks next; a thorough unit-test pass over the tool-calling parser + endpoint (edge cases, malformed provider output) is the very next checklist item.
+
+---
+
 Library/framework/stdlib-concept entries live in [`ombuds_build_glossary.md`](ombuds_build_glossary.md) — append there, not here, whenever a summary's **Notable libraries** introduces something not already listed.
