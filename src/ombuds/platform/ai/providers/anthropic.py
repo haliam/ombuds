@@ -1,5 +1,7 @@
 """Anthropic provider: raw `anthropic` SDK tool-use turns. No agent framework — see ADR-0001 for where one lands."""
 
+import hashlib
+import json
 from collections.abc import Iterator
 
 import anthropic
@@ -9,14 +11,43 @@ from ombuds.platform.ai.schemas.tool_calls import ToolCall, ToolDefinition
 from ombuds.platform.ai.streaming import JSONBuffer, StreamEvent, TextDelta, ToolCallDelta, TurnDone
 
 DEFAULT_MODEL = "claude-sonnet-5"
+DEFAULT_TIMEOUT_SECONDS = 30.0
+DEFAULT_MAX_RETRIES = 2
 MAX_TOKENS = 1024
 
 
-class AnthropicProvider:
-    """Thin wrapper over the `anthropic` SDK's `messages.create`/`messages.stream`. No retries or fallback yet."""
+def _idempotency_key(model: str, system: str, messages: list[dict[str, object]], tools: list[ToolDefinition]) -> str:
+    """A stable key for this exact request, so a retried/re-sent call dedupes server-side instead of re-running.
 
-    def __init__(self, client: anthropic.Anthropic | None = None, model: str = DEFAULT_MODEL) -> None:
-        self._client = client or anthropic.Anthropic()
+    Anthropic's Messages API honors an `idempotency-key` header the same way Stripe's does. Deriving it from
+    the request body (rather than a random uuid per call) means the SDK's own internal retries *and* a
+    `FallbackProvider` retry against this same model reuse the same key — only a genuinely different request
+    (a new turn, once the conversation history has grown) gets a new one.
+    """
+    payload = json.dumps(
+        {"model": model, "system": system, "messages": messages, "tools": [tool.name for tool in tools]},
+        sort_keys=True,
+        default=str,
+    )
+    return hashlib.sha256(payload.encode()).hexdigest()
+
+
+class AnthropicProvider:
+    """Thin wrapper over the `anthropic` SDK's `messages.create`/`messages.stream`.
+
+    Retries and timeouts are delegated to the SDK's own client (exponential backoff on connection errors,
+    429s and 5xxs); see `FallbackProvider` for the layer above that switches models once those are exhausted.
+    """
+
+    def __init__(
+        self,
+        client: anthropic.Anthropic | None = None,
+        model: str = DEFAULT_MODEL,
+        *,
+        timeout: float = DEFAULT_TIMEOUT_SECONDS,
+        max_retries: int = DEFAULT_MAX_RETRIES,
+    ) -> None:
+        self._client = client or anthropic.Anthropic(timeout=timeout, max_retries=max_retries)
         self._model = model
 
     def run_turn(self, messages: list[dict[str, object]], tools: list[ToolDefinition], *, system: str) -> ProviderTurn:
@@ -27,6 +58,7 @@ class AnthropicProvider:
             system=system,
             messages=messages,  # type: ignore[arg-type]
             tools=[_to_anthropic_tool(tool) for tool in tools],  # type: ignore[misc]
+            extra_headers={"idempotency-key": _idempotency_key(self._model, system, messages, tools)},
         )
 
         text = "".join(block.text for block in response.content if block.type == "text")
@@ -63,6 +95,7 @@ class AnthropicProvider:
             system=system,
             messages=messages,  # type: ignore[arg-type]
             tools=[_to_anthropic_tool(tool) for tool in tools],  # type: ignore[misc]
+            extra_headers={"idempotency-key": _idempotency_key(self._model, system, messages, tools)},
         ) as stream:
             for event in stream:
                 if event.type == "content_block_start" and event.content_block.type == "tool_use":

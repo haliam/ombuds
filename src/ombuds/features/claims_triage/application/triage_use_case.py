@@ -9,8 +9,8 @@ from ombuds.features.claims_triage.application.decision import TriageDecision
 from ombuds.features.claims_triage.tools.check_eligibility import CHECK_ELIGIBILITY_TOOL, check_eligibility
 from ombuds.features.claims_triage.tools.log_claim import LOG_CLAIM_TOOL, LogClaimArgs, log_claim
 from ombuds.features.claims_triage.verticals.airline.evidence_schema import FlightDisruption
-from ombuds.platform.ai.providers.anthropic import AnthropicProvider
 from ombuds.platform.ai.providers.base import LLMProvider
+from ombuds.platform.ai.providers.fallback import build_default_provider
 from ombuds.platform.ai.schemas.structured_output import StructuredOutputError, parse_structured_output
 from ombuds.platform.ai.schemas.tool_calls import ToolResult
 from ombuds.platform.ai.streaming import StreamEvent, ToolResultEvent, TurnDone
@@ -76,7 +76,7 @@ def run_triage(claim_text: str, *, provider: LLMProvider | None = None) -> Triag
     Stops after `MAX_TOOL_TURNS` rounds even if the model keeps requesting tool calls, so a misbehaving
     model (or a stuck approval loop) can't spin forever against a live API.
     """
-    provider = provider or AnthropicProvider()
+    provider = provider or build_default_provider()
     registry = _build_registry()
     system = load_prompt("claims_triage")
     messages: list[dict[str, object]] = [{"role": "user", "content": claim_text}]
@@ -125,7 +125,7 @@ def stream_triage(claim_text: str, *, provider: LLMProvider | None = None) -> It
     per dispatched tool call and each turn's `TurnDone`. Callers that need the final answer should watch for
     the last `TurnDone` with no `tool_calls`.
     """
-    provider = provider or AnthropicProvider()
+    provider = provider or build_default_provider()
     registry = _build_registry()
     system = load_prompt("claims_triage")
     messages: list[dict[str, object]] = [{"role": "user", "content": claim_text}]
