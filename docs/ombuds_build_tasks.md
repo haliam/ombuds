@@ -7,9 +7,9 @@ Legend: [x] Done · [~] Learning/in progress · [ ] Not started. Priority shown 
 ## Week 1 — Raw API Fundamentals + Engineering Foundation
 
 - [x] Design the folder structure to the project — 🔴 High
-- [x] Implement EU261 rules engine (`verticals/airline/rules.py`) + unit tests — 🔴 High
-- [x] Call OpenAI & Anthropic APIs directly, compare outputs — 🟡 Medium
-- [ ] Stub `approval_gate` as deny-all before any state-changing tool is registered — 🔴 High
+- [x] Implement EU261 rules engine (`verticals/airline/rules.py`) + unit tests — 🔴 High — [summary](ombuds_build_task_summaries.md#implement-eu261-rules-engine-verticalsairlinerulespy--unit-tests)
+- [x] Call OpenAI & Anthropic APIs directly, compare outputs — 🟡 Medium — [summary](ombuds_build_task_summaries.md#call-openai--anthropic-apis-directly-compare-outputs)
+- [x] Stub `approval_gate` as deny-all before any state-changing tool is registered — 🔴 High — [summary](ombuds_build_task_summaries.md#stub-approval_gate-as-deny-all-before-any-state-changing-tool-is-registered)
 - [ ] Define tool schemas (`check_eligibility`, `log_claim`) + parse tool-use loop — 🔴 High
 - [ ] Build FastAPI `/triage` endpoint (raw SDK, no framework) — 🔴 High
 - [ ] Write unit tests for tool-calling parser + endpoint — 🟡 Medium
@@ -46,6 +46,8 @@ Legend: [x] Done · [~] Learning/in progress · [ ] Not started. Priority shown 
 ---
 
 Tool names follow ADR-0004 (EU261 tool set, not generic helpdesk tools). Last synced with Notion 2026-09-24.
+
+Per-task recaps (goal, files touched, libraries used) live in [`ombuds_build_task_summaries.md`](ombuds_build_task_summaries.md) — each `[x]` item above links to its entry.
 
 ## Notion sync pending
 
