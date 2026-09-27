@@ -1,20 +1,27 @@
-"""Orchestrates the end-to-end triage flow: a raw tool-use loop against Anthropic, no agent framework."""
+"""Orchestrates the end-to-end triage flow: `run_triage` drives a LangGraph tool-calling loop
+(`agent/graph.py`) against a provider; `stream_triage` still runs the raw streaming loop directly,
+since streaming events aren't yet threaded through the graph.
+"""
 
 from collections.abc import Iterator
 
 from pydantic import BaseModel, ConfigDict
 
 from ombuds.config import load_prompt
-from ombuds.features.claims_triage.application.decision import TriageDecision, verify_decision
+from ombuds.features.claims_triage.agent.graph import (
+    MAX_REPAIR_ATTEMPTS,
+    MAX_TOOL_TURNS,
+    build_triage_graph,
+    tool_result_message,
+)
+from ombuds.features.claims_triage.application.decision import TriageDecision
 from ombuds.features.claims_triage.tools import build_tool_registry
 from ombuds.platform.ai.providers.base import LLMProvider
 from ombuds.platform.ai.providers.fallback import build_default_provider
-from ombuds.platform.ai.schemas.structured_output import StructuredOutputError, parse_structured_output
 from ombuds.platform.ai.schemas.tool_calls import ToolResult
 from ombuds.platform.ai.streaming import StreamEvent, ToolResultEvent, TurnDone
 
-MAX_TOOL_TURNS = 8
-MAX_REPAIR_ATTEMPTS = 2
+__all__ = ["MAX_REPAIR_ATTEMPTS", "MAX_TOOL_TURNS", "TriageResult", "run_triage", "stream_triage"]
 
 
 class TriageResult(BaseModel):
@@ -32,72 +39,37 @@ class TriageResult(BaseModel):
     tool_results: tuple[ToolResult, ...]
 
 
-def _repair_message(error: StructuredOutputError) -> dict[str, object]:
-    return {
-        "role": "user",
-        "content": f"Your reply didn't validate: {error}. Resend a corrected JSON object only, no other text.",
-    }
-
-
-def _parse_final_turn(text: str) -> TriageDecision | None:
-    """Parse `text` as a `TriageDecision` if it looks like JSON, or `None` if it's a plain-text question.
-
-    Raises `StructuredOutputError` when the model clearly attempted JSON (a `{` is present) but it doesn't
-    parse or validate — that's the case callers should repair, as opposed to a legitimate plain-text reply.
-    """
-    if "{" not in text:
-        return None
-    return parse_structured_output(text, TriageDecision)
-
-
 def run_triage(claim_text: str, *, provider: LLMProvider | None = None) -> TriageResult:
     """Run the tool-use loop for one claim: ask the model, dispatch any tool calls, repeat until it answers.
 
-    Stops after `MAX_TOOL_TURNS` rounds even if the model keeps requesting tool calls, so a misbehaving
-    model (or a stuck approval loop) can't spin forever against a live API.
+    Delegates to the LangGraph graph built by `agent/graph.py`, which stops after `MAX_TOOL_TURNS` rounds
+    even if the model keeps requesting tool calls, so a misbehaving model (or a stuck approval loop) can't
+    spin forever against a live API.
     """
     provider = provider or build_default_provider()
     registry = build_tool_registry()
     system = load_prompt("claims_triage")
-    messages: list[dict[str, object]] = [{"role": "user", "content": claim_text}]
-    all_results: list[ToolResult] = []
-    repair_attempts = 0
+    app = build_triage_graph(provider, registry, system)
 
-    for _ in range(MAX_TOOL_TURNS):
-        turn = provider.run_turn(messages, registry.definitions(), system=system)
-        messages.append({"role": "assistant", "content": turn.content})
-
-        if not turn.tool_calls:
-            try:
-                decision = _parse_final_turn(turn.text)
-                if decision is not None:
-                    verify_decision(decision, all_results)
-            except StructuredOutputError as exc:
-                if repair_attempts >= MAX_REPAIR_ATTEMPTS:
-                    raise
-                repair_attempts += 1
-                messages.append(_repair_message(exc))
-                continue
-            return TriageResult(answer=turn.text, decision=decision, tool_results=tuple(all_results))
-
-        results = registry.dispatch_all(list(turn.tool_calls))
-        all_results.extend(results)
-        messages.append(
-            {
-                "role": "user",
-                "content": [
-                    {
-                        "type": "tool_result",
-                        "tool_use_id": result.call_id,
-                        "content": result.content,
-                        "is_error": result.is_error,
-                    }
-                    for result in results
-                ],
-            }
-        )
-
-    raise RuntimeError(f"triage did not converge within {MAX_TOOL_TURNS} tool-use turns")
+    final_state = app.invoke(
+        {
+            "messages": [{"role": "user", "content": claim_text}],
+            "tool_results": [],
+            "pending_tool_calls": (),
+            "text": "",
+            "turns": 0,
+            "repair_attempts": 0,
+            "answer": None,
+            "decision": None,
+            "done": False,
+        },
+        config={"recursion_limit": 4 * MAX_TOOL_TURNS + 2 * MAX_REPAIR_ATTEMPTS + 10},
+    )
+    return TriageResult(
+        answer=final_state["answer"],
+        decision=final_state["decision"],
+        tool_results=tuple(final_state["tool_results"]),
+    )
 
 
 def stream_triage(claim_text: str, *, provider: LLMProvider | None = None) -> Iterator[StreamEvent]:
@@ -128,19 +100,6 @@ def stream_triage(claim_text: str, *, provider: LLMProvider | None = None) -> It
         results = registry.dispatch_all(list(turn_done.tool_calls))
         for result in results:
             yield ToolResultEvent(result=result)
-        messages.append(
-            {
-                "role": "user",
-                "content": [
-                    {
-                        "type": "tool_result",
-                        "tool_use_id": result.call_id,
-                        "content": result.content,
-                        "is_error": result.is_error,
-                    }
-                    for result in results
-                ],
-            }
-        )
+        messages.append(tool_result_message(results))
 
     raise RuntimeError(f"triage did not converge within {MAX_TOOL_TURNS} tool-use turns")

@@ -208,4 +208,24 @@ Template — copy this block per finished task, filling in the fields (omit **De
 
 ---
 
+### Rebuild tool-calling loop in LangGraph
+
+**Week:** W2
+**Goal:** Replace the W1 hand-rolled `for`-loop tool-use orchestration with an explicit LangGraph `StateGraph`, so the agentic loop is graph-native and later W2 nodes (classify/retrieve/decide/escalate_retry) have a graph to hang off of.
+**Source:** `ombuds_build_tasks.md` Week 2 checklist
+
+**Files & responsibilities:**
+- `src/ombuds/features/claims_triage/agent/state.py` — `AgentState`: the `TypedDict` threaded through every node (messages, accumulated `tool_results`, `pending_tool_calls`/`text` staging the latest model turn, `turns`/`repair_attempts` counters, `answer`/`decision`, `done`).
+- `src/ombuds/features/claims_triage/agent/graph.py` — `build_triage_graph(provider, registry, system)`: compiles a 3-node graph — `call_model` (one provider turn) → routes to `dispatch_tools` (runs `ToolRegistry.dispatch_all`, loops back to `call_model`) or `finalize` (validates/verifies the final reply, either returning `answer`/`decision` or looping back to `call_model` with a repair message). Also hosts `tool_result_message()`, `_repair_message()`, `_parse_final_turn()` — moved here from `triage_use_case.py` since the loop now lives in this module.
+- `src/ombuds/features/claims_triage/application/triage_use_case.py` — `run_triage()` now builds and `.invoke()`s the compiled graph instead of a manual loop; same `TriageResult` contract, same `MAX_TOOL_TURNS`/`MAX_REPAIR_ATTEMPTS` bounds (now re-exported from `agent/graph.py`). `stream_triage()` is unchanged (streaming isn't threaded through the graph yet) but now imports `tool_result_message()` instead of duplicating it.
+- `tests/unit/features/claims_triage/application/test_triage_use_case.py` — unchanged; passes against the graph-backed `run_triage()` with no test edits, confirming behavior parity (tool dispatch, repair-on-bad-JSON, repair-on-`verify_decision`-mismatch, unknown-tool error, non-convergence after `MAX_TOOL_TURNS`).
+- `pyproject.toml` — added `langgraph>=0.2`.
+
+**Notable libraries:** LangGraph (`StateGraph`, `CompiledStateGraph`, `END`) — see glossary.
+
+**Decisions/trade-offs:** `stream_triage()` was deliberately left on the old manual loop rather than also rebuilt on the graph — streaming events (`TextDelta`/`ToolCallDelta`/`TurnDone`) aren't yet a first-class graph concept here, and folding them in would have doubled this task's scope for no behavior change; picked up as a later W2/W3 follow-up if streaming needs the same node structure. The tool-loop nodes (`call_model`/`dispatch_tools`/`finalize`) were written directly in `agent/graph.py` rather than split across `agent/nodes/*.py` (`classify.py`/`decide.py`/`retrieve.py`/`escalate_retry.py` per `AGENTS.md`'s layout) — those stubs are for the broader classify→retrieve→decide pipeline, which doesn't exist yet; wiring the tool loop into that node package is deferred to whichever task builds that pipeline, rather than guessing its shape now.
+**Follow-up:** `agent/nodes/classify.py`, `retrieve.py`, `decide.py`, `escalate_retry.py` remain empty stubs — not wired into this graph. `stream_triage()` still bypasses the graph.
+
+---
+
 Library/framework/stdlib-concept entries live in [`ombuds_build_glossary.md`](ombuds_build_glossary.md) — append there, not here, whenever a summary's **Notable libraries** introduces something not already listed.
