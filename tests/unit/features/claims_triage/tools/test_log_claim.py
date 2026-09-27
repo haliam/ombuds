@@ -1,8 +1,8 @@
 import pytest
 
+import ombuds.features.claims_triage.tools.log_claim as log_claim_module
 from ombuds.domain.errors import ToolExecutionError
 from ombuds.domain.models.claim import EligibilityResult
-from ombuds.features.claims_triage.tools import log_claim as log_claim_module
 from ombuds.features.claims_triage.tools.log_claim import LOG_CLAIM_TOOL, LogClaimArgs, log_claim
 from ombuds.platform.guardrails.approval_gate import ApprovalDecision
 
