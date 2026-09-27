@@ -24,6 +24,17 @@ class ProviderTurn(BaseModel):
     content: object
 
 
+class ProviderUnavailableError(Exception):
+    """Raised by an `LLMProvider` adapter when the provider itself is unavailable, not merely erroring.
+
+    Each adapter translates its own SDK's retryable-but-now-exhausted failures (a connection drop, a
+    timeout, a rate limit, a 5xx) into this one provider-agnostic type at its own boundary — see
+    `AnthropicProvider` and ADR-0006. `FallbackProvider` catches only this type to decide when to retry
+    or fail over to a different model; anything else (a 4xx from malformed input, a bug in our own
+    response parsing) propagates unchanged instead of triggering a pointless retry or fallover.
+    """
+
+
 class LLMProvider(Protocol):
     """A provider that can run one turn of a tool-use conversation."""
 
