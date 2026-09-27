@@ -20,6 +20,8 @@ from ombuds.platform.ai.providers.base import LLMProvider
 from ombuds.platform.ai.providers.fallback import build_default_provider
 from ombuds.platform.ai.schemas.tool_calls import ToolResult
 from ombuds.platform.ai.streaming import StreamEvent, ToolResultEvent, TurnDone
+from ombuds.platform.ai.tool_loop import ToolDispatcher
+from ombuds.platform.mcp.client import McpToolClient
 
 __all__ = ["MAX_REPAIR_ATTEMPTS", "MAX_TOOL_TURNS", "TriageResult", "run_triage", "stream_triage"]
 
@@ -39,16 +41,27 @@ class TriageResult(BaseModel):
     tool_results: tuple[ToolResult, ...]
 
 
-def run_triage(claim_text: str, *, provider: LLMProvider | None = None) -> TriageResult:
+def run_triage(claim_text: str, *, provider: LLMProvider | None = None, use_mcp: bool = False) -> TriageResult:
     """Run the tool-use loop for one claim: ask the model, dispatch any tool calls, repeat until it answers.
 
     Delegates to the LangGraph graph built by `agent/graph.py`, which stops after `MAX_TOOL_TURNS` rounds
     even if the model keeps requesting tool calls, so a misbehaving model (or a stuck approval loop) can't
     spin forever against a live API.
+
+    `use_mcp=True` dispatches tool calls over a real MCP session (`platform/mcp/client.py`), spawning the
+    standalone server (`platform/mcp/server.py`) as a subprocess, instead of the default in-process
+    `ToolRegistry`. The graph itself doesn't know the difference — both satisfy `ToolDispatcher`.
     """
     provider = provider or build_default_provider()
-    registry = build_tool_registry()
     system = load_prompt("claims_triage")
+
+    if use_mcp:
+        with McpToolClient() as registry:
+            return _invoke_graph(provider, registry, system, claim_text)
+    return _invoke_graph(provider, build_tool_registry(), system, claim_text)
+
+
+def _invoke_graph(provider: LLMProvider, registry: ToolDispatcher, system: str, claim_text: str) -> TriageResult:
     app = build_triage_graph(provider, registry, system)
 
     final_state = app.invoke(

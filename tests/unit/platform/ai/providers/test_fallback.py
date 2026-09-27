@@ -1,4 +1,4 @@
-from collections.abc import Iterator
+from collections.abc import Iterator, Sequence
 
 import pytest
 
@@ -18,14 +18,14 @@ class _FailingProvider:
         self._fail_times = fail_times
         self.calls = 0
 
-    def run_turn(self, messages: list[dict[str, object]], tools: list[ToolDefinition], *, system: str) -> ProviderTurn:
+    def run_turn(self, messages: list[dict[str, object]], tools: Sequence[ToolDefinition], *, system: str) -> ProviderTurn:
         self.calls += 1
         if self._fail_times is not None and self.calls > self._fail_times:
             return _TURN
         raise self._error
 
     def stream_turn(
-        self, messages: list[dict[str, object]], tools: list[ToolDefinition], *, system: str
+        self, messages: list[dict[str, object]], tools: Sequence[ToolDefinition], *, system: str
     ) -> Iterator[StreamEvent]:
         self.calls += 1
         if self._fail_times is not None and self.calls > self._fail_times:
@@ -38,23 +38,23 @@ class _OkProvider:
     def __init__(self) -> None:
         self.calls = 0
 
-    def run_turn(self, messages: list[dict[str, object]], tools: list[ToolDefinition], *, system: str) -> ProviderTurn:
+    def run_turn(self, messages: list[dict[str, object]], tools: Sequence[ToolDefinition], *, system: str) -> ProviderTurn:
         self.calls += 1
         return _TURN
 
     def stream_turn(
-        self, messages: list[dict[str, object]], tools: list[ToolDefinition], *, system: str
+        self, messages: list[dict[str, object]], tools: Sequence[ToolDefinition], *, system: str
     ) -> Iterator[StreamEvent]:
         self.calls += 1
         yield TurnDone(text="ok", tool_calls=(), stop_reason="end_turn", content=[])
 
 
 class _MidStreamFailure:
-    def run_turn(self, messages: list[dict[str, object]], tools: list[ToolDefinition], *, system: str) -> ProviderTurn:
+    def run_turn(self, messages: list[dict[str, object]], tools: Sequence[ToolDefinition], *, system: str) -> ProviderTurn:
         raise AssertionError("not used")
 
     def stream_turn(
-        self, messages: list[dict[str, object]], tools: list[ToolDefinition], *, system: str
+        self, messages: list[dict[str, object]], tools: Sequence[ToolDefinition], *, system: str
     ) -> Iterator[StreamEvent]:
         yield TextDelta(text="partial")
         raise ProviderUnavailableError("dropped mid-stream")
