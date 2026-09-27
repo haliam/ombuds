@@ -112,11 +112,16 @@ class FallbackProvider:
 
 
 def build_default_provider() -> LLMProvider:
-    """The provider triage uses by default: `ANTHROPIC_MODEL`, falling back to `ANTHROPIC_FALLBACK_MODEL`."""
-    from ombuds.config import ANTHROPIC_FALLBACK_MODEL, ANTHROPIC_MODEL
+    """The provider triage uses by default: `ANTHROPIC_MODEL`, falling back to `ANTHROPIC_FALLBACK_MODEL`.
+
+    Both providers share the same configured timeout/max-retries — see `config.py` and `.env.example`.
+    """
+    from ombuds.config import ANTHROPIC_FALLBACK_MODEL, ANTHROPIC_MAX_RETRIES, ANTHROPIC_MODEL, ANTHROPIC_TIMEOUT_SECONDS
     from ombuds.platform.ai.providers.anthropic import AnthropicProvider
 
     return FallbackProvider(
-        primary=AnthropicProvider(model=ANTHROPIC_MODEL),
-        fallback=AnthropicProvider(model=ANTHROPIC_FALLBACK_MODEL),
+        primary=AnthropicProvider(ANTHROPIC_MODEL, timeout=ANTHROPIC_TIMEOUT_SECONDS, max_retries=ANTHROPIC_MAX_RETRIES),
+        fallback=AnthropicProvider(
+            ANTHROPIC_FALLBACK_MODEL, timeout=ANTHROPIC_TIMEOUT_SECONDS, max_retries=ANTHROPIC_MAX_RETRIES
+        ),
     )

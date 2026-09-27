@@ -10,7 +10,6 @@ from ombuds.platform.ai.providers.base import ProviderTurn
 from ombuds.platform.ai.schemas.tool_calls import ToolCall, ToolDefinition
 from ombuds.platform.ai.streaming import JSONBuffer, StreamEvent, TextDelta, ToolCallDelta, TurnDone
 
-DEFAULT_MODEL = "claude-sonnet-5"
 DEFAULT_TIMEOUT_SECONDS = 30.0
 DEFAULT_MAX_RETRIES = 2
 MAX_TOKENS = 1024
@@ -41,8 +40,8 @@ class AnthropicProvider:
 
     def __init__(
         self,
+        model: str,
         client: anthropic.Anthropic | None = None,
-        model: str = DEFAULT_MODEL,
         *,
         timeout: float = DEFAULT_TIMEOUT_SECONDS,
         max_retries: int = DEFAULT_MAX_RETRIES,
