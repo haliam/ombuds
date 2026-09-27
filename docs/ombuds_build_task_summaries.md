@@ -251,4 +251,27 @@ Template — copy this block per finished task, filling in the fields (omit **De
 
 ---
 
+### Connect LangGraph agent to tools over MCP
+
+**Week:** W2
+**Goal:** Give the LangGraph tool-calling loop (`agent/graph.py`) a real MCP-connected path to the claims-triage tools, so `search_kb`/`check_eligibility`/`log_claim`/`issue_payment` can be dispatched over the actual MCP transport stood up in the previous task, not just the in-process `ToolRegistry`.
+**Source:** `ombuds_build_tasks.md` Week 2 checklist
+
+**Files & responsibilities:**
+- `src/ombuds/platform/mcp/client.py` (new) — `McpToolClient`: a synchronous context manager wrapping an MCP `ClientSession` connected over stdio to `python -m ombuds.platform.mcp.server` (spawned as a subprocess). `definitions()` lists the server's tools and converts each to a `ToolDefinition` carrying the server's own JSON schema; `dispatch_all()` runs a batch of `ToolCall`s over the session, in order, converting each `CallToolResult` back to a `ToolResult`. Bridges LangGraph's synchronous nodes to the async-only `ClientSession` via an `anyio` blocking portal — `_connect()` opens the stdio transport and the session as one nested async context manager so enter/exit happen in the single task the portal keeps alive for it (`portal.wrap_async_context_manager`), avoiding a cancel-scope task-affinity error a naive `__aenter__`/`__aexit__` split hit during development.
+- `src/ombuds/platform/ai/tool_loop.py` — new `ToolDispatcher` `Protocol` (`definitions()`, `dispatch_all()`): the shape `agent/graph.py` actually needs from a tool source. `ToolRegistry` and `McpToolClient` both satisfy it structurally, so the graph doesn't know or care which one it's holding.
+- `src/ombuds/features/claims_triage/agent/graph.py` — `build_triage_graph`'s `registry` parameter is now typed `ToolDispatcher` instead of `ToolRegistry`.
+- `src/ombuds/platform/ai/schemas/tool_calls.py` — `ToolDefinition` gained an optional `raw_schema` field; `input_schema()` returns it verbatim when set, falling back to `args_model.model_json_schema()` otherwise. An MCP-sourced definition has no local `args_model` to derive a schema from (validation happens server-side, inside the registry `platform/mcp/server.py` already wraps) — `raw_schema` lets it carry the server's schema through without a dummy model pretending to validate anything.
+- `src/ombuds/features/claims_triage/application/triage_use_case.py` — `run_triage()` gained a `use_mcp: bool = False` parameter; `True` runs the graph against an `McpToolClient` (spawning the server subprocess) instead of the default in-process `build_tool_registry()`. Both paths now share a `_invoke_graph()` helper instead of duplicating the `app.invoke()` call.
+- `src/ombuds/platform/ai/providers/base.py`, `anthropic.py`, `fallback.py` — `run_turn`/`stream_turn`'s `tools` parameter widened from `list[ToolDefinition]` to `Sequence[ToolDefinition]`, so a `list[ToolDefinition]` from `ToolRegistry.definitions()` and one built by `McpToolClient.definitions()` are both accepted without either registry needing to match the other's exact list type.
+- `tests/integration/mcp/test_client.py` (new) — real round-trip against the actual server subprocess (not the in-memory test session `test_tool_bindings.py` uses): lists the tool catalogue, dispatches `check_eligibility` and gets a real result back, and confirms an unknown tool name comes back as an `is_error` result rather than raising.
+- `tests/unit/platform/ai/providers/test_fallback.py`, `tests/unit/features/claims_triage/application/test_triage_use_case.py` — fake `LLMProvider` implementations' type hints updated to match the widened `Sequence[ToolDefinition]` signature; no behavior changes.
+
+**Notable libraries:** `anyio.from_thread.start_blocking_portal` / `BlockingPortal.wrap_async_context_manager` — see glossary.
+
+**Decisions/trade-offs:** `run_triage()` defaults to `use_mcp=False` rather than switching the whole app over to the MCP path — the in-process registry has no subprocess-startup cost and is what every existing test exercises; the MCP-connected path is opt-in and proven end-to-end (an integration test plus a manual run with a fake provider driving a real `check_eligibility` call over the subprocess), but nothing yet depends on it being the default. `ToolDefinition.raw_schema` was chosen over introducing a separate `ToolSpec` protocol type across the provider layer (which would have meant widening `LLMProvider.run_turn`/`stream_turn` and every implementer to a structurally-different type) — one optional field keeps `ToolDefinition` as the single currency both registries hand to a provider.
+**Follow-up:** none of `run_triage`'s callers (the FastAPI `/triage` route) pass `use_mcp=True` yet — flipping that default, or exposing it as a request/config option, is a later decision once there's a reason to prefer the MCP path in production rather than just having it available and tested.
+
+---
+
 Library/framework/stdlib-concept entries live in [`ombuds_build_glossary.md`](ombuds_build_glossary.md) — append there, not here, whenever a summary's **Notable libraries** introduces something not already listed.

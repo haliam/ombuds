@@ -4,7 +4,8 @@ Provider-agnostic: it operates on `ToolCall`/`ToolResult` (platform/ai/schemas/t
 SDK's response type, so the same registry serves whichever provider `platform/ai/providers/` ends up calling.
 """
 
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
+from typing import Protocol
 
 from pydantic import BaseModel, ValidationError
 
@@ -12,6 +13,23 @@ from ombuds.domain.errors import ToolExecutionError
 from ombuds.platform.ai.schemas.tool_calls import ToolCall, ToolDefinition, ToolResult
 
 ToolHandler = Callable[[BaseModel], BaseModel]
+
+
+class ToolDispatcher(Protocol):
+    """What `agent/graph.py`'s tool-calling loop needs from a tool source: a list of tool definitions
+    to offer the model, and a way to run a batch of the model's tool calls.
+
+    `ToolRegistry` (below) satisfies this by dispatching in-process. `platform/mcp/client.py`'s
+    `McpToolClient` satisfies it too, dispatching over an MCP session instead — the graph doesn't
+    need to know which."""
+
+    def definitions(self) -> Sequence[ToolDefinition]:
+        """All tool definitions currently on offer, for building a provider request's tool list."""
+        ...
+
+    def dispatch_all(self, calls: list[ToolCall]) -> list[ToolResult]:
+        """Dispatch every tool call from one provider turn, in order."""
+        ...
 
 
 class ToolRegistry:

@@ -14,7 +14,7 @@ from ombuds.features.claims_triage.application.decision import TriageDecision, v
 from ombuds.platform.ai.providers.base import LLMProvider
 from ombuds.platform.ai.schemas.structured_output import StructuredOutputError, parse_structured_output
 from ombuds.platform.ai.schemas.tool_calls import ToolResult
-from ombuds.platform.ai.tool_loop import ToolRegistry
+from ombuds.platform.ai.tool_loop import ToolDispatcher
 
 MAX_TOOL_TURNS = 8
 MAX_REPAIR_ATTEMPTS = 2
@@ -55,7 +55,7 @@ def _parse_final_turn(text: str) -> TriageDecision | None:
     return parse_structured_output(text, TriageDecision)
 
 
-def build_triage_graph(provider: LLMProvider, registry: ToolRegistry, system: str) -> CompiledStateGraph[AgentState]:
+def build_triage_graph(provider: LLMProvider, registry: ToolDispatcher, system: str) -> CompiledStateGraph[AgentState]:
     """Compile the tool-calling loop graph, bound to one provider, tool registry, and system prompt."""
 
     def call_model(state: AgentState) -> dict[str, object]:

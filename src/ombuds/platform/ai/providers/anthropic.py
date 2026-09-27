@@ -1,6 +1,6 @@
 """Anthropic provider: raw `anthropic` SDK tool-use turns. No agent framework — see ADR-0001 for where one lands."""
 
-from collections.abc import Iterator
+from collections.abc import Iterator, Sequence
 
 import anthropic
 
@@ -48,7 +48,7 @@ class AnthropicProvider:
         self._client = client or anthropic.Anthropic(timeout=timeout, max_retries=max_retries)
         self._model = model
 
-    def run_turn(self, messages: list[dict[str, object]], tools: list[ToolDefinition], *, system: str) -> ProviderTurn:
+    def run_turn(self, messages: list[dict[str, object]], tools: Sequence[ToolDefinition], *, system: str) -> ProviderTurn:
         """Send one turn to Anthropic and parse its response into a provider-agnostic `ProviderTurn`.
 
         Raises `ProviderUnavailableError` once the SDK's own retries are exhausted for a retryable
@@ -80,7 +80,7 @@ class AnthropicProvider:
         )
 
     def stream_turn(
-        self, messages: list[dict[str, object]], tools: list[ToolDefinition], *, system: str
+        self, messages: list[dict[str, object]], tools: Sequence[ToolDefinition], *, system: str
     ) -> Iterator[StreamEvent]:
         """Stream one turn: text deltas and completed tool calls as they arrive, ending with a `TurnDone`.
 

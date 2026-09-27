@@ -1,6 +1,6 @@
 """Provider-agnostic contract for one LLM turn: send a conversation and tool list, get an assistant turn back."""
 
-from collections.abc import Iterator
+from collections.abc import Iterator, Sequence
 from typing import Protocol
 
 from pydantic import BaseModel, ConfigDict
@@ -38,12 +38,12 @@ class ProviderUnavailableError(Exception):
 class LLMProvider(Protocol):
     """A provider that can run one turn of a tool-use conversation."""
 
-    def run_turn(self, messages: list[dict[str, object]], tools: list[ToolDefinition], *, system: str) -> ProviderTurn:
+    def run_turn(self, messages: list[dict[str, object]], tools: Sequence[ToolDefinition], *, system: str) -> ProviderTurn:
         """Send `messages` (provider-native wire format) plus `tools` and `system`, and return the assistant turn."""
         ...
 
     def stream_turn(
-        self, messages: list[dict[str, object]], tools: list[ToolDefinition], *, system: str
+        self, messages: list[dict[str, object]], tools: Sequence[ToolDefinition], *, system: str
     ) -> Iterator[StreamEvent]:
         """Like `run_turn`, but yield incremental `StreamEvent`s as they arrive, ending with a `TurnDone`."""
         ...

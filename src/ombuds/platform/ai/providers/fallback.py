@@ -9,7 +9,7 @@ one layer catching everything.
 
 import logging
 import time
-from collections.abc import Callable, Iterator
+from collections.abc import Callable, Iterator, Sequence
 from typing import TypeVar
 
 from ombuds.platform.ai.providers.base import LLMProvider, ProviderTurn, ProviderUnavailableError
@@ -52,7 +52,7 @@ class FallbackProvider:
         self._base_backoff_seconds = base_backoff_seconds
         self._sleep = sleep
 
-    def run_turn(self, messages: list[dict[str, object]], tools: list[ToolDefinition], *, system: str) -> ProviderTurn:
+    def run_turn(self, messages: list[dict[str, object]], tools: Sequence[ToolDefinition], *, system: str) -> ProviderTurn:
         """Retry `primary.run_turn` with backoff; fall over to `fallback.run_turn` once retries are exhausted.
 
         Only `ProviderUnavailableError` triggers a retry or fallover — any other exception (a 4xx from
@@ -65,7 +65,7 @@ class FallbackProvider:
             return self._fallback.run_turn(messages, tools, system=system)
 
     def stream_turn(
-        self, messages: list[dict[str, object]], tools: list[ToolDefinition], *, system: str
+        self, messages: list[dict[str, object]], tools: Sequence[ToolDefinition], *, system: str
     ) -> Iterator[StreamEvent]:
         """Like `run_turn`, but only falls over before any event has reached the caller.
 
