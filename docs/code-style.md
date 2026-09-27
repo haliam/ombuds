@@ -45,7 +45,7 @@ This document covers only the judgement calls a tool can't make.
 
 ## Errors
 
-- Catch specific exceptions only. No bare `except:` and no `except Exception:` — the single intentional exception is the retry path in `platform/ai/providers/fallback.py`, commented there.
+- Catch specific exceptions only. No bare `except:` and no `except Exception:` — each provider adapter (e.g. `platform/ai/providers/anthropic.py`) translates its own SDK's retryable failures into the shared `ProviderUnavailableError` at its own boundary, so `platform/ai/providers/fallback.py`'s retry/fallover logic catches that one type, not `Exception` (ADR-0006).
 - Domain error types live in `domain/errors.py`. Raise at the point of detection; translate to HTTP status only in `api/`.
 - Don't use exceptions for expected outcomes: "not eligible" is a result, not an error.
 

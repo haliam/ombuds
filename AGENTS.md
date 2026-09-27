@@ -31,7 +31,7 @@ Keep this section accurate or delete a stale line — a wrong command here is wo
 - `platform/` — feature-agnostic. Must not import from `features/` or contain airline/triage knowledge.
   - `ai/` — provider-agnostic LLM layer: `providers/` (anthropic, openai, fallback), structured-output schemas, `tool_loop.py`, streaming.
   - `guardrails/` — the one governance layer: `pii_filter`, `injection_detection`, `approval_gate`, `policy_engine` + `policies/*.rego`.
-  - `mcp/` — exposes feature tools over MCP via `tool_bindings.py`; a subpackage, not a service (ADR-0003).
+  - `mcp/` — `tool_bindings.py` wraps a `ToolRegistry` for MCP exposure without importing `features/`; `server.py` (a composition root) builds the registry from a feature (e.g. `claims_triage.tools.build_tool_registry()`) and hands it to `tool_bindings.py`. A subpackage, not a service (ADR-0003).
   - `infrastructure/` — Postgres, vector store, repositories, audit log.
   - `observability/` — logging, tracing, metrics.
   - `prompts/<feature>/vN.txt` — versioned prompts, see "Prompt versioning" below.
@@ -43,7 +43,7 @@ Read `docs/code-style.md` before writing code — it holds the judgement-call ru
 Any tool that changes state (`log_claim`, `issue_payment`, an escalation) must pass through `platform/guardrails/approval_gate.py` and be checked against `platform/guardrails/policy_engine.py`. A tool being registered and callable is not the same as having permission to execute — this boundary is the one thing not to relax for build-speed during the sprint.
 
 ## Prompt versioning
-Prompts are versioned files under `src/ombuds/platform/prompts/<feature>/vN.txt` (currently `claims_triage/v1.txt`, `v2.txt`), never inline strings. Bump the version rather than overwriting when wording changes meaningfully. A new version must run clean against `evals/datasets/` before it becomes the active version referenced in `config.py`. Record which version is live per environment in `.env.example`.
+Prompts are versioned files under `src/ombuds/platform/prompts/<feature>/vN.txt` (currently `claims_triage/v4.txt` is live, with `v1`–`v3` kept as history), never inline strings. Bump the version rather than overwriting when wording changes meaningfully. A new version must run clean against `evals/datasets/` before it becomes the active version referenced in `config.py`. Record which version is live per environment in `.env.example`.
 
 ## Decisions
 Architecture decisions live in `docs/decisions/` as ADRs — start from `docs/decisions/0000-template.md`. Write one when choosing between real alternatives (a framework, a storage engine, a deployment shape), not for routine implementation choices.

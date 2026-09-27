@@ -5,16 +5,13 @@ from collections.abc import Iterator
 from pydantic import BaseModel, ConfigDict
 
 from ombuds.config import load_prompt
-from ombuds.features.claims_triage.application.decision import TriageDecision
-from ombuds.features.claims_triage.tools.check_eligibility import CHECK_ELIGIBILITY_TOOL, check_eligibility
-from ombuds.features.claims_triage.tools.log_claim import LOG_CLAIM_TOOL, LogClaimArgs, log_claim
-from ombuds.features.claims_triage.verticals.airline.evidence_schema import FlightDisruption
+from ombuds.features.claims_triage.application.decision import TriageDecision, verify_decision
+from ombuds.features.claims_triage.tools import build_tool_registry
 from ombuds.platform.ai.providers.base import LLMProvider
 from ombuds.platform.ai.providers.fallback import build_default_provider
 from ombuds.platform.ai.schemas.structured_output import StructuredOutputError, parse_structured_output
 from ombuds.platform.ai.schemas.tool_calls import ToolResult
 from ombuds.platform.ai.streaming import StreamEvent, ToolResultEvent, TurnDone
-from ombuds.platform.ai.tool_loop import ToolRegistry
 
 MAX_TOOL_TURNS = 8
 MAX_REPAIR_ATTEMPTS = 2
@@ -23,9 +20,9 @@ MAX_REPAIR_ATTEMPTS = 2
 class TriageResult(BaseModel):
     """Outcome of running the triage loop over one claim: the model's final answer plus every tool call made.
 
-    `decision` is the validated `TriageDecision` when the model's final reply was a JSON verdict, or `None`
-    when it instead asked the passenger a plain-text clarifying question (see prompt v3's "final answer
-    format" — not every final turn is a decision).
+    `decision` is the validated, `check_eligibility`-verified `TriageDecision` when the model's final reply
+    was a JSON verdict, or `None` when it instead asked the passenger a plain-text clarifying question
+    (see prompt v4's "final answer format" — not every final turn is a decision).
     """
 
     model_config = ConfigDict(frozen=True)
@@ -53,23 +50,6 @@ def _parse_final_turn(text: str) -> TriageDecision | None:
     return parse_structured_output(text, TriageDecision)
 
 
-def _check_eligibility(args: BaseModel) -> BaseModel:
-    assert isinstance(args, FlightDisruption)
-    return check_eligibility(args)
-
-
-def _log_claim(args: BaseModel) -> BaseModel:
-    assert isinstance(args, LogClaimArgs)
-    return log_claim(args)
-
-
-def _build_registry() -> ToolRegistry:
-    registry = ToolRegistry()
-    registry.register(CHECK_ELIGIBILITY_TOOL, _check_eligibility)
-    registry.register(LOG_CLAIM_TOOL, _log_claim)
-    return registry
-
-
 def run_triage(claim_text: str, *, provider: LLMProvider | None = None) -> TriageResult:
     """Run the tool-use loop for one claim: ask the model, dispatch any tool calls, repeat until it answers.
 
@@ -77,7 +57,7 @@ def run_triage(claim_text: str, *, provider: LLMProvider | None = None) -> Triag
     model (or a stuck approval loop) can't spin forever against a live API.
     """
     provider = provider or build_default_provider()
-    registry = _build_registry()
+    registry = build_tool_registry()
     system = load_prompt("claims_triage")
     messages: list[dict[str, object]] = [{"role": "user", "content": claim_text}]
     all_results: list[ToolResult] = []
@@ -90,6 +70,8 @@ def run_triage(claim_text: str, *, provider: LLMProvider | None = None) -> Triag
         if not turn.tool_calls:
             try:
                 decision = _parse_final_turn(turn.text)
+                if decision is not None:
+                    verify_decision(decision, all_results)
             except StructuredOutputError as exc:
                 if repair_attempts >= MAX_REPAIR_ATTEMPTS:
                     raise
@@ -126,7 +108,7 @@ def stream_triage(claim_text: str, *, provider: LLMProvider | None = None) -> It
     the last `TurnDone` with no `tool_calls`.
     """
     provider = provider or build_default_provider()
-    registry = _build_registry()
+    registry = build_tool_registry()
     system = load_prompt("claims_triage")
     messages: list[dict[str, object]] = [{"role": "user", "content": claim_text}]
 
