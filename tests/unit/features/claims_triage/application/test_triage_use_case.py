@@ -2,6 +2,7 @@ from collections.abc import Iterator, Sequence
 
 import pytest
 
+from ombuds.features.claims_triage.agent.memory.long_term import InMemoryLongTermMemoryStore
 from ombuds.features.claims_triage.application.triage_use_case import (
     MAX_REPAIR_ATTEMPTS,
     MAX_TOOL_TURNS,
@@ -32,9 +33,11 @@ class _FakeProvider:
     def __init__(self, turns: list[ProviderTurn]) -> None:
         self._turns = list(turns)
         self.calls = 0
+        self.systems: list[str] = []
 
     def run_turn(self, messages: list[dict[str, object]], tools: Sequence[ToolDefinition], *, system: str) -> ProviderTurn:
         self.calls += 1
+        self.systems.append(system)
         return self._turns.pop(0)
 
     def stream_turn(
@@ -222,6 +225,60 @@ def test_run_triage_gives_up_after_max_tool_turns() -> None:
 
     with pytest.raises(RuntimeError, match="did not converge"):
         run_triage("claim", provider=provider)
+
+
+def test_run_triage_saves_the_decision_to_long_term_memory_when_a_claimant_id_is_given() -> None:
+    provider = _FakeProvider(
+        [
+            ProviderTurn(
+                text="",
+                tool_calls=(ToolCall(id="call-1", name="check_eligibility", arguments=_disruption_args()),),
+                stop_reason="tool_use",
+                content=[],
+            ),
+            ProviderTurn(text=_DECISION_JSON, tool_calls=(), stop_reason="end_turn", content=[]),
+        ]
+    )
+    store = InMemoryLongTermMemoryStore()
+
+    run_triage("claim", provider=provider, claimant_id="claimant@example.com", long_term_store=store)
+
+    memory = store.load("claimant@example.com")
+    assert memory.facts["last_decision"] == "You are eligible for EUR 250."
+
+
+def test_run_triage_carries_prior_long_term_memory_into_a_later_run_for_the_same_claimant() -> None:
+    store = InMemoryLongTermMemoryStore()
+    first_provider = _FakeProvider(
+        [
+            ProviderTurn(
+                text="",
+                tool_calls=(ToolCall(id="call-1", name="check_eligibility", arguments=_disruption_args()),),
+                stop_reason="tool_use",
+                content=[],
+            ),
+            ProviderTurn(text=_DECISION_JSON, tool_calls=(), stop_reason="end_turn", content=[]),
+        ]
+    )
+    run_triage("claim", provider=first_provider, claimant_id="claimant@example.com", long_term_store=store)
+
+    second_provider = _FakeProvider(
+        [ProviderTurn(text="Please provide your flight details.", tool_calls=(), stop_reason="end_turn", content=[])]
+    )
+    run_triage("second claim", provider=second_provider, claimant_id="claimant@example.com", long_term_store=store)
+
+    assert "You are eligible for EUR 250." in second_provider.systems[0]
+
+
+def test_run_triage_does_not_touch_long_term_memory_without_a_claimant_id() -> None:
+    provider = _FakeProvider(
+        [ProviderTurn(text="Please provide your flight details.", tool_calls=(), stop_reason="end_turn", content=[])]
+    )
+    store = InMemoryLongTermMemoryStore()
+
+    run_triage("claim", provider=provider, long_term_store=store)
+
+    assert "Known facts" not in provider.systems[0]
 
 
 def test_stream_triage_yields_text_delta_and_turn_done_when_no_tools_are_called() -> None:

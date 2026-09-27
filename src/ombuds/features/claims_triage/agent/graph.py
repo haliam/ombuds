@@ -43,6 +43,12 @@ def _repair_message(error: StructuredOutputError) -> dict[str, object]:
     }
 
 
+def _augmented_system(system: str, state: AgentState) -> str:
+    """`system` plus whatever `short_term`/`long_term` memory has to say, as extra context blocks."""
+    blocks = [system, state["long_term"].as_context(), state["short_term"].as_context()]
+    return "\n\n".join(block for block in blocks if block)
+
+
 def _parse_final_turn(text: str) -> TriageDecision | None:
     """Parse `text` as a `TriageDecision` if it looks like JSON, or `None` for a plain-text reply.
 
@@ -62,7 +68,7 @@ def build_triage_graph(provider: LLMProvider, registry: ToolDispatcher, system: 
         turns = state["turns"] + 1
         if turns > MAX_TOOL_TURNS:
             raise RuntimeError(f"triage did not converge within {MAX_TOOL_TURNS} tool-use turns")
-        turn = provider.run_turn(state["messages"], registry.definitions(), system=system)
+        turn = provider.run_turn(state["messages"], registry.definitions(), system=_augmented_system(system, state))
         messages = [*state["messages"], {"role": "assistant", "content": turn.content}]
         return {"messages": messages, "pending_tool_calls": turn.tool_calls, "text": turn.text, "turns": turns}
 
@@ -72,10 +78,15 @@ def build_triage_graph(provider: LLMProvider, registry: ToolDispatcher, system: 
     def dispatch_tools(state: AgentState) -> dict[str, object]:
         results = registry.dispatch_all(list(state["pending_tool_calls"]))
         messages = [*state["messages"], tool_result_message(results)]
+        short_term = state["short_term"]
+        for result in results:
+            if not result.is_error:
+                short_term = short_term.remember(f"{result.name}_result", result.content)
         return {
             "messages": messages,
             "tool_results": [*state["tool_results"], *results],
             "pending_tool_calls": (),
+            "short_term": short_term,
         }
 
     def finalize(state: AgentState) -> dict[str, object]:
