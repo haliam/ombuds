@@ -14,8 +14,15 @@ from ombuds.platform.ai.schemas.tool_calls import ToolCall, ToolDefinition
 from ombuds.platform.ai.streaming import StreamEvent, TextDelta, ToolCallDelta, ToolResultEvent, TurnDone
 
 _DECISION_JSON = (
-    '{"eligible": true, "compensation_amount_eur": 250, "reason_codes": ["EU261_ART7"], '
+    '{"eligible": true, "compensation_amount_eur": 250, "reason_codes": ["eligible"], '
     '"explanation": "You are eligible for EUR 250."}'
+)
+# Schema-valid, but disagrees with what check_eligibility actually returns for `_disruption_args()`
+# (eligible=True, compensation_eur=250, reasons=("eligible",)) — used to exercise verify_decision's
+# repair path, as opposed to _parse_final_turn's shape-only validation.
+_WRONG_DECISION_JSON = (
+    '{"eligible": true, "compensation_amount_eur": 999, "reason_codes": ["eligible"], '
+    '"explanation": "You are eligible for EUR 999."}'
 )
 
 
@@ -84,7 +91,7 @@ def test_run_triage_dispatches_a_tool_call_and_feeds_the_result_back() -> None:
     assert result.decision is not None
     assert result.decision.eligible is True
     assert result.decision.compensation_amount_eur == 250
-    assert result.decision.reason_codes == ("EU261_ART7",)
+    assert result.decision.reason_codes == ("eligible",)
     assert len(result.tool_results) == 1
     assert result.tool_results[0].name == "check_eligibility"
     assert result.tool_results[0].is_error is False
@@ -94,6 +101,12 @@ def test_run_triage_dispatches_a_tool_call_and_feeds_the_result_back() -> None:
 def test_run_triage_repairs_an_invalid_final_reply_and_returns_the_corrected_decision() -> None:
     provider = _FakeProvider(
         [
+            ProviderTurn(
+                text="",
+                tool_calls=(ToolCall(id="call-1", name="check_eligibility", arguments=_disruption_args()),),
+                stop_reason="tool_use",
+                content=[],
+            ),
             ProviderTurn(text='{"eligible": true}', tool_calls=(), stop_reason="end_turn", content=[]),
             ProviderTurn(text=_DECISION_JSON, tool_calls=(), stop_reason="end_turn", content=[]),
         ]
@@ -103,7 +116,7 @@ def test_run_triage_repairs_an_invalid_final_reply_and_returns_the_corrected_dec
 
     assert result.decision is not None
     assert result.decision.eligible is True
-    assert provider.calls == 2
+    assert provider.calls == 3
 
 
 def test_run_triage_gives_up_after_max_repair_attempts() -> None:
@@ -114,6 +127,69 @@ def test_run_triage_gives_up_after_max_repair_attempts() -> None:
 
     with pytest.raises(StructuredOutputError, match="does not match the required schema"):
         run_triage("claim", provider=provider)
+
+
+def test_run_triage_repairs_a_decision_that_disagrees_with_check_eligibility() -> None:
+    """A schema-valid decision that disagrees with check_eligibility's own result must be repaired, not
+    trusted — the LLM is never the source of truth for eligibility or the amount. See F-01."""
+    provider = _FakeProvider(
+        [
+            ProviderTurn(
+                text="",
+                tool_calls=(ToolCall(id="call-1", name="check_eligibility", arguments=_disruption_args()),),
+                stop_reason="tool_use",
+                content=[],
+            ),
+            ProviderTurn(text=_WRONG_DECISION_JSON, tool_calls=(), stop_reason="end_turn", content=[]),
+            ProviderTurn(text=_DECISION_JSON, tool_calls=(), stop_reason="end_turn", content=[]),
+        ]
+    )
+
+    result = run_triage("claim", provider=provider)
+
+    assert result.decision is not None
+    assert result.decision.compensation_amount_eur == 250
+    assert provider.calls == 3
+
+
+def test_run_triage_gives_up_after_max_repair_attempts_for_a_persistent_mismatch() -> None:
+    provider = _FakeProvider(
+        [
+            ProviderTurn(
+                text="",
+                tool_calls=(ToolCall(id="call-1", name="check_eligibility", arguments=_disruption_args()),),
+                stop_reason="tool_use",
+                content=[],
+            ),
+            *(
+                ProviderTurn(text=_WRONG_DECISION_JSON, tool_calls=(), stop_reason="end_turn", content=[])
+                for _ in range(MAX_REPAIR_ATTEMPTS + 1)
+            ),
+        ]
+    )
+
+    with pytest.raises(StructuredOutputError, match="does not match check_eligibility"):
+        run_triage("claim", provider=provider)
+
+
+def test_run_triage_repairs_a_decision_given_without_calling_check_eligibility_first() -> None:
+    provider = _FakeProvider(
+        [
+            ProviderTurn(text=_DECISION_JSON, tool_calls=(), stop_reason="end_turn", content=[]),
+            ProviderTurn(
+                text="",
+                tool_calls=(ToolCall(id="call-1", name="check_eligibility", arguments=_disruption_args()),),
+                stop_reason="tool_use",
+                content=[],
+            ),
+            ProviderTurn(text=_DECISION_JSON, tool_calls=(), stop_reason="end_turn", content=[]),
+        ]
+    )
+
+    result = run_triage("claim", provider=provider)
+
+    assert result.decision is not None
+    assert provider.calls == 3
 
 
 def test_run_triage_reports_an_unknown_tool_as_an_error_result_without_crashing() -> None:

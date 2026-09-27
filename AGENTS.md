@@ -43,7 +43,7 @@ Read `docs/code-style.md` before writing code — it holds the judgement-call ru
 Any tool that changes state (`log_claim`, `issue_payment`, an escalation) must pass through `platform/guardrails/approval_gate.py` and be checked against `platform/guardrails/policy_engine.py`. A tool being registered and callable is not the same as having permission to execute — this boundary is the one thing not to relax for build-speed during the sprint.
 
 ## Prompt versioning
-Prompts are versioned files under `src/ombuds/platform/prompts/<feature>/vN.txt` (currently `claims_triage/v1.txt`, `v2.txt`), never inline strings. Bump the version rather than overwriting when wording changes meaningfully. A new version must run clean against `evals/datasets/` before it becomes the active version referenced in `config.py`. Record which version is live per environment in `.env.example`.
+Prompts are versioned files under `src/ombuds/platform/prompts/<feature>/vN.txt` (currently `claims_triage/v4.txt` is live, with `v1`–`v3` kept as history), never inline strings. Bump the version rather than overwriting when wording changes meaningfully. A new version must run clean against `evals/datasets/` before it becomes the active version referenced in `config.py`. Record which version is live per environment in `.env.example`.
 
 ## Decisions
 Architecture decisions live in `docs/decisions/` as ADRs — start from `docs/decisions/0000-template.md`. Write one when choosing between real alternatives (a framework, a storage engine, a deployment shape), not for routine implementation choices.
