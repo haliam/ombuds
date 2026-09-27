@@ -267,6 +267,25 @@ Template — copy this block per finished task, filling in the fields (omit **De
 - `tests/integration/mcp/test_client.py` (new) — real round-trip against the actual server subprocess (not the in-memory test session `test_tool_bindings.py` uses): lists the tool catalogue, dispatches `check_eligibility` and gets a real result back, and confirms an unknown tool name comes back as an `is_error` result rather than raising.
 - `tests/unit/platform/ai/providers/test_fallback.py`, `tests/unit/features/claims_triage/application/test_triage_use_case.py` — fake `LLMProvider` implementations' type hints updated to match the widened `Sequence[ToolDefinition]` signature; no behavior changes.
 
+---
+
+### Add short-term + long-term memory to agent state
+
+**Week:** W2
+**Goal:** Give the tool-calling loop somewhere to carry facts forward — within one run, and across separate runs for the same claimant — instead of only the raw `messages` transcript.
+**Source:** `ombuds_build_tasks.md` Week 2 checklist
+
+**Files & responsibilities:**
+- `src/ombuds/features/claims_triage/agent/memory/short_term.py` — `ShortTermMemory`: a frozen, dict-of-facts Pydantic model scoped to one triage run. `remember()` returns a new instance (never mutates); `as_context()` renders the facts as a system-prompt block, or `None` if empty.
+- `src/ombuds/features/claims_triage/agent/memory/long_term.py` — `LongTermMemory` (same shape as `ShortTermMemory`, but meant to survive across runs) plus `LongTermMemoryStore`, a `Protocol` (`load(claimant_id)`/`save(claimant_id, memory)`) and `InMemoryLongTermMemoryStore`, a dict-backed default implementation that only lives for the process's lifetime — a placeholder until Postgres lands in W3.
+- `src/ombuds/features/claims_triage/agent/state.py` — `AgentState` gained `short_term: ShortTermMemory` and `long_term: LongTermMemory`.
+- `src/ombuds/features/claims_triage/agent/graph.py` — `call_model` now builds its system prompt via `_augmented_system()`, which appends `long_term.as_context()` then `short_term.as_context()` after the base prompt when either has facts. `dispatch_tools` records each successful tool result into `short_term` (keyed `f"{tool_name}_result"`) so later turns in the same run see it as plain context, not just buried in the tool-result message history.
+- `src/ombuds/features/claims_triage/application/triage_use_case.py` — `run_triage()` gained optional `claimant_id: str | None` and `long_term_store: LongTermMemoryStore | None` parameters. When both are given: the claimant's prior `LongTermMemory` is loaded before the run, the run's final decision is remembered under `"last_decision"`, and the result is saved back after. Omit either and the run only gets in-run `ShortTermMemory` — no cross-run recall, no behavior change from before this task. `_invoke_graph()` now returns `(TriageResult, LongTermMemory)` so the caller can persist the updated memory.
+- `tests/unit/features/claims_triage/agent/memory/test_short_term.py`, `test_long_term.py` (new) — cover immutability of `remember()`, per-claimant isolation in `InMemoryLongTermMemoryStore`, and `as_context()` rendering/empty-case.
+- `tests/unit/features/claims_triage/application/test_triage_use_case.py` — new cases: a decision is saved to the store under a claimant id; a later run for the same claimant sees the prior decision injected into its system prompt; no context is injected and nothing is touched when `claimant_id` is omitted.
+
+**Decisions/trade-offs:** the API (`api/routes.py`) is deliberately left unwired to this — `TriageRequest` has no claimant identity field yet, and there's no real persistent store until W3's Postgres lands, so wiring the endpoint now would mean inventing an identity scheme just to plug it into an in-memory dict that resets on every server restart. `LongTermMemoryStore` is a protocol precisely so that wiring is a drop-in swap later, not a rewrite. Facts are stored as plain strings (not typed evidence) — this is prompt context for the model, not the source of truth for eligibility, which still comes from `check_eligibility` (`verify_decision`, ADR-0004/F-01) regardless of what memory says.
+
 **Notable libraries:** `anyio.from_thread.start_blocking_portal` / `BlockingPortal.wrap_async_context_manager` — see glossary.
 
 **Decisions/trade-offs:** `run_triage()` defaults to `use_mcp=False` rather than switching the whole app over to the MCP path — the in-process registry has no subprocess-startup cost and is what every existing test exercises; the MCP-connected path is opt-in and proven end-to-end (an integration test plus a manual run with a fake provider driving a real `check_eligibility` call over the subprocess), but nothing yet depends on it being the default. `ToolDefinition.raw_schema` was chosen over introducing a separate `ToolSpec` protocol type across the provider layer (which would have meant widening `LLMProvider.run_turn`/`stream_turn` and every implementer to a structurally-different type) — one optional field keeps `ToolDefinition` as the single currency both registries hand to a provider.

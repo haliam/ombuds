@@ -14,6 +14,8 @@ from ombuds.features.claims_triage.agent.graph import (
     build_triage_graph,
     tool_result_message,
 )
+from ombuds.features.claims_triage.agent.memory.long_term import LongTermMemory, LongTermMemoryStore
+from ombuds.features.claims_triage.agent.memory.short_term import ShortTermMemory
 from ombuds.features.claims_triage.application.decision import TriageDecision
 from ombuds.features.claims_triage.tools import build_tool_registry
 from ombuds.platform.ai.providers.base import LLMProvider
@@ -41,7 +43,14 @@ class TriageResult(BaseModel):
     tool_results: tuple[ToolResult, ...]
 
 
-def run_triage(claim_text: str, *, provider: LLMProvider | None = None, use_mcp: bool = False) -> TriageResult:
+def run_triage(
+    claim_text: str,
+    *,
+    provider: LLMProvider | None = None,
+    use_mcp: bool = False,
+    claimant_id: str | None = None,
+    long_term_store: LongTermMemoryStore | None = None,
+) -> TriageResult:
     """Run the tool-use loop for one claim: ask the model, dispatch any tool calls, repeat until it answers.
 
     Delegates to the LangGraph graph built by `agent/graph.py`, which stops after `MAX_TOOL_TURNS` rounds
@@ -51,17 +60,29 @@ def run_triage(claim_text: str, *, provider: LLMProvider | None = None, use_mcp:
     `use_mcp=True` dispatches tool calls over a real MCP session (`platform/mcp/client.py`), spawning the
     standalone server (`platform/mcp/server.py`) as a subprocess, instead of the default in-process
     `ToolRegistry`. The graph itself doesn't know the difference — both satisfy `ToolDispatcher`.
+
+    `claimant_id` + `long_term_store` opt into cross-run memory (`agent/memory/long_term.py`): when both
+    are given, prior facts about this claimant are loaded into the run and the run's decision is saved
+    back afterwards. Omit either and the run only gets this-run `ShortTermMemory` — no cross-run recall.
     """
     provider = provider or build_default_provider()
     system = load_prompt("claims_triage")
+    long_term = long_term_store.load(claimant_id) if claimant_id and long_term_store else LongTermMemory()
 
     if use_mcp:
         with McpToolClient() as registry:
-            return _invoke_graph(provider, registry, system, claim_text)
-    return _invoke_graph(provider, build_tool_registry(), system, claim_text)
+            result, long_term = _invoke_graph(provider, registry, system, claim_text, long_term)
+    else:
+        result, long_term = _invoke_graph(provider, build_tool_registry(), system, claim_text, long_term)
+
+    if claimant_id and long_term_store:
+        long_term_store.save(claimant_id, long_term)
+    return result
 
 
-def _invoke_graph(provider: LLMProvider, registry: ToolDispatcher, system: str, claim_text: str) -> TriageResult:
+def _invoke_graph(
+    provider: LLMProvider, registry: ToolDispatcher, system: str, claim_text: str, long_term: LongTermMemory
+) -> tuple[TriageResult, LongTermMemory]:
     app = build_triage_graph(provider, registry, system)
 
     final_state = app.invoke(
@@ -75,14 +96,19 @@ def _invoke_graph(provider: LLMProvider, registry: ToolDispatcher, system: str, 
             "answer": None,
             "decision": None,
             "done": False,
+            "short_term": ShortTermMemory(),
+            "long_term": long_term,
         },
         config={"recursion_limit": 4 * MAX_TOOL_TURNS + 2 * MAX_REPAIR_ATTEMPTS + 10},
     )
-    return TriageResult(
+    result = TriageResult(
         answer=final_state["answer"],
         decision=final_state["decision"],
         tool_results=tuple(final_state["tool_results"]),
     )
+    decision = final_state["decision"]
+    updated_long_term = long_term.remember("last_decision", decision.explanation) if decision else long_term
+    return result, updated_long_term
 
 
 def stream_triage(claim_text: str, *, provider: LLMProvider | None = None) -> Iterator[StreamEvent]:
