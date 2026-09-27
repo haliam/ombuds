@@ -18,7 +18,7 @@ Extracted from the "🤖 AI Build" view of the AI Interview Notion database (sna
 ## Week 2 — Agentic Loop + MCP
 
 - [x] Rebuild tool-calling loop in LangGraph — [summary](ombuds_build_task_summaries.md#rebuild-tool-calling-loop-in-langgraph)
-- [ ] Stand up MCP server (`search_kb`, `check_eligibility`, `log_claim`, `issue_payment`)
+- [x] Stand up MCP server (`search_kb`, `check_eligibility`, `log_claim`, `issue_payment`) — [summary](ombuds_build_task_summaries.md#stand-up-mcp-server-search_kb-check_eligibility-log_claim-issue_payment)
 - [ ] Connect LangGraph agent to tools over MCP
 - [ ] Add short-term + long-term memory to agent state
 - [ ] Add escalation/retry loop on low confidence
