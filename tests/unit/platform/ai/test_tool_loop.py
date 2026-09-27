@@ -1,5 +1,7 @@
+import pytest
 from pydantic import BaseModel, ConfigDict
 
+from ombuds.domain.errors import ToolExecutionError
 from ombuds.platform.ai.schemas.tool_calls import ToolCall, ToolDefinition
 from ombuds.platform.ai.tool_loop import ToolRegistry
 
@@ -21,9 +23,19 @@ def _echo(args: BaseModel) -> BaseModel:
     return _EchoResult(echoed=args.message)
 
 
+def _failing(args: BaseModel) -> BaseModel:
+    raise ToolExecutionError("downstream dependency unavailable")
+
+
+def _buggy(args: BaseModel) -> BaseModel:
+    raise RuntimeError("not an expected tool failure")
+
+
 def _registry() -> ToolRegistry:
     registry = ToolRegistry()
     registry.register(ToolDefinition(name="echo", description="Echoes its input.", args_model=_EchoArgs), _echo)
+    registry.register(ToolDefinition(name="failing", description="Always fails.", args_model=_EchoArgs), _failing)
+    registry.register(ToolDefinition(name="buggy", description="Always bugs out.", args_model=_EchoArgs), _buggy)
     return registry
 
 
@@ -88,4 +100,23 @@ def test_definitions_returns_every_registered_tool() -> None:
 
     definitions = registry.definitions()
 
-    assert [d.name for d in definitions] == ["echo"]
+    assert [d.name for d in definitions] == ["echo", "failing", "buggy"]
+
+
+def test_dispatch_reports_a_tool_execution_error_as_an_error_result() -> None:
+    registry = _registry()
+    call = ToolCall(id="call-4", name="failing", arguments={"message": "hi"})
+
+    result = registry.dispatch(call)
+
+    assert result.is_error is True
+    assert result.content == "downstream dependency unavailable"
+
+
+def test_dispatch_propagates_an_unexpected_handler_exception() -> None:
+    """A bug in a handler is not an expected tool failure — it must not be swallowed as an error result."""
+    registry = _registry()
+    call = ToolCall(id="call-5", name="buggy", arguments={"message": "hi"})
+
+    with pytest.raises(RuntimeError, match="not an expected tool failure"):
+        registry.dispatch(call)

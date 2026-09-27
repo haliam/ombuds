@@ -8,6 +8,7 @@ from collections.abc import Callable
 
 from pydantic import BaseModel, ValidationError
 
+from ombuds.domain.errors import ToolExecutionError
 from ombuds.platform.ai.schemas.tool_calls import ToolCall, ToolDefinition, ToolResult
 
 ToolHandler = Callable[[BaseModel], BaseModel]
@@ -32,8 +33,10 @@ class ToolRegistry:
     def dispatch(self, call: ToolCall) -> ToolResult:
         """Validate `call.arguments` against the tool's schema, run its handler, and wrap the outcome.
 
-        Never raises: an unknown tool name or an argument-validation failure becomes an error `ToolResult`
-        instead of an exception, so one bad call in a turn can't abort the rest of that turn's tool calls.
+        An unknown tool name, an argument-validation failure, or a handler raising `ToolExecutionError`
+        each become an error `ToolResult` instead of an exception, so one bad call in a turn can't abort
+        the rest of that turn's tool calls. Any other exception a handler raises is a bug, not an expected
+        failure, and propagates unchanged instead of being reported as a tool error.
         """
         definition = self._definitions.get(call.name)
         if definition is None:
@@ -45,7 +48,10 @@ class ToolRegistry:
             return ToolResult(call_id=call.id, name=call.name, content=str(exc), is_error=True)
 
         handler = self._handlers[call.name]
-        result = handler(args)
+        try:
+            result = handler(args)
+        except ToolExecutionError as exc:
+            return ToolResult(call_id=call.id, name=call.name, content=str(exc), is_error=True)
         return ToolResult(call_id=call.id, name=call.name, content=result.model_dump_json())
 
     def dispatch_all(self, calls: list[ToolCall]) -> list[ToolResult]:

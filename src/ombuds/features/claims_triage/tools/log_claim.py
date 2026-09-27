@@ -2,6 +2,7 @@
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from ombuds.domain.errors import ToolExecutionError
 from ombuds.domain.models.claim import EligibilityResult
 from ombuds.platform.ai.schemas.tool_calls import ToolDefinition
 from ombuds.platform.guardrails.approval_gate import GuardedAction, check_approval
@@ -35,10 +36,12 @@ LOG_CLAIM_TOOL = ToolDefinition(
 def log_claim(args: LogClaimArgs) -> LogClaimResult:
     """Attempt to log a claim decision.
 
-    Denied unconditionally while `approval_gate` is the deny-all stub (ADR-0004); persistence to the
-    infrastructure layer is unreachable code until that gate is replaced in W2, so it isn't written yet.
+    Denied unconditionally while `approval_gate` is the deny-all stub (ADR-0004). The approved branch is
+    unreachable while that stub is in place; once persistence lands with the real approval gate in W2,
+    a failure there should raise `ToolExecutionError` too, so it surfaces to the model as a tool error
+    rather than crashing the triage turn (see `ToolRegistry.dispatch`).
     """
     decision = check_approval(GuardedAction.LOG_CLAIM)
     if not decision.approved:
         return LogClaimResult(logged=False, reason=decision.reason)
-    raise NotImplementedError("log_claim persistence lands with the real approval gate in W2")
+    raise ToolExecutionError("log_claim persistence not implemented — lands with the real approval gate in W2")
