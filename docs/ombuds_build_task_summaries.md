@@ -228,4 +228,27 @@ Template — copy this block per finished task, filling in the fields (omit **De
 
 ---
 
+### Stand up MCP server (`search_kb`, `check_eligibility`, `log_claim`, `issue_payment`)
+
+**Week:** W2
+**Goal:** Expose the claims-triage tool catalogue over MCP, not just as an in-process `ToolRegistry`, so any MCP client (Claude Desktop, a future LangGraph MCP adapter) can list and call `search_kb`, `check_eligibility`, `log_claim` and `issue_payment` without knowing this feature exists.
+
+**Files & responsibilities:**
+- `src/ombuds/features/claims_triage/tools/search_kb.py` (new) — `SearchKbArgs`/`SearchKbResult`/`SEARCH_KB_TOOL`. Read-only, no approval gate. `search_kb()` always raises `ToolExecutionError`: `rag/retriever.py` is still a stub, so there's no real index to search yet — raising keeps that gap visible instead of returning empty or fabricated hits.
+- `src/ombuds/features/claims_triage/tools/issue_payment.py` (new) — `IssuePaymentArgs`/`IssuePaymentResult`/`ISSUE_PAYMENT_TOOL`. State-changing; mirrors `log_claim`'s shape exactly: calls `check_approval(GuardedAction.ISSUE_PAYMENT)` first (denied unconditionally by the deny-all stub), then would raise `ToolExecutionError` for the disbursement path once approved — unreachable until the real approval gate lands.
+- `src/ombuds/features/claims_triage/tools/__init__.py` — `build_tool_registry()` now registers all four tools instead of two.
+- `src/ombuds/platform/mcp/tool_bindings.py` — `build_mcp_server(registry)`: builds an MCP `Server`, implementing `list_tools()`/`call_tool()` by reading straight from the given `ToolRegistry` — each tool's MCP `inputSchema` comes from `ToolDefinition.input_schema()`, so there's exactly one schema per tool, not a second one hand-written for MCP. `call_tool()` re-raises a `ToolRegistry.dispatch()` error result as a plain exception, which the MCP `Server` turns into an `isError=True` `CallToolResult` for the client.
+- `src/ombuds/platform/mcp/server.py` — `python -m ombuds.platform.mcp.server`: the composition root (ADR-0003) that builds `claims_triage.tools.build_tool_registry()` and hands it to `build_mcp_server()`, then serves it over stdio via `mcp.server.stdio.stdio_server()`.
+- `pyproject.toml` — added `mcp<2` (pinned below the newer, differently-shaped v2 SDK — `mcp==2.x` renamed `FastMCP`→`MCPServer` and moved the low-level `Server` to a callback-based constructor instead of `@server.list_tools()`/`@server.call_tool()` decorators) and `pytest-asyncio`, with `asyncio_mode = "auto"` so `async def test_...` needs no per-test marker.
+- `tests/unit/features/claims_triage/tools/test_search_kb.py`, `test_issue_payment.py` (new) — same shape as the existing `log_claim` tests: gate-denied result, `ToolExecutionError` once approved/for retrieval, argument validation, `ToolDefinition.args_model` identity.
+- `tests/unit/features/claims_triage/tools/test_tool_registry.py` — updated to assert all four tool names, not two.
+- `tests/unit/platform/mcp/test_tool_bindings.py` (new) — drives `build_mcp_server()` through a real in-memory MCP client/server session (`mcp.shared.memory.create_connected_server_and_client_session`) rather than calling `list_tools`/`call_tool` as bare functions, so the test exercises the actual MCP protocol layer (request/response (de)serialization included), not just the handler logic.
+
+**Notable libraries:** `mcp` (the official Python MCP SDK) — see glossary for `Server`, the `list_tools`/`call_tool` decorators, `stdio_server`, and the in-memory test session helper. `anyio` — the async runtime `mcp`'s stdio transport is built on; `server.py`'s `main()` uses `anyio.run()` rather than `asyncio.run()` so it stays consistent with the library it's driving.
+
+**Decisions/trade-offs:** verified the server for real, not just via the in-memory test — ran `python -m ombuds.platform.mcp.server` as an actual subprocess over stdio through `mcp.client.stdio.stdio_client()` and confirmed `list_tools`/`call_tool` round-trip correctly, since the in-memory session test alone wouldn't catch a stdio-transport-specific bug. Pinned `mcp<2` rather than adopting the newly-released v2 SDK: v2's low-level `Server` replaced the decorator API with constructor callbacks (`on_list_tools`/`on_call_tool`), a bigger, less-documented API surface change than this task needed to take on. `search_kb` and `issue_payment` are wired into the registry and reachable over MCP, but both are honest stubs (deny-all / retrieval-not-implemented) — same posture W1 left `log_claim` in; nothing here pretends the RAG pipeline or a payment provider exists yet.
+**Follow-up:** "Connect LangGraph agent to tools over MCP" (next W2 task) should replace `application/triage_use_case.py`'s direct `ToolRegistry` use — now the graph built in "Rebuild tool-calling loop in LangGraph" above — with an MCP client. `search_kb` and `issue_payment` need real implementations once `rag/retriever.py` and the real approval gate land — this task only stood up the transport, not those backends.
+
+---
+
 Library/framework/stdlib-concept entries live in [`ombuds_build_glossary.md`](ombuds_build_glossary.md) — append there, not here, whenever a summary's **Notable libraries** introduces something not already listed.

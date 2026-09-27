@@ -38,7 +38,9 @@ def test_run_turn_wraps_a_retryable_sdk_error_as_provider_unavailable() -> None:
 
 def test_run_turn_propagates_a_non_retryable_sdk_error_unchanged() -> None:
     response = httpx2.Response(400, request=_request(), json={"error": {"type": "invalid_request_error"}})
-    error = anthropic.BadRequestError("bad request", response=response, body={"error": {"type": "invalid_request_error"}})
+    error = anthropic.BadRequestError(
+        "bad request", response=response, body={"error": {"type": "invalid_request_error"}}
+    )
     client = _FakeClient(error)
     provider = AnthropicProvider("claude-sonnet-5", client=client)  # type: ignore[arg-type]
 
