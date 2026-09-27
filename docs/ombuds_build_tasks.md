@@ -19,7 +19,7 @@ Extracted from the "🤖 AI Build" view of the AI Interview Notion database (sna
 
 - [x] Rebuild tool-calling loop in LangGraph — [summary](ombuds_build_task_summaries.md#rebuild-tool-calling-loop-in-langgraph)
 - [x] Stand up MCP server (`search_kb`, `check_eligibility`, `log_claim`, `issue_payment`) — [summary](ombuds_build_task_summaries.md#stand-up-mcp-server-search_kb-check_eligibility-log_claim-issue_payment)
-- [ ] Connect LangGraph agent to tools over MCP
+- [x] Connect LangGraph agent to tools over MCP — [summary](ombuds_build_task_summaries.md#connect-langgraph-agent-to-tools-over-mcp)
 - [ ] Add short-term + long-term memory to agent state
 - [ ] Add escalation/retry loop on low confidence
 - [ ] Replace deny-all stub with human-approval gate before state-changing tool calls — `log_claim`/`issue_payment` must be idempotent on `claim_id` (a retried or re-sent approval can't double-log/double-pay); see W1 review finding F-04
