@@ -22,7 +22,7 @@ Extracted from the "🤖 AI Build" view of the AI Interview Notion database (sna
 - [ ] Connect LangGraph agent to tools over MCP
 - [ ] Add short-term + long-term memory to agent state
 - [ ] Add escalation/retry loop on low confidence
-- [ ] Replace deny-all stub with human-approval gate before state-changing tool calls
+- [ ] Replace deny-all stub with human-approval gate before state-changing tool calls — `log_claim`/`issue_payment` must be idempotent on `claim_id` (a retried or re-sent approval can't double-log/double-pay); see W1 review finding F-04
 
 ## Week 3 — RAG, Data Layer, Docker, Guardrails
 

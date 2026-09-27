@@ -1,7 +1,5 @@
 """Anthropic provider: raw `anthropic` SDK tool-use turns. No agent framework — see ADR-0001 for where one lands."""
 
-import hashlib
-import json
 from collections.abc import Iterator
 
 import anthropic
@@ -28,22 +26,6 @@ _RETRYABLE_ANTHROPIC_ERRORS = (
     anthropic.DeadlineExceededError,
     anthropic.InternalServerError,
 )
-
-
-def _idempotency_key(model: str, system: str, messages: list[dict[str, object]], tools: list[ToolDefinition]) -> str:
-    """A stable key for this exact request, so a retried/re-sent call dedupes server-side instead of re-running.
-
-    Anthropic's Messages API honors an `idempotency-key` header the same way Stripe's does. Deriving it from
-    the request body (rather than a random uuid per call) means the SDK's own internal retries *and* a
-    `FallbackProvider` retry against this same model reuse the same key — only a genuinely different request
-    (a new turn, once the conversation history has grown) gets a new one.
-    """
-    payload = json.dumps(
-        {"model": model, "system": system, "messages": messages, "tools": [tool.name for tool in tools]},
-        sort_keys=True,
-        default=str,
-    )
-    return hashlib.sha256(payload.encode()).hexdigest()
 
 
 class AnthropicProvider:
@@ -79,7 +61,6 @@ class AnthropicProvider:
                 system=system,
                 messages=messages,  # type: ignore[arg-type]
                 tools=[_to_anthropic_tool(tool) for tool in tools],  # type: ignore[misc]
-                extra_headers={"idempotency-key": _idempotency_key(self._model, system, messages, tools)},
             )
         except _RETRYABLE_ANTHROPIC_ERRORS as exc:
             raise ProviderUnavailableError(str(exc)) from exc
@@ -122,7 +103,6 @@ class AnthropicProvider:
                 system=system,
                 messages=messages,  # type: ignore[arg-type]
                 tools=[_to_anthropic_tool(tool) for tool in tools],  # type: ignore[misc]
-                extra_headers={"idempotency-key": _idempotency_key(self._model, system, messages, tools)},
             ) as stream:
                 for event in stream:
                     if event.type == "content_block_start" and event.content_block.type == "tool_use":
