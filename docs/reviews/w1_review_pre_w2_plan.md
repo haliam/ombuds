@@ -252,7 +252,7 @@ Listed in implementation order.
 - **Depends on:** T-1 (same files; do them in sequence)
 
 ### T-3: Resolve the idempotency header (F-04)
-- **Files:** `platform/ai/providers/anthropic.py`, `tests/unit/platform/ai/providers/test_anthropic.py`, `docs/ombuds_build_task_summaries.md`, `docs/ombuds_build_tasks.md` (W2 approval-gate task description)
+- **Files:** `platform/ai/providers/anthropic.py`, `tests/unit/platform/ai/providers/test_anthropic.py`, `docs/progress/task_summaries.md`, `docs/progress/tasks.md` (W2 approval-gate task description)
 - **Reason:** It removes a mechanism that probably has no effect, and records where idempotency is really needed.
 - **Acceptance criteria:**
   - Support for the header in the Messages API is confirmed or ruled out against the official API reference, and the outcome is noted in the task summary.
@@ -322,7 +322,7 @@ These are worth doing but don't block W2. Each is placed where it naturally fits
 - [ ] **T-5:** Add `build_tool_registry()` in `features/claims_triage/tools/`; amend ADR-0003 and AGENTS.md
 - [ ] **T-6:** `log_claim` recomputes from facts; verify `TriageDecision` against the `check_eligibility` result through the repair loop; add prompt v4
 - [ ] **O-1 (recommended):** Golden-set smoke eval plus a baseline run against the real API
-- [ ] `make test` green; update `docs/ombuds_build_task_summaries.md` with a "Pre-W2 hardening" entry
+- [ ] `make test` green; update `docs/progress/task_summaries.md` with a "Pre-W2 hardening" entry
 
 Estimated effort: about 1–1.5 days. T-1 to T-5 are each under 2 h; T-6 is about half a day including the prompt bump.
 

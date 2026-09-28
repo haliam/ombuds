@@ -1,13 +1,13 @@
 # ombuds — Build Task Summaries
 
-One entry per finished task from `ombuds_build_tasks.md`. Recap for future-you, not documentation — that stays in docstrings/ADRs. Newest entries at the bottom.
+One entry per finished task from `tasks.md`. Recap for future-you, not documentation — that stays in docstrings/ADRs. Newest entries at the bottom.
 
 Template — copy this block per finished task, filling in the fields (omit **Decisions/trade-offs** and **Follow-up** when there's nothing non-obvious to say):
 
 ```
 ### <task name from checklist>
 
-**Week:** <W1/W2/W3/W4, matching the section in ombuds_build_tasks.md>
+**Week:** <W1/W2/W3/W4, matching the section in tasks.md>
 **Goal:** <one sentence — the problem this task solves>
 **Source:** <ADR # / Notion task, if any>
 
@@ -212,7 +212,7 @@ Template — copy this block per finished task, filling in the fields (omit **De
 
 **Week:** W2
 **Goal:** Replace the W1 hand-rolled `for`-loop tool-use orchestration with an explicit LangGraph `StateGraph`, so the agentic loop is graph-native and later W2 nodes (classify/retrieve/decide/escalate_retry) have a graph to hang off of.
-**Source:** `ombuds_build_tasks.md` Week 2 checklist
+**Source:** `tasks.md` Week 2 checklist
 
 **Files & responsibilities:**
 - `state.py` — `AgentState`: the `TypedDict` threaded through every node (messages, accumulated `tool_results`, `pending_tool_calls`/`text` staging the latest model turn, `turns`/`repair_attempts` counters, `answer`/`decision`, `done`).
@@ -255,7 +255,7 @@ Template — copy this block per finished task, filling in the fields (omit **De
 
 **Week:** W2
 **Goal:** Give the LangGraph tool-calling loop (`agent/graph.py`) a real MCP-connected path to the claims-triage tools, so `search_kb`/`check_eligibility`/`log_claim`/`issue_payment` can be dispatched over the actual MCP transport stood up in the previous task, not just the in-process `ToolRegistry`.
-**Source:** `ombuds_build_tasks.md` Week 2 checklist
+**Source:** `tasks.md` Week 2 checklist
 
 **Files & responsibilities:**
 - `client.py` (new) — `McpToolClient`: a synchronous context manager wrapping an MCP `ClientSession` connected over stdio to `python -m ombuds.platform.mcp.server` (spawned as a subprocess). `definitions()` lists the server's tools and converts each to a `ToolDefinition` carrying the server's own JSON schema; `dispatch_all()` runs a batch of `ToolCall`s over the session, in order, converting each `CallToolResult` back to a `ToolResult`. Bridges LangGraph's synchronous nodes to the async-only `ClientSession` via an `anyio` blocking portal — `_connect()` opens the stdio transport and the session as one nested async context manager so enter/exit happen in the single task the portal keeps alive for it (`portal.wrap_async_context_manager`), avoiding a cancel-scope task-affinity error a naive `__aenter__`/`__aexit__` split hit during development.
@@ -273,7 +273,7 @@ Template — copy this block per finished task, filling in the fields (omit **De
 
 **Week:** W2
 **Goal:** Give the tool-calling loop somewhere to carry facts forward — within one run, and across separate runs for the same claimant — instead of only the raw `messages` transcript.
-**Source:** `ombuds_build_tasks.md` Week 2 checklist
+**Source:** `tasks.md` Week 2 checklist
 
 **Files & responsibilities:**
 - `short_term.py` — `ShortTermMemory`: a frozen, dict-of-facts Pydantic model scoped to one triage run. `remember()` returns a new instance (never mutates); `as_context()` renders the facts as a system-prompt block, or `None` if empty.
@@ -297,7 +297,7 @@ Template — copy this block per finished task, filling in the fields (omit **De
 
 **Week:** W2
 **Goal:** Give the tool-calling graph a graceful "hand this to a human" outcome instead of raising a bare exception when it can't reach a confident decision — non-convergence, repeated repair/verification failure, or a stop_reason it can't recover from (F-09/F-10 from the pre-W2 review).
-**Source:** `ombuds_build_tasks.md` Week 2 checklist
+**Source:** `tasks.md` Week 2 checklist
 
 **Files & responsibilities:**
 - `escalate_retry.py` — no longer an empty stub. `UNRECOVERABLE_STOP_REASONS = {"max_tokens", "refusal"}` and `escalate(state)`, the terminal node: marks the run `done`/`escalated`, keeps `escalation_reason`, and falls back to a human-review message if there's no model text to return. First of the `agent/nodes/*.py` stubs to actually get wired into `agent/graph.py`.
@@ -317,7 +317,7 @@ Template — copy this block per finished task, filling in the fields (omit **De
 
 **Week:** W2
 **Goal:** Replace the W1 deny-all `approval_gate` stub (ADR-0004) with a real, if minimal, human-approval workflow — `log_claim`/`issue_payment` still can't disburse or persist anything without a human explicitly signing off, but there's now a way for that sign-off to actually happen.
-**Source:** `ombuds_build_tasks.md` Week 2 checklist; ADR-0008
+**Source:** `tasks.md` Week 2 checklist; ADR-0008
 
 **Files & responsibilities:**
 - `approval_gate.py` — `check_approval(action, context)` now dedupes on `(action, context)` (e.g. `{"claim_id": ...}`) via a module-level `ApprovalGate`: the first call for a given action/context creates a `PENDING` `ApprovalRequest` and denies; a later call with the same action/context sees whatever a human resolved it to. `ApprovalGate` (`check`/`approve`/`deny`/`list_pending`/`get`) is the store's interface, in-memory and `threading.Lock`-guarded; `ApprovalStatus` (`PENDING`/`APPROVED`/`DENIED`) and `ApprovalNotFoundError` are new. Module-level `check_approval`/`list_pending_approvals`/`get_approval_request`/`approve_request`/`deny_request` wrap a single process-lifetime `_GATE` singleton.
@@ -359,4 +359,4 @@ Template — copy this block per finished task, filling in the fields (omit **De
 
 ---
 
-Library/framework/stdlib-concept entries live in [`ombuds_build_glossary.md`](ombuds_build_glossary.md) — append there, not here, whenever a summary's **Notable libraries** introduces something not already listed.
+Library/framework/stdlib-concept entries live in [`glossary.md`](glossary.md) — append there, not here, whenever a summary's **Notable libraries** introduces something not already listed.
