@@ -1,6 +1,6 @@
 # ADR-0008: In-memory, poll-based human-approval gate over the deny-all stub
 
-**Status:** accepted
+**Status:** superseded by ADR-0009
 **Date:** 2026-09-28
 
 ## Context

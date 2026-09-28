@@ -14,7 +14,7 @@ A claim comes in — for example, a flight cancellation compensation claim. Ombu
 3. **Checks eligibility** against a deterministic rules engine (e.g. EU261 compensation tiers) — the LLM can *ask* for this fact, it can never *decide* it.
 4. **Decides** what to recommend: log the claim, and/or propose a payout or escalation.
 5. **Gates risky actions behind a human.** Low-risk actions (logging) auto-execute. Any state-changing, money-moving, or access-granting action is hard-blocked by policy and requires human approval — regardless of how confident the model is.
-6. **Executes only after approval**, through tools exposed over MCP (Model Context Protocol), writing to a deterministic Postgres backend that the LLM never owns.
+6. **Executes only after approval.** A state-changing tool call (made directly or over MCP, the Model Context Protocol) only *submits* the exact rules-derived action; once a human approves it, that action executes exactly once against a deterministic Postgres backend that the LLM never owns ([ADR-0009](docs/decisions/0009-approval-request-is-the-pending-action.md)).
 7. **Logs everything** — every LLM call, every tool call, every human decision — as a trace and an audit record.
 
 ## The core architectural claim
@@ -41,7 +41,7 @@ Ticket in → classify (LLM, structured output)
          → check_eligibility (deterministic tool, via MCP)
          → decide: propose action(s)
          → guardrail: low-risk auto-runs / high-risk requires human approval
-         → [approved] → act (MCP tool, writes to Postgres)
+         → [approved] → execute the approved action exactly once (writes to Postgres)
          → every step traced + audited
 ```
 
