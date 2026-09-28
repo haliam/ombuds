@@ -17,7 +17,13 @@ router = APIRouter(prefix="/claims", tags=["claims"])
 def triage(request: TriageRequest) -> TriageResponse:
     """Run the claims-triage tool-use loop over one claim and return its answer plus every tool call made."""
     result = run_triage(request.claim_text)
-    return TriageResponse(answer=result.answer, decision=result.decision, tool_results=result.tool_results)
+    return TriageResponse(
+        answer=result.answer,
+        decision=result.decision,
+        tool_results=result.tool_results,
+        escalated=result.escalated,
+        escalation_reason=result.escalation_reason,
+    )
 
 
 @router.post("/triage/stream")
