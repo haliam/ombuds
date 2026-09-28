@@ -367,14 +367,14 @@ Each one has a natural home in the plan. None of them blocks W3.
 
 ## 6. Proposed Pre-W3 Execution Plan
 
-- [ ] **T-1:** Escalated runs return a fixed human-review `answer` and never the model's rejected text; assert `answer` in the escalation tests
-- [ ] **T-5:** Stop copying tool results into the system prompt; long-term memory stores rules-derived fields only; the system prompt stays constant within a run
-- [ ] **T-2:** Amend or supersede ADR-0008: execution model, single-use and payload-bound approvals, server-issued `claim_id`, shared store in W3, which tools the agent is offered, the `log_claim` policy intent
-- [ ] **T-3:** Server-issued `claim_id` bound into the per-run tool registry, returned in the API response
-- [ ] **T-4:** Single-use, payload-bound, strict approvals; `issue_payment` amount derived from the rules engine; frozen `ApprovalRequest`
-- [ ] **T-6:** `/triage/stream` runs on the graph with a `final` frame and an `error` frame (or is removed and ADR-0007 updated)
-- [ ] **O-7 (recommended, about 30 minutes):** hygiene batch, including rewording commit `1c0ea0b` before merging
-- [ ] `make test` green; add a "Pre-W3 hardening" entry to `docs/ombuds_build_task_summaries.md`; update README step 6 if T-2 changes the described flow
+- [x] **T-1:** Escalated runs return a fixed human-review `answer` and never the model's rejected text; assert `answer` in the escalation tests
+- [x] **T-5:** Stop copying tool results into the system prompt; long-term memory stores rules-derived fields only; the system prompt stays constant within a run
+- [x] **T-2:** Amend or supersede ADR-0008: execution model, single-use and payload-bound approvals, server-issued `claim_id`, shared store in W3, which tools the agent is offered, the `log_claim` policy intent
+- [x] **T-3:** Server-issued `claim_id` bound into the per-run tool registry, returned in the API response
+- [x] **T-4:** Single-use, payload-bound, strict approvals; `issue_payment` amount derived from the rules engine; frozen `ApprovalRequest`
+- [x] **T-6:** `/triage/stream` runs on the graph with a `final` frame and an `error` frame (or is removed and ADR-0007 updated)
+- [x] **O-7 (recommended, about 30 minutes):** hygiene batch (done in `7ac4d85`; rewording commit `1c0ea0b` still pending — it needs a force-push)
+- [x] `make test` green; add a "Pre-W3 hardening" entry to `docs/ombuds_build_task_summaries.md`; update README step 6 if T-2 changes the described flow
 
 Estimated effort: about 2 days.
 

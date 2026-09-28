@@ -336,4 +336,27 @@ Template — copy this block per finished task, filling in the fields (omit **De
 
 ---
 
+### Pre-W3 hardening
+
+**Week:** W2 → W3 boundary
+**Goal:** Fix the W2 governance-path gaps found in the pre-W3 review before W3 builds persistence, RAG and guardrails on top of them.
+**Source:** [`w2_review_pre_w3_plan.md`](w2_review_pre_w3_plan.md) (T-1 to T-6, O-7); ADR-0009 (supersedes ADR-0008); ADR-0007 amendment
+
+**Files & responsibilities:**
+- `escalate_retry.py` — escalated runs return a fixed `ESCALATION_ANSWER`, never the model's last text, which on every escalation path was a rejected verdict, a stale preamble or a truncated reply (T-1, F-01).
+- `short_term.py`, `long_term.py`, `graph.py`, `triage_use_case.py` — short-term memory holds only rules-derived eligibility fields and is never injected into a prompt; long-term memory consolidates those fields on a verified decision (no more model `explanation`) and is shown as a context block in the first user turn. The system prompt is now constant across a run (T-5, F-06).
+- `0009-approval-request-is-the-pending-action.md` — the approval request *is* the pending action: tools only submit, an approved request executes exactly once via an executor, `claim_id` is server-issued, the agent isn't offered `issue_payment`, and `log_claim` is meant to auto-run under the W4 policy (T-2, F-05). README step 6 and AGENTS.md updated to match.
+- `tools/__init__.py` — `scope_for_agent(dispatcher, claim_id)` wraps any `ToolDispatcher` (in-process or MCP): it offers only `search_kb`/`check_eligibility`/`log_claim`, refuses other calls without dispatching them, and overwrites `claim_id` with the run's (T-3/T-4, F-03).
+- `approval_gate.py`, `guardrails/api.py` — `submit(action, payload)` dedupes on the canonical payload; `approve`/`deny` only from `PENDING` (409 otherwise); `claim_for_execution` is the single-use `APPROVED → EXECUTED` transition; `ApprovalRequest` is frozen; new `GET /approvals/{id}` (T-4, F-02).
+- `log_claim.py`, `issue_payment.py` — both only submit. The payload is `claim_id` plus the rules-derived outcome plus the structured facts; `issue_payment` takes facts, not an amount, and derives the amount from `evaluate()` (T-4, F-04).
+- `graph.py`, `triage_use_case.py`, `routes.py` — `/claims/triage/stream` runs the same graph (`build_triage_graph(stream=True)`); SSE frames are `tool_call`, `tool_result`, then one `final` frame with the `/triage` response fields, or `error` on `ProviderUnavailableError`. Unverified model text is never streamed; the W1 manual loop is deleted (T-6, F-07).
+- `client.py`, `schemas.py`, `fallback.py`, `pyproject.toml` — the MCP client no longer leaks its portal thread on a failed connect; `claim_text` is capped at 10,000 chars; the `FallbackProvider` docstring is corrected; `openai` moved to a `scripts` dependency group (O-7).
+
+**Notable libraries:** `langgraph.config.get_stream_writer`, `pydantic.JsonValue`, `contextlib.ExitStack` — see glossary.
+
+**Decisions/trade-offs:** `claim_id` stays in the tools' argument schemas (MCP clients need it) and is *overwritten* for the agent rather than rejected, so no prompt change was needed and a model that guesses an id can't loop on errors. The stream dropped `text_delta`/`turn_done` frames rather than streaming the final reply's tokens, because until `finalize` verifies it, that reply is an unverified verdict. The prompt stayed on v4: the tool results are self-describing ("submitted for human approval"), and v5 waits for the W3 eval set. A separate style commit fixed 11 pre-existing lint findings that blocked `make lint` on HEAD.
+**Follow-up:** executors and a Postgres-backed approval store (W3, per ADR-0009); DI at the composition root (O-1), the RAG entry point decision (O-2) and prompt v5 (O-3) stay in their W3 tasks. Commit `1c0ea0b` still has a placeholder message; rewording it needs a force-push to `origin/w2_final_review`.
+
+---
+
 Library/framework/stdlib-concept entries live in [`ombuds_build_glossary.md`](ombuds_build_glossary.md) — append there, not here, whenever a summary's **Notable libraries** introduces something not already listed.
