@@ -1,7 +1,8 @@
 """Fallback provider: retries the primary model, then fails over to a secondary model.
 
-Wraps two `LLMProvider`s that may be entirely different SDKs (Anthropic, OpenAI, ...); each adapter
-translates its own SDK's retryable failures into the shared `ProviderUnavailableError` at its own
+Wraps two `LLMProvider`s that must share a message wire format: the conversation history (and the primary's
+replayed `content`) is Anthropic-shaped, so today both are `AnthropicProvider`s on different models. Each
+adapter translates its own SDK's retryable failures into the shared `ProviderUnavailableError` at its own
 boundary (see `AnthropicProvider`), so this layer only ever needs to catch that one type — see
 ADR-0006 for why resilience is split into this layer plus the SDK client's own retries, rather than
 one layer catching everything.

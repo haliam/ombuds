@@ -5,13 +5,15 @@ from pydantic import BaseModel, ConfigDict, Field
 from ombuds.features.claims_triage.application.decision import TriageDecision
 from ombuds.platform.ai.schemas.tool_calls import ToolResult
 
+MAX_CLAIM_TEXT_CHARS = 10_000
+
 
 class TriageRequest(BaseModel):
-    """A passenger's claim, in their own words."""
+    """A passenger's claim, in their own words. Capped so one request can't run up unbounded token cost."""
 
     model_config = ConfigDict(frozen=True)
 
-    claim_text: str = Field(min_length=1)
+    claim_text: str = Field(min_length=1, max_length=MAX_CLAIM_TEXT_CHARS)
 
 
 class TriageResponse(BaseModel):

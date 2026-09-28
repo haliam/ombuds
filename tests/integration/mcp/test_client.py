@@ -48,3 +48,16 @@ def test_dispatch_all_reports_an_unknown_tool_as_an_error_result() -> None:
         results = client.dispatch_all([call])
 
     assert results[0].is_error is True
+
+
+def test_a_failed_connect_does_not_leak_the_portal_thread() -> None:
+    import threading
+
+    import pytest
+
+    before = threading.active_count()
+
+    with pytest.raises(OSError), McpToolClient(command="/nonexistent/ombuds-mcp-server"):
+        pass
+
+    assert threading.active_count() == before

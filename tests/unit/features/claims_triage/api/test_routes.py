@@ -6,6 +6,7 @@ from fastapi.testclient import TestClient
 
 from ombuds.api_app import app
 from ombuds.features.claims_triage.api import routes
+from ombuds.features.claims_triage.api.schemas import MAX_CLAIM_TEXT_CHARS
 from ombuds.features.claims_triage.application.decision import TriageDecision
 from ombuds.features.claims_triage.application.triage_use_case import (
     TriageCompleted,
@@ -64,6 +65,12 @@ def test_triage_endpoint_surfaces_an_escalated_result(monkeypatch) -> None:
 
 def test_triage_endpoint_rejects_an_empty_claim() -> None:
     response = client.post("/claims/triage", json={"claim_text": ""})
+
+    assert response.status_code == 422
+
+
+def test_triage_endpoint_rejects_a_claim_over_the_length_cap() -> None:
+    response = client.post("/claims/triage", json={"claim_text": "x" * (MAX_CLAIM_TEXT_CHARS + 1)})
 
     assert response.status_code == 422
 
