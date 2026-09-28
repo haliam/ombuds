@@ -3,6 +3,7 @@
 since streaming events aren't yet threaded through the graph.
 """
 
+import uuid
 from collections.abc import Iterator
 
 from pydantic import BaseModel, ConfigDict
@@ -17,7 +18,7 @@ from ombuds.features.claims_triage.agent.graph import (
 from ombuds.features.claims_triage.agent.memory.long_term import LongTermMemory, LongTermMemoryStore
 from ombuds.features.claims_triage.agent.memory.short_term import ShortTermMemory
 from ombuds.features.claims_triage.application.decision import TriageDecision
-from ombuds.features.claims_triage.tools import build_tool_registry
+from ombuds.features.claims_triage.tools import bind_to_claim, build_tool_registry
 from ombuds.platform.ai.providers.base import LLMProvider
 from ombuds.platform.ai.providers.fallback import build_default_provider
 from ombuds.platform.ai.schemas.tool_calls import ToolResult
@@ -35,6 +36,8 @@ class TriageResult(BaseModel):
     was a JSON verdict, or `None` when it instead asked the passenger a plain-text clarifying question
     (see prompt v4's "final answer format" — not every final turn is a decision).
 
+    `claim_id` is the server-issued id every claim-scoped tool call in this run was bound to (ADR-0009).
+
     `escalated` is `True` when the run ended via `agent/nodes/escalate_retry.py` instead of a verified
     decision or a clarifying question — the loop couldn't converge, couldn't produce a decision that
     passed repair/verification, or hit a stop_reason it can't recover from. `escalation_reason` then
@@ -43,6 +46,7 @@ class TriageResult(BaseModel):
 
     model_config = ConfigDict(frozen=True)
 
+    claim_id: str
     answer: str
     decision: TriageDecision | None
     tool_results: tuple[ToolResult, ...]
@@ -53,6 +57,7 @@ class TriageResult(BaseModel):
 def run_triage(
     claim_text: str,
     *,
+    claim_id: str | None = None,
     provider: LLMProvider | None = None,
     use_mcp: bool = False,
     claimant_id: str | None = None,
@@ -70,20 +75,28 @@ def run_triage(
     standalone server (`platform/mcp/server.py`) as a subprocess, instead of the default in-process
     `ToolRegistry`. The graph itself doesn't know the difference — both satisfy `ToolDispatcher`.
 
+    `claim_id` identifies the claim this run acts on; a new one is issued when omitted. The model never
+    chooses it: any `claim_id` it passes to `log_claim`/`issue_payment` is replaced with this one (ADR-0009).
+
     `claimant_id` + `long_term_store` opt into cross-run memory (`agent/memory/long_term.py`): when both
     are given, prior facts about this claimant are shown to the model as a context block in the first user
     turn, and a run that ends with a verified decision consolidates its rules-derived `ShortTermMemory`
     facts back into the store. Omit either and there is no cross-run recall.
     """
+    claim_id = claim_id or str(uuid.uuid4())
     provider = provider or build_default_provider()
     system = load_prompt("claims_triage")
     long_term = long_term_store.load(claimant_id) if claimant_id and long_term_store else LongTermMemory()
 
     if use_mcp:
-        with McpToolClient() as registry:
-            result, long_term = _invoke_graph(provider, registry, system, claim_text, long_term)
+        with McpToolClient() as mcp_client:
+            result, long_term = _invoke_graph(
+                provider, bind_to_claim(mcp_client, claim_id), claim_id, system, claim_text, long_term
+            )
     else:
-        result, long_term = _invoke_graph(provider, build_tool_registry(), system, claim_text, long_term)
+        result, long_term = _invoke_graph(
+            provider, bind_to_claim(build_tool_registry(), claim_id), claim_id, system, claim_text, long_term
+        )
 
     if claimant_id and long_term_store:
         long_term_store.save(claimant_id, long_term)
@@ -91,7 +104,12 @@ def run_triage(
 
 
 def _invoke_graph(
-    provider: LLMProvider, registry: ToolDispatcher, system: str, claim_text: str, long_term: LongTermMemory
+    provider: LLMProvider,
+    registry: ToolDispatcher,
+    claim_id: str,
+    system: str,
+    claim_text: str,
+    long_term: LongTermMemory,
 ) -> tuple[TriageResult, LongTermMemory]:
     app = build_triage_graph(provider, registry, system)
 
@@ -114,6 +132,7 @@ def _invoke_graph(
         config={"recursion_limit": 4 * MAX_TOOL_TURNS + 2 * MAX_REPAIR_ATTEMPTS + 10},
     )
     result = TriageResult(
+        claim_id=claim_id,
         answer=final_state["answer"],
         decision=final_state["decision"],
         tool_results=tuple(final_state["tool_results"]),
@@ -150,7 +169,7 @@ def stream_triage(claim_text: str, *, provider: LLMProvider | None = None) -> It
     the last `TurnDone` with no `tool_calls`.
     """
     provider = provider or build_default_provider()
-    registry = build_tool_registry()
+    registry = bind_to_claim(build_tool_registry(), str(uuid.uuid4()))
     system = load_prompt("claims_triage")
     messages: list[dict[str, object]] = [{"role": "user", "content": claim_text}]
 

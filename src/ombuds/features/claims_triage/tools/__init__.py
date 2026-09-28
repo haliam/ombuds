@@ -6,6 +6,8 @@ uses it directly; `platform/mcp/tool_bindings.py` (a composition root's concern 
 whatever `ToolRegistry` it's given for MCP exposure without needing to know this feature exists.
 """
 
+from collections.abc import Sequence
+
 from pydantic import BaseModel
 
 from ombuds.features.claims_triage.tools.check_eligibility import CHECK_ELIGIBILITY_TOOL
@@ -17,7 +19,8 @@ from ombuds.features.claims_triage.tools.log_claim import log_claim as _log_clai
 from ombuds.features.claims_triage.tools.search_kb import SEARCH_KB_TOOL, SearchKbArgs
 from ombuds.features.claims_triage.tools.search_kb import search_kb as _search_kb_impl
 from ombuds.features.claims_triage.verticals.airline.evidence_schema import FlightDisruption
-from ombuds.platform.ai.tool_loop import ToolRegistry
+from ombuds.platform.ai.schemas.tool_calls import ToolCall, ToolDefinition, ToolResult
+from ombuds.platform.ai.tool_loop import ToolDispatcher, ToolRegistry
 
 # Imported with a distinct name (`as _..._impl`) rather than the tool's own name, deliberately: binding
 # a name identical to the submodule (`check_eligibility`/`log_claim`) here in this package's namespace
@@ -48,6 +51,38 @@ def _issue_payment(args: BaseModel) -> BaseModel:
     if not isinstance(args, IssuePaymentArgs):
         raise TypeError(f"issue_payment expected IssuePaymentArgs, got {type(args).__name__}")
     return _issue_payment_impl(args)
+
+
+CLAIM_SCOPED_TOOLS = frozenset({LOG_CLAIM_TOOL.name, ISSUE_PAYMENT_TOOL.name})
+
+
+class _ClaimBoundDispatcher:
+    """A `ToolDispatcher` that pins every claim-scoped tool call to one server-issued `claim_id`."""
+
+    def __init__(self, inner: ToolDispatcher, claim_id: str) -> None:
+        self._inner = inner
+        self._claim_id = claim_id
+
+    def definitions(self) -> Sequence[ToolDefinition]:
+        return self._inner.definitions()
+
+    def dispatch_all(self, calls: list[ToolCall]) -> list[ToolResult]:
+        return self._inner.dispatch_all([self._bind(call) for call in calls])
+
+    def _bind(self, call: ToolCall) -> ToolCall:
+        if call.name not in CLAIM_SCOPED_TOOLS:
+            return call
+        return call.model_copy(update={"arguments": {**call.arguments, "claim_id": self._claim_id}})
+
+
+def bind_to_claim(dispatcher: ToolDispatcher, claim_id: str) -> ToolDispatcher:
+    """Wrap `dispatcher` so any `claim_id` the model passes to a claim-scoped tool is replaced with `claim_id`.
+
+    The model never chooses which claim a state-changing call acts on: `claim_id` is issued by the server
+    (`run_triage`) and is the key approvals and, from W3, persistence dedupe on (ADR-0009). Works over any
+    `ToolDispatcher`, so the in-process registry and the MCP client path are bound the same way.
+    """
+    return _ClaimBoundDispatcher(dispatcher, claim_id)
 
 
 def build_tool_registry() -> ToolRegistry:

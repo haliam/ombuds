@@ -1,3 +1,4 @@
+import uuid
 from collections.abc import Iterator, Sequence
 
 import pytest
@@ -11,9 +12,11 @@ from ombuds.features.claims_triage.application.triage_use_case import (
     run_triage,
     stream_triage,
 )
+from ombuds.features.claims_triage.tools import log_claim as log_claim_module
 from ombuds.platform.ai.providers.base import ProviderTurn
 from ombuds.platform.ai.schemas.tool_calls import ToolCall, ToolDefinition
 from ombuds.platform.ai.streaming import StreamEvent, TextDelta, ToolCallDelta, ToolResultEvent, TurnDone
+from ombuds.platform.guardrails.approval_gate import ApprovalDecision, GuardedAction
 
 _DECISION_JSON = (
     '{"eligible": true, "compensation_amount_eur": 250, "reason_codes": ["eligible"], '
@@ -385,3 +388,50 @@ def test_stream_triage_gives_up_after_max_tool_turns() -> None:
 
     with pytest.raises(RuntimeError, match="did not converge"):
         list(stream_triage("claim", provider=provider))
+
+
+def test_run_triage_issues_a_claim_id_when_none_is_given() -> None:
+    provider = _FakeProvider(
+        [ProviderTurn(text="Please provide your flight details.", tool_calls=(), stop_reason="end_turn", content=[])]
+    )
+
+    result = run_triage("claim", provider=provider)
+
+    assert uuid.UUID(result.claim_id)
+
+
+def test_run_triage_binds_log_claim_to_the_server_issued_claim_id(monkeypatch) -> None:
+    """A claim_id the model invents (or is steered into by the claim text) never reaches the approval gate."""
+    seen_contexts: list[object] = []
+
+    def _fake_check_approval(action: GuardedAction, context: object = None) -> ApprovalDecision:
+        seen_contexts.append(context)
+        return ApprovalDecision(approved=False, reason="awaiting human approval", request_id="req-1")
+
+    monkeypatch.setattr(log_claim_module, "check_approval", _fake_check_approval)
+    provider = _FakeProvider(
+        [
+            ProviderTurn(
+                text="",
+                tool_calls=(
+                    ToolCall(
+                        id="call-1",
+                        name="log_claim",
+                        arguments={"claim_id": "CLM-FROM-MODEL", "disruption": _disruption_args()},
+                    ),
+                ),
+                stop_reason="tool_use",
+                content=[],
+            ),
+            ProviderTurn(
+                text="Your claim was submitted for review.", tool_calls=(), stop_reason="end_turn", content=[]
+            ),
+        ]
+    )
+
+    result = run_triage("claim", claim_id="CLM-SERVER", provider=provider)
+
+    assert result.claim_id == "CLM-SERVER"
+    assert len(seen_contexts) == 1
+    assert "CLM-SERVER" in str(seen_contexts[0])
+    assert "CLM-FROM-MODEL" not in str(seen_contexts[0])

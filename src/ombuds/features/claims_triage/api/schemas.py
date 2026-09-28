@@ -25,6 +25,7 @@ class TriageResponse(BaseModel):
 
     model_config = ConfigDict(frozen=True)
 
+    claim_id: str
     answer: str
     decision: TriageDecision | None
     tool_results: tuple[ToolResult, ...]

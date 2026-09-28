@@ -15,9 +15,13 @@ router = APIRouter(prefix="/claims", tags=["claims"])
 
 @router.post("/triage", response_model=TriageResponse)
 def triage(request: TriageRequest) -> TriageResponse:
-    """Run the claims-triage tool-use loop over one claim and return its answer plus every tool call made."""
+    """Run the claims-triage tool-use loop over one claim and return its answer plus every tool call made.
+
+    The `claim_id` is always issued by the server (ADR-0009) and returned so the caller can follow up on it.
+    """
     result = run_triage(request.claim_text)
     return TriageResponse(
+        claim_id=result.claim_id,
         answer=result.answer,
         decision=result.decision,
         tool_results=result.tool_results,

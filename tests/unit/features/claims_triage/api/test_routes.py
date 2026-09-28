@@ -16,7 +16,9 @@ client = TestClient(app)
 def test_triage_endpoint_returns_the_use_case_result(monkeypatch) -> None:
     def _fake_run_triage(claim_text: str, *, provider=None) -> TriageResult:
         assert claim_text == "My flight was cancelled."
-        return TriageResult(answer="Please provide your flight details.", decision=None, tool_results=())
+        return TriageResult(
+            claim_id="CLM-1", answer="Please provide your flight details.", decision=None, tool_results=()
+        )
 
     monkeypatch.setattr(routes, "run_triage", _fake_run_triage)
 
@@ -24,6 +26,7 @@ def test_triage_endpoint_returns_the_use_case_result(monkeypatch) -> None:
 
     assert response.status_code == 200
     assert response.json() == {
+        "claim_id": "CLM-1",
         "answer": "Please provide your flight details.",
         "decision": None,
         "tool_results": [],
@@ -35,6 +38,7 @@ def test_triage_endpoint_returns_the_use_case_result(monkeypatch) -> None:
 def test_triage_endpoint_surfaces_an_escalated_result(monkeypatch) -> None:
     def _fake_run_triage(claim_text: str, *, provider=None) -> TriageResult:
         return TriageResult(
+            claim_id="CLM-1",
             answer="This claim could not be resolved automatically and needs human review.",
             decision=None,
             tool_results=(),
@@ -67,6 +71,7 @@ def test_triage_endpoint_rejects_a_missing_claim_text_field() -> None:
 def test_triage_endpoint_serializes_tool_results(monkeypatch) -> None:
     def _fake_run_triage(claim_text: str, *, provider=None) -> TriageResult:
         return TriageResult(
+            claim_id="CLM-1",
             answer='{"eligible": true, "explanation": "You are eligible for EUR 250."}',
             decision=TriageDecision(eligible=True, explanation="You are eligible for EUR 250."),
             tool_results=(ToolResult(call_id="call-1", name="check_eligibility", content="{}", is_error=False),),
