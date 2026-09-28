@@ -46,11 +46,11 @@ def log_claim(args: LogClaimArgs) -> LogClaimResult:
     model-supplied eligibility judgment, so a hallucinated or manipulated `EligibilityResult` in the
     call's arguments can't reach persistence (see AGENTS.md, ADR-0004, W1 review finding F-01).
 
-    Denied unconditionally while `approval_gate` is the deny-all stub (ADR-0004); persistence to the
-    infrastructure layer is unreachable code until that gate is replaced in W2, so it isn't written yet.
+    Denied until a human approves the request `check_approval` creates for this `claim_id` (see ADR-0008);
+    persistence to the infrastructure layer is unreachable code until that happens, so it isn't written yet.
     """
     eligibility = evaluate(args.disruption)
-    decision = check_approval(GuardedAction.LOG_CLAIM)
+    decision = check_approval(GuardedAction.LOG_CLAIM, {"claim_id": args.claim_id})
     if not decision.approved:
         return LogClaimResult(logged=False, reason=decision.reason)
     raise ToolExecutionError(

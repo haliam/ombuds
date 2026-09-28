@@ -313,4 +313,27 @@ Template — copy this block per finished task, filling in the fields (omit **De
 
 ---
 
+### Replace deny-all stub with human-approval gate before state-changing tool calls
+
+**Week:** W2
+**Goal:** Replace the W1 deny-all `approval_gate` stub (ADR-0004) with a real, if minimal, human-approval workflow — `log_claim`/`issue_payment` still can't disburse or persist anything without a human explicitly signing off, but there's now a way for that sign-off to actually happen.
+**Source:** `ombuds_build_tasks.md` Week 2 checklist; ADR-0008
+
+**Files & responsibilities:**
+- `src/ombuds/platform/guardrails/approval_gate.py` — `check_approval(action, context)` now dedupes on `(action, context)` (e.g. `{"claim_id": ...}`) via a module-level `ApprovalGate`: the first call for a given action/context creates a `PENDING` `ApprovalRequest` and denies; a later call with the same action/context sees whatever a human resolved it to. `ApprovalGate` (`check`/`approve`/`deny`/`list_pending`/`get`) is the store's interface, in-memory and `threading.Lock`-guarded; `ApprovalStatus` (`PENDING`/`APPROVED`/`DENIED`) and `ApprovalNotFoundError` are new. Module-level `check_approval`/`list_pending_approvals`/`get_approval_request`/`approve_request`/`deny_request` wrap a single process-lifetime `_GATE` singleton.
+- `src/ombuds/platform/guardrails/api.py` (new) — `GET /approvals` (list pending), `POST /approvals/{id}/approve`, `POST /approvals/{id}/deny` (body: `approver`, optional `note`); 404s via `ApprovalNotFoundError`. Feature-agnostic, like `approval_gate.py` itself.
+- `src/ombuds/api_app.py` — mounts the new `approvals` router alongside the claims-triage feature's routes; this is one of the composition roots allowed to wire a platform-level router in directly (AGENTS.md).
+- `src/ombuds/features/claims_triage/tools/log_claim.py`, `issue_payment.py` — `check_approval` calls now pass `{"claim_id": ...}` / `{"claim_id": ..., "amount_eur": ...}` as context, so the pending request a human sees is scoped to that specific claim rather than a bare action name.
+- `tests/unit/platform/guardrails/test_approval_gate.py` — rewritten against a fresh `ApprovalGate()` per test (not the global singleton): first-check-creates-pending, same-context dedupes onto one request, different context creates a separate one, approve/deny resolve and are reflected on the next check, unknown request id raises.
+- `tests/unit/platform/guardrails/test_api.py` (new) — drives the FastAPI routes through `TestClient`, monkeypatching `platform.guardrails.api`'s module-level functions to a scratch `ApprovalGate` per test so tests don't share state through the real singleton.
+- `tests/unit/features/claims_triage/tools/test_log_claim.py`, `test_issue_payment.py` — updated for the new denial message ("awaiting human approval" instead of "approval_gate stub"); the "approved → raises `ToolExecutionError`" monkeypatches now stub a two-arg `check_approval(action, context=None)`.
+
+**Decisions/trade-offs:** In-memory store, not Postgres — the interview asked to choose between the two; in-memory was picked because `ApprovalGate`'s interface doesn't change if the backing store later does, so moving to Postgres (mirroring `audit_repository.py`) is a swap, not a rewrite, and there's no multi-worker deployment yet to make in-memory state actually wrong. First-sight behavior was the other explicit choice: `check_approval` auto-creates a `PENDING` request rather than requiring `log_claim`/`issue_payment` to create one explicitly first — keeps the tools themselves unchanged (same call site, same return shape) and puts request-creation in exactly one place. See ADR-0008 for the full write-up, including why this is necessarily poll-based (SSE, ADR-0007, is one-directional — a human's decision can't be pushed back into an in-flight triage run, only picked up on the *next* call).
+
+**Notable libraries:** `threading.Lock` — see glossary.
+
+**Follow-up:** The W2 task description also named idempotency on `claim_id` (W1 review F-04) as a requirement — `check_approval`'s dedup key already makes *approval requests* idempotent (a retried call for the same claim doesn't spawn a second pending request), but `log_claim`/`issue_payment` still don't persist anything (both still end in `raise ToolExecutionError(...not implemented...)` once approved), so true double-log/double-pay prevention at the persistence layer is still deferred to whenever W3's Postgres repository work lands — there's nothing to double-write yet. `approver` on `/approvals/*` is a free-text field with no authentication; fine for this demo, flagged in ADR-0008 as a gap a real deployment would need to close.
+
+---
+
 Library/framework/stdlib-concept entries live in [`ombuds_build_glossary.md`](ombuds_build_glossary.md) — append there, not here, whenever a summary's **Notable libraries** introduces something not already listed.

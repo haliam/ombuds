@@ -11,18 +11,20 @@ def _args(**overrides) -> IssuePaymentArgs:
     return IssuePaymentArgs(**(fields | overrides))
 
 
-def test_issue_payment_is_denied_by_the_approval_gate_stub() -> None:
+def test_issue_payment_is_denied_pending_human_approval() -> None:
     result = issue_payment(_args())
 
     assert result.issued is False
-    assert "approval_gate stub" in result.reason
+    assert "awaiting human approval" in result.reason
 
 
 def test_issue_payment_raises_tool_execution_error_once_approved(monkeypatch) -> None:
     """Disbursement isn't implemented yet — an approved decision must raise ToolExecutionError, not
     crash the triage turn with NotImplementedError (see ToolRegistry.dispatch)."""
     monkeypatch.setattr(
-        issue_payment_module, "check_approval", lambda action: ApprovalDecision(approved=True, reason="approved")
+        issue_payment_module,
+        "check_approval",
+        lambda action, context=None: ApprovalDecision(approved=True, reason="approved", request_id="req-1"),
     )
 
     with pytest.raises(ToolExecutionError, match="not implemented"):
