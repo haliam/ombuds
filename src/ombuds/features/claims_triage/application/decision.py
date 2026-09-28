@@ -25,7 +25,7 @@ class TriageDecision(BaseModel):
     explanation: str = Field(min_length=1)
 
 
-def _latest_eligibility_result(tool_results: Sequence[ToolResult]) -> EligibilityResult | None:
+def latest_eligibility_result(tool_results: Sequence[ToolResult]) -> EligibilityResult | None:
     """The most recent successful `check_eligibility` result in `tool_results`, or `None` if there isn't one.
 
     Only non-error results count: a failed call gave the model nothing to base a decision on. A malformed
@@ -53,7 +53,7 @@ def verify_decision(decision: TriageDecision, tool_results: Sequence[ToolResult]
     type `triage_use_case.py` already repairs a malformed reply with means a content mismatch goes through
     that same repair loop, with the same `MAX_REPAIR_ATTEMPTS` budget, rather than needing a second one.
     """
-    latest = _latest_eligibility_result(tool_results)
+    latest = latest_eligibility_result(tool_results)
     if latest is None:
         raise StructuredOutputError(
             "no successful check_eligibility result to verify this decision against — call check_eligibility "

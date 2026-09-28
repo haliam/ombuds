@@ -1,10 +1,15 @@
 import pytest
+from pydantic import JsonValue
 
 from ombuds.platform.guardrails.approval_gate import (
     ApprovalGate,
     ApprovalNotFoundError,
+    ApprovalStateError,
+    ApprovalStatus,
     GuardedAction,
 )
+
+_PAYLOAD: dict[str, JsonValue] = {"claim_id": "claim-1", "eligible": True, "compensation_eur": 250}
 
 
 @pytest.fixture
@@ -13,58 +18,113 @@ def gate() -> ApprovalGate:
 
 
 @pytest.mark.parametrize("action", list(GuardedAction))
-def test_first_check_creates_a_pending_request_and_denies(gate: ApprovalGate, action: GuardedAction) -> None:
-    decision = gate.check(action, {"claim_id": "claim-1"})
+def test_submit_creates_a_pending_request_holding_the_exact_payload(gate: ApprovalGate, action: GuardedAction) -> None:
+    request = gate.submit(action, _PAYLOAD)
 
-    assert decision.approved is False
-    assert "awaiting human approval" in decision.reason
-    assert decision.request_id
+    assert request.status is ApprovalStatus.PENDING
+    assert request.action is action
+    assert request.payload == _PAYLOAD
+    assert gate.list_pending() == (request,)
 
 
-def test_repeat_check_with_same_context_dedupes_onto_the_same_request(gate: ApprovalGate) -> None:
-    first = gate.check(GuardedAction.LOG_CLAIM, {"claim_id": "claim-1"})
-    second = gate.check(GuardedAction.LOG_CLAIM, {"claim_id": "claim-1"})
+def test_resubmitting_the_same_payload_dedupes_onto_the_same_request(gate: ApprovalGate) -> None:
+    first = gate.submit(GuardedAction.LOG_CLAIM, _PAYLOAD)
+    second = gate.submit(GuardedAction.LOG_CLAIM, dict(reversed(list(_PAYLOAD.items()))))
 
-    assert first.request_id == second.request_id
+    assert first.id == second.id
     assert len(gate.list_pending()) == 1
 
 
-def test_different_context_creates_a_separate_request(gate: ApprovalGate) -> None:
-    first = gate.check(GuardedAction.LOG_CLAIM, {"claim_id": "claim-1"})
-    second = gate.check(GuardedAction.LOG_CLAIM, {"claim_id": "claim-2"})
+def test_a_changed_payload_is_a_separate_request(gate: ApprovalGate) -> None:
+    first = gate.submit(GuardedAction.LOG_CLAIM, _PAYLOAD)
+    second = gate.submit(GuardedAction.LOG_CLAIM, {**_PAYLOAD, "compensation_eur": 400})
 
-    assert first.request_id != second.request_id
+    assert first.id != second.id
     assert len(gate.list_pending()) == 2
 
 
-def test_approved_request_is_approved_on_next_check(gate: ApprovalGate) -> None:
-    pending = gate.check(GuardedAction.ISSUE_PAYMENT, {"claim_id": "claim-1"})
-    gate.approve(pending.request_id, approver="ops-lead")
+def test_an_empty_payload_is_rejected(gate: ApprovalGate) -> None:
+    with pytest.raises(ValueError, match="non-empty payload"):
+        gate.submit(GuardedAction.LOG_CLAIM, {})
 
-    decision = gate.check(GuardedAction.ISSUE_PAYMENT, {"claim_id": "claim-1"})
 
-    assert decision.approved is True
-    assert "ops-lead" in decision.reason
-    assert decision.request_id == pending.request_id
+def test_approving_does_not_by_itself_approve_other_payloads_for_the_same_claim(gate: ApprovalGate) -> None:
+    request = gate.submit(GuardedAction.LOG_CLAIM, _PAYLOAD)
+    gate.approve(request.id, approver="ops-lead")
+
+    changed = gate.submit(GuardedAction.LOG_CLAIM, {**_PAYLOAD, "compensation_eur": 600})
+
+    assert changed.status is ApprovalStatus.PENDING
+
+
+def test_resubmitting_an_approved_payload_returns_it_in_its_current_state(gate: ApprovalGate) -> None:
+    request = gate.submit(GuardedAction.LOG_CLAIM, _PAYLOAD)
+    gate.approve(request.id, approver="ops-lead", note="verified")
+
+    again = gate.submit(GuardedAction.LOG_CLAIM, _PAYLOAD)
+
+    assert again.id == request.id
+    assert again.status is ApprovalStatus.APPROVED
+    assert again.approver == "ops-lead"
     assert gate.list_pending() == ()
 
 
-def test_denied_request_stays_denied_and_carries_the_note(gate: ApprovalGate) -> None:
-    pending = gate.check(GuardedAction.ISSUE_PAYMENT, {"claim_id": "claim-1"})
-    gate.deny(pending.request_id, approver="ops-lead", note="insufficient evidence")
+def test_an_approval_can_be_claimed_for_execution_exactly_once(gate: ApprovalGate) -> None:
+    request = gate.submit(GuardedAction.ISSUE_PAYMENT, _PAYLOAD)
+    gate.approve(request.id, approver="ops-lead")
 
-    decision = gate.check(GuardedAction.ISSUE_PAYMENT, {"claim_id": "claim-1"})
+    executed = gate.claim_for_execution(request.id)
 
-    assert decision.approved is False
-    assert "ops-lead" in decision.reason
-    assert "insufficient evidence" in decision.reason
+    assert executed.status is ApprovalStatus.EXECUTED
+    with pytest.raises(ApprovalStateError):
+        gate.claim_for_execution(request.id)
+    assert gate.submit(GuardedAction.ISSUE_PAYMENT, _PAYLOAD).status is ApprovalStatus.EXECUTED
 
 
-def test_approving_an_unknown_request_id_raises(gate: ApprovalGate) -> None:
+def test_a_pending_request_cannot_be_claimed_for_execution(gate: ApprovalGate) -> None:
+    request = gate.submit(GuardedAction.ISSUE_PAYMENT, _PAYLOAD)
+
+    with pytest.raises(ApprovalStateError):
+        gate.claim_for_execution(request.id)
+
+
+def test_a_denied_request_stays_denied_and_carries_the_note(gate: ApprovalGate) -> None:
+    request = gate.submit(GuardedAction.ISSUE_PAYMENT, _PAYLOAD)
+    gate.deny(request.id, approver="ops-lead", note="insufficient evidence")
+
+    denied = gate.get(request.id)
+
+    assert denied.status is ApprovalStatus.DENIED
+    assert denied.note == "insufficient evidence"
+    with pytest.raises(ApprovalStateError):
+        gate.approve(request.id, approver="someone-else")
+    with pytest.raises(ApprovalStateError):
+        gate.claim_for_execution(request.id)
+
+
+def test_a_request_cannot_be_approved_twice(gate: ApprovalGate) -> None:
+    request = gate.submit(GuardedAction.LOG_CLAIM, _PAYLOAD)
+    gate.approve(request.id, approver="ops-lead")
+
+    with pytest.raises(ApprovalStateError):
+        gate.approve(request.id, approver="ops-lead")
+
+
+def test_transitions_replace_the_request_instead_of_mutating_it(gate: ApprovalGate) -> None:
+    pending = gate.submit(GuardedAction.LOG_CLAIM, _PAYLOAD)
+
+    approved = gate.approve(pending.id, approver="ops-lead")
+
+    assert pending.status is ApprovalStatus.PENDING
+    assert approved.status is ApprovalStatus.APPROVED
+
+
+@pytest.mark.parametrize("method", ["approve", "deny"])
+def test_resolving_an_unknown_request_id_raises(gate: ApprovalGate, method: str) -> None:
     with pytest.raises(ApprovalNotFoundError):
-        gate.approve("no-such-id", approver="ops-lead")
+        getattr(gate, method)("no-such-id", approver="ops-lead")
 
 
-def test_denying_an_unknown_request_id_raises(gate: ApprovalGate) -> None:
+def test_getting_an_unknown_request_id_raises(gate: ApprovalGate) -> None:
     with pytest.raises(ApprovalNotFoundError):
-        gate.deny("no-such-id", approver="ops-lead")
+        gate.get("no-such-id")

@@ -15,7 +15,7 @@ from __future__ import annotations
 
 import sys
 from collections.abc import AsyncGenerator, Sequence
-from contextlib import AbstractContextManager, asynccontextmanager
+from contextlib import ExitStack, asynccontextmanager
 from types import TracebackType
 
 import anyio.from_thread
@@ -66,13 +66,14 @@ class McpToolClient:
         self._params = StdioServerParameters(command=command, args=list(args))
         self._portal_cm = anyio.from_thread.start_blocking_portal()
         self._session: ClientSession | None = None
-        self._connection_cm: AbstractContextManager[ClientSession] | None = None
+        self._stack: ExitStack | None = None
 
     def __enter__(self) -> McpToolClient:
-        portal = self._portal_cm.__enter__()
-        self._portal = portal
-        self._connection_cm = portal.wrap_async_context_manager(_connect(self._params))
-        self._session = self._connection_cm.__enter__()
+        # ExitStack so a failed connect still shuts down the portal thread it already started.
+        with ExitStack() as stack:
+            self._portal = stack.enter_context(self._portal_cm)
+            self._session = stack.enter_context(self._portal.wrap_async_context_manager(_connect(self._params)))
+            self._stack = stack.pop_all()
         return self
 
     def __exit__(
@@ -81,11 +82,9 @@ class McpToolClient:
         exc: BaseException | None,
         tb: TracebackType | None,
     ) -> None:
-        assert self._connection_cm is not None
-        self._connection_cm.__exit__(exc_type, exc, tb)
-        self._portal_cm.__exit__(exc_type, exc, tb)
-        self._session = None
-        self._connection_cm = None
+        stack, self._stack, self._session = self._stack, None, None
+        if stack is not None:
+            stack.__exit__(exc_type, exc, tb)
 
     def definitions(self) -> list[ToolDefinition]:
         """List the server's tools, converted to `ToolDefinition`s carrying its own JSON schema verbatim."""

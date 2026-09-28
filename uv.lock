@@ -4,9 +4,9 @@ requires-python = ">=3.11"
 resolution-markers = [
     "python_full_version >= '3.15'",
     "python_full_version == '3.14.*' and sys_platform == 'emscripten'",
-    "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform == 'emscripten'",
     "python_full_version == '3.14.*' and sys_platform == 'win32'",
     "python_full_version == '3.14.*' and sys_platform != 'emscripten' and sys_platform != 'win32'",
+    "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform == 'emscripten'",
     "python_full_version < '3.14' and sys_platform == 'win32'",
     "(python_full_version < '3.12' and sys_platform == 'emscripten') or (python_full_version < '3.14' and sys_platform != 'emscripten' and sys_platform != 'win32')",
 ]
@@ -1140,7 +1140,6 @@ dependencies = [
     { name = "fastapi" },
     { name = "langgraph" },
     { name = "mcp" },
-    { name = "openai" },
     { name = "pydantic" },
     { name = "python-dotenv" },
     { name = "uvicorn" },
@@ -1155,6 +1154,9 @@ dev = [
     { name = "pytest-asyncio" },
     { name = "ruff" },
 ]
+scripts = [
+    { name = "openai" },
+]
 
 [package.metadata]
 requires-dist = [
@@ -1162,7 +1164,6 @@ requires-dist = [
     { name = "fastapi", specifier = ">=0.115" },
     { name = "langgraph", specifier = ">=0.2" },
     { name = "mcp", specifier = ">=1.6,<2" },
-    { name = "openai", specifier = ">=1.55" },
     { name = "pydantic", specifier = ">=2.7" },
     { name = "python-dotenv", specifier = ">=1.0" },
     { name = "uvicorn", specifier = ">=0.30" },
@@ -1177,6 +1178,7 @@ dev = [
     { name = "pytest-asyncio", specifier = ">=0.24" },
     { name = "ruff", specifier = ">=0.6" },
 ]
+scripts = [{ name = "openai", specifier = ">=1.55" }]
 
 [[package]]
 name = "openai"

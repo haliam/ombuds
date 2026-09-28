@@ -38,7 +38,9 @@ class ProviderUnavailableError(Exception):
 class LLMProvider(Protocol):
     """A provider that can run one turn of a tool-use conversation."""
 
-    def run_turn(self, messages: list[dict[str, object]], tools: Sequence[ToolDefinition], *, system: str) -> ProviderTurn:
+    def run_turn(
+        self, messages: list[dict[str, object]], tools: Sequence[ToolDefinition], *, system: str
+    ) -> ProviderTurn:
         """Send `messages` (provider-native wire format) plus `tools` and `system`, and return the assistant turn."""
         ...
 

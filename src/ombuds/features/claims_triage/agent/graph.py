@@ -6,17 +6,31 @@ the same loop, just expressed as nodes and conditional edges: `call_model` -> (t
 or, on a validation/verification failure, loops back to `call_model` with a repair message. A run that
 can't converge or can't produce a verified decision within budget routes to `escalate`
 (`agent/nodes/escalate_retry.py`) instead of raising — see that module's docstring.
+
+Both triage endpoints run this same graph. Compiled with `stream=True`, `call_model` uses the provider's
+streaming API and the nodes forward progress through LangGraph's stream writer: each completed tool call
+(`ToolCallDelta`) and each tool result (`ToolResultEvent`). Model text is deliberately never forwarded —
+a final reply is an unverified verdict until `finalize` has checked it (W2 review F-07).
 """
 
+from collections.abc import Sequence
+
+from langgraph.config import get_stream_writer
 from langgraph.graph import END, StateGraph
 from langgraph.graph.state import CompiledStateGraph
 
+from ombuds.features.claims_triage.agent.memory.short_term import ShortTermMemory
 from ombuds.features.claims_triage.agent.nodes.escalate_retry import UNRECOVERABLE_STOP_REASONS, escalate
 from ombuds.features.claims_triage.agent.state import AgentState
-from ombuds.features.claims_triage.application.decision import TriageDecision, verify_decision
-from ombuds.platform.ai.providers.base import LLMProvider
+from ombuds.features.claims_triage.application.decision import (
+    TriageDecision,
+    latest_eligibility_result,
+    verify_decision,
+)
+from ombuds.platform.ai.providers.base import LLMProvider, ProviderTurn
 from ombuds.platform.ai.schemas.structured_output import StructuredOutputError, parse_structured_output
-from ombuds.platform.ai.schemas.tool_calls import ToolResult
+from ombuds.platform.ai.schemas.tool_calls import ToolDefinition, ToolResult
+from ombuds.platform.ai.streaming import ToolCallDelta, ToolResultEvent, TurnDone
 from ombuds.platform.ai.tool_loop import ToolDispatcher
 
 MAX_TOOL_TURNS = 8
@@ -46,10 +60,16 @@ def _repair_message(error: StructuredOutputError) -> dict[str, object]:
     }
 
 
-def _augmented_system(system: str, state: AgentState) -> str:
-    """`system` plus whatever `short_term`/`long_term` memory has to say, as extra context blocks."""
-    blocks = [system, state["long_term"].as_context(), state["short_term"].as_context()]
-    return "\n\n".join(block for block in blocks if block)
+def _remember_eligibility(memory: ShortTermMemory, results: list[ToolResult]) -> ShortTermMemory:
+    """Record the fields of this batch's latest successful `check_eligibility` result, rendered by our code."""
+    latest = latest_eligibility_result(results)
+    if latest is None:
+        return memory
+    return (
+        memory.remember("eligible", str(latest.eligible))
+        .remember("compensation_eur", str(latest.compensation_eur))
+        .remember("reasons", ",".join(latest.reasons))
+    )
 
 
 def _parse_final_turn(text: str) -> TriageDecision | None:
@@ -64,8 +84,30 @@ def _parse_final_turn(text: str) -> TriageDecision | None:
     return parse_structured_output(text, TriageDecision)
 
 
-def build_triage_graph(provider: LLMProvider, registry: ToolDispatcher, system: str) -> CompiledStateGraph[AgentState]:
-    """Compile the tool-calling loop graph, bound to one provider, tool registry, and system prompt."""
+def _streamed_turn(
+    provider: LLMProvider, messages: list[dict[str, object]], tools: Sequence[ToolDefinition], system: str
+) -> TurnDone:
+    """Run one turn over the provider's streaming API, forwarding each completed tool call as it arrives."""
+    writer = get_stream_writer()
+    done: TurnDone | None = None
+    for event in provider.stream_turn(messages, tools, system=system):
+        if isinstance(event, ToolCallDelta):
+            writer(event)
+        elif isinstance(event, TurnDone):
+            done = event
+    if done is None:
+        raise RuntimeError("provider.stream_turn ended without a TurnDone event")
+    return done
+
+
+def build_triage_graph(
+    provider: LLMProvider, registry: ToolDispatcher, system: str, *, stream: bool = False
+) -> CompiledStateGraph[AgentState]:
+    """Compile the tool-calling loop graph, bound to one provider, tool registry, and system prompt.
+
+    `stream=True` runs each model turn over the provider's streaming API and emits progress events for
+    `app.stream(..., stream_mode="custom")`; the graph's routing and verification are identical either way.
+    """
 
     def call_model(state: AgentState) -> dict[str, object]:
         turns = state["turns"] + 1
@@ -74,7 +116,11 @@ def build_triage_graph(provider: LLMProvider, registry: ToolDispatcher, system: 
                 "turns": turns,
                 "escalation_reason": f"did not converge within {MAX_TOOL_TURNS} tool-use turns",
             }
-        turn = provider.run_turn(state["messages"], registry.definitions(), system=_augmented_system(system, state))
+        turn: ProviderTurn | TurnDone = (
+            _streamed_turn(provider, state["messages"], registry.definitions(), system)
+            if stream
+            else provider.run_turn(state["messages"], registry.definitions(), system=system)
+        )
         messages = [*state["messages"], {"role": "assistant", "content": turn.content}]
         escalation_reason = (
             f"model turn ended with stop_reason={turn.stop_reason!r}"
@@ -97,16 +143,15 @@ def build_triage_graph(provider: LLMProvider, registry: ToolDispatcher, system: 
 
     def dispatch_tools(state: AgentState) -> dict[str, object]:
         results = registry.dispatch_all(list(state["pending_tool_calls"]))
-        messages = [*state["messages"], tool_result_message(results)]
-        short_term = state["short_term"]
+        writer = get_stream_writer()
         for result in results:
-            if not result.is_error:
-                short_term = short_term.remember(f"{result.name}_result", result.content)
+            writer(ToolResultEvent(result=result))
+        messages = [*state["messages"], tool_result_message(results)]
         return {
             "messages": messages,
             "tool_results": [*state["tool_results"], *results],
             "pending_tool_calls": (),
-            "short_term": short_term,
+            "short_term": _remember_eligibility(state["short_term"], results),
         }
 
     def finalize(state: AgentState) -> dict[str, object]:
