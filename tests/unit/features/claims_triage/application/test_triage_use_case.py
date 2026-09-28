@@ -2,6 +2,7 @@ from collections.abc import Iterator, Sequence
 
 import pytest
 
+from ombuds.config import load_prompt
 from ombuds.features.claims_triage.agent.memory.long_term import InMemoryLongTermMemoryStore
 from ombuds.features.claims_triage.agent.nodes.escalate_retry import ESCALATION_ANSWER
 from ombuds.features.claims_triage.application.triage_use_case import (
@@ -34,12 +35,14 @@ class _FakeProvider:
         self._turns = list(turns)
         self.calls = 0
         self.systems: list[str] = []
+        self.messages: list[list[dict[str, object]]] = []
 
     def run_turn(
         self, messages: list[dict[str, object]], tools: Sequence[ToolDefinition], *, system: str
     ) -> ProviderTurn:
         self.calls += 1
         self.systems.append(system)
+        self.messages.append(list(messages))
         return self._turns.pop(0)
 
     def stream_turn(
@@ -277,7 +280,8 @@ def test_run_triage_saves_the_decision_to_long_term_memory_when_a_claimant_id_is
     run_triage("claim", provider=provider, claimant_id="claimant@example.com", long_term_store=store)
 
     memory = store.load("claimant@example.com")
-    assert memory.facts["last_decision"] == "You are eligible for EUR 250."
+    assert memory.facts == {"last_eligible": "True", "last_compensation_eur": "250", "last_reasons": "eligible"}
+    assert "You are eligible" not in str(memory.facts)
 
 
 def test_run_triage_carries_prior_long_term_memory_into_a_later_run_for_the_same_claimant() -> None:
@@ -300,7 +304,10 @@ def test_run_triage_carries_prior_long_term_memory_into_a_later_run_for_the_same
     )
     run_triage("second claim", provider=second_provider, claimant_id="claimant@example.com", long_term_store=store)
 
-    assert "You are eligible for EUR 250." in second_provider.systems[0]
+    first_message = second_provider.messages[0][0]
+    assert "last_compensation_eur: 250" in str(first_message["content"])
+    assert "second claim" in str(first_message["content"])
+    assert second_provider.systems[0] == load_prompt("claims_triage")
 
 
 def test_run_triage_does_not_touch_long_term_memory_without_a_claimant_id() -> None:
@@ -311,7 +318,26 @@ def test_run_triage_does_not_touch_long_term_memory_without_a_claimant_id() -> N
 
     run_triage("claim", provider=provider, long_term_store=store)
 
-    assert "Known facts" not in provider.systems[0]
+    assert provider.messages[0][0] == {"role": "user", "content": "claim"}
+    assert store.load("claimant@example.com").facts == {}
+
+
+def test_run_triage_keeps_the_system_prompt_constant_and_free_of_tool_output() -> None:
+    provider = _FakeProvider(
+        [
+            ProviderTurn(
+                text="",
+                tool_calls=(ToolCall(id="call-1", name="check_eligibility", arguments=_disruption_args()),),
+                stop_reason="tool_use",
+                content=[],
+            ),
+            ProviderTurn(text=_DECISION_JSON, tool_calls=(), stop_reason="end_turn", content=[]),
+        ]
+    )
+
+    run_triage("claim", provider=provider)
+
+    assert provider.systems == [load_prompt("claims_triage")] * 2
 
 
 def test_stream_triage_yields_text_delta_and_turn_done_when_no_tools_are_called() -> None:

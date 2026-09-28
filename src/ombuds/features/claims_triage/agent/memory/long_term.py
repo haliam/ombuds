@@ -1,8 +1,9 @@
 """Long-term agent memory: facts about a claimant that persist across separate triage runs.
 
 Unlike `ShortTermMemory` (scoped to one run), a `LongTermMemory` survives between `run_triage` calls
-for the same claimant — e.g. that they already have an open claim, or how a past claim was decided.
-`LongTermMemoryStore` is a protocol so the process-lifetime `InMemoryLongTermMemoryStore` below can be
+for the same claimant — e.g. how a past claim was decided. It holds only rules-derived facts consolidated
+from a run's `ShortTermMemory`, never model-written text, and is shown to the model as a context block in
+the first user turn rather than in the system prompt (W2 review F-06). `LongTermMemoryStore` is a protocol so the process-lifetime `InMemoryLongTermMemoryStore` below can be
 swapped for a Postgres-backed store once one exists (see W3 in `docs/ombuds_build_tasks.md`) without
 changing any agent code — callers only ever depend on the protocol.
 """
@@ -24,7 +25,7 @@ class LongTermMemory(BaseModel):
         return LongTermMemory(facts={**self.facts, key: value})
 
     def as_context(self) -> str | None:
-        """Render the remembered facts as a system-prompt-ready block, or `None` if there aren't any."""
+        """Render the remembered facts as a user-turn context block, or `None` if there aren't any."""
         if not self.facts:
             return None
         lines = "\n".join(f"- {key}: {value}" for key, value in self.facts.items())

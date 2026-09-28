@@ -2,7 +2,6 @@
 
 from typing import TypedDict
 
-from ombuds.features.claims_triage.agent.memory.long_term import LongTermMemory
 from ombuds.features.claims_triage.agent.memory.short_term import ShortTermMemory
 from ombuds.features.claims_triage.application.decision import TriageDecision
 from ombuds.platform.ai.schemas.tool_calls import ToolCall, ToolResult
@@ -17,10 +16,10 @@ class AgentState(TypedDict):
     and `text` hold the latest model turn's output between `call_model` and the nodes that consume
     it; `done` marks that `finalize` reached an answer rather than looping back for a repair.
 
-    `short_term` accumulates facts learned during this run (e.g. tool results) and is injected back
-    into the model's system prompt each turn; `long_term` holds whatever was already known about this
-    claimant from past runs (see `agent/memory/long_term.py`) and is read-only within the graph —
-    `application/triage_use_case.py` owns persisting updates back to the `LongTermMemoryStore`.
+    `short_term` accumulates the typed, rules-derived facts established during this run (see
+    `agent/memory/short_term.py`); it is never injected into a prompt. Cross-run `LongTermMemory` isn't part
+    of graph state at all: `application/triage_use_case.py` renders it into the first user message before
+    the run and consolidates `short_term` back into it afterwards.
 
     `stop_reason` is the latest model turn's `ProviderTurn.stop_reason`, checked by `route_after_model`
     for one the loop can't recover from on its own (see `agent/nodes/escalate_retry.py`). `escalated`
@@ -39,7 +38,6 @@ class AgentState(TypedDict):
     decision: TriageDecision | None
     done: bool
     short_term: ShortTermMemory
-    long_term: LongTermMemory
     stop_reason: str
     escalated: bool
     escalation_reason: str | None

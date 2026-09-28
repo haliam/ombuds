@@ -71,8 +71,9 @@ def run_triage(
     `ToolRegistry`. The graph itself doesn't know the difference — both satisfy `ToolDispatcher`.
 
     `claimant_id` + `long_term_store` opt into cross-run memory (`agent/memory/long_term.py`): when both
-    are given, prior facts about this claimant are loaded into the run and the run's decision is saved
-    back afterwards. Omit either and the run only gets this-run `ShortTermMemory` — no cross-run recall.
+    are given, prior facts about this claimant are shown to the model as a context block in the first user
+    turn, and a run that ends with a verified decision consolidates its rules-derived `ShortTermMemory`
+    facts back into the store. Omit either and there is no cross-run recall.
     """
     provider = provider or build_default_provider()
     system = load_prompt("claims_triage")
@@ -96,7 +97,7 @@ def _invoke_graph(
 
     final_state = app.invoke(
         {
-            "messages": [{"role": "user", "content": claim_text}],
+            "messages": [_first_user_message(claim_text, long_term)],
             "tool_results": [],
             "pending_tool_calls": (),
             "text": "",
@@ -106,7 +107,6 @@ def _invoke_graph(
             "decision": None,
             "done": False,
             "short_term": ShortTermMemory(),
-            "long_term": long_term,
             "stop_reason": "",
             "escalated": False,
             "escalation_reason": None,
@@ -120,9 +120,26 @@ def _invoke_graph(
         escalated=final_state["escalated"],
         escalation_reason=final_state["escalation_reason"],
     )
-    decision = final_state["decision"]
-    updated_long_term = long_term.remember("last_decision", decision.explanation) if decision else long_term
+    updated_long_term = long_term
+    if final_state["decision"] is not None:
+        for key, value in final_state["short_term"].facts.items():
+            updated_long_term = updated_long_term.remember(f"last_{key}", value)
     return result, updated_long_term
+
+
+def _first_user_message(claim_text: str, long_term: LongTermMemory) -> dict[str, object]:
+    """The claim as the opening user turn, preceded by any cross-run facts as a separate context block.
+
+    Memory goes here rather than in the system prompt so nothing a past run stored is ever promoted to
+    system-level trust, and the system prompt stays the constant versioned prompt (W2 review F-06).
+    """
+    context = long_term.as_context()
+    if context is None:
+        return {"role": "user", "content": claim_text}
+    return {
+        "role": "user",
+        "content": [{"type": "text", "text": context}, {"type": "text", "text": claim_text}],
+    }
 
 
 def stream_triage(claim_text: str, *, provider: LLMProvider | None = None) -> Iterator[StreamEvent]:
