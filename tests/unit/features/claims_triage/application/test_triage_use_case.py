@@ -34,7 +34,9 @@ class _FakeProvider:
         self.calls = 0
         self.systems: list[str] = []
 
-    def run_turn(self, messages: list[dict[str, object]], tools: Sequence[ToolDefinition], *, system: str) -> ProviderTurn:
+    def run_turn(
+        self, messages: list[dict[str, object]], tools: Sequence[ToolDefinition], *, system: str
+    ) -> ProviderTurn:
         self.calls += 1
         self.systems.append(system)
         return self._turns.pop(0)

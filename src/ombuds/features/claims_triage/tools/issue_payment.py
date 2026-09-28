@@ -1,4 +1,4 @@
-"""Tool: issue_payment. State-changing — every call must pass through the approval gate (non-negotiable, see AGENTS.md)."""
+"""Tool: issue_payment. State-changing — every call must pass through the approval gate (see AGENTS.md)."""
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -43,9 +43,7 @@ def issue_payment(args: IssuePaymentArgs) -> IssuePaymentResult:
     (see ADR-0008); disbursement to a real payment provider is unreachable code until that happens, so
     it isn't written yet (mirrors `log_claim`, see AGENTS.md).
     """
-    decision = check_approval(
-        GuardedAction.ISSUE_PAYMENT, {"claim_id": args.claim_id, "amount_eur": args.amount_eur}
-    )
+    decision = check_approval(GuardedAction.ISSUE_PAYMENT, {"claim_id": args.claim_id, "amount_eur": args.amount_eur})
     if not decision.approved:
         return IssuePaymentResult(issued=False, reason=decision.reason)
     raise ToolExecutionError(

@@ -52,7 +52,9 @@ class FallbackProvider:
         self._base_backoff_seconds = base_backoff_seconds
         self._sleep = sleep
 
-    def run_turn(self, messages: list[dict[str, object]], tools: Sequence[ToolDefinition], *, system: str) -> ProviderTurn:
+    def run_turn(
+        self, messages: list[dict[str, object]], tools: Sequence[ToolDefinition], *, system: str
+    ) -> ProviderTurn:
         """Retry `primary.run_turn` with backoff; fall over to `fallback.run_turn` once retries are exhausted.
 
         Only `ProviderUnavailableError` triggers a retry or fallover — any other exception (a 4xx from
@@ -125,11 +127,18 @@ def build_default_provider() -> LLMProvider:
 
     Both providers share the same configured timeout/max-retries — see `config.py` and `.env.example`.
     """
-    from ombuds.config import ANTHROPIC_FALLBACK_MODEL, ANTHROPIC_MAX_RETRIES, ANTHROPIC_MODEL, ANTHROPIC_TIMEOUT_SECONDS
+    from ombuds.config import (
+        ANTHROPIC_FALLBACK_MODEL,
+        ANTHROPIC_MAX_RETRIES,
+        ANTHROPIC_MODEL,
+        ANTHROPIC_TIMEOUT_SECONDS,
+    )
     from ombuds.platform.ai.providers.anthropic import AnthropicProvider
 
     return FallbackProvider(
-        primary=AnthropicProvider(ANTHROPIC_MODEL, timeout=ANTHROPIC_TIMEOUT_SECONDS, max_retries=ANTHROPIC_MAX_RETRIES),
+        primary=AnthropicProvider(
+            ANTHROPIC_MODEL, timeout=ANTHROPIC_TIMEOUT_SECONDS, max_retries=ANTHROPIC_MAX_RETRIES
+        ),
         fallback=AnthropicProvider(
             ANTHROPIC_FALLBACK_MODEL, timeout=ANTHROPIC_TIMEOUT_SECONDS, max_retries=ANTHROPIC_MAX_RETRIES
         ),

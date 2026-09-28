@@ -48,7 +48,9 @@ class AnthropicProvider:
         self._client = client or anthropic.Anthropic(timeout=timeout, max_retries=max_retries)
         self._model = model
 
-    def run_turn(self, messages: list[dict[str, object]], tools: Sequence[ToolDefinition], *, system: str) -> ProviderTurn:
+    def run_turn(
+        self, messages: list[dict[str, object]], tools: Sequence[ToolDefinition], *, system: str
+    ) -> ProviderTurn:
         """Send one turn to Anthropic and parse its response into a provider-agnostic `ProviderTurn`.
 
         Raises `ProviderUnavailableError` once the SDK's own retries are exhausted for a retryable

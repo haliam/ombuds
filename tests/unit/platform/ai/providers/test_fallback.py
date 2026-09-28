@@ -18,7 +18,9 @@ class _FailingProvider:
         self._fail_times = fail_times
         self.calls = 0
 
-    def run_turn(self, messages: list[dict[str, object]], tools: Sequence[ToolDefinition], *, system: str) -> ProviderTurn:
+    def run_turn(
+        self, messages: list[dict[str, object]], tools: Sequence[ToolDefinition], *, system: str
+    ) -> ProviderTurn:
         self.calls += 1
         if self._fail_times is not None and self.calls > self._fail_times:
             return _TURN
@@ -38,7 +40,9 @@ class _OkProvider:
     def __init__(self) -> None:
         self.calls = 0
 
-    def run_turn(self, messages: list[dict[str, object]], tools: Sequence[ToolDefinition], *, system: str) -> ProviderTurn:
+    def run_turn(
+        self, messages: list[dict[str, object]], tools: Sequence[ToolDefinition], *, system: str
+    ) -> ProviderTurn:
         self.calls += 1
         return _TURN
 
@@ -50,7 +54,9 @@ class _OkProvider:
 
 
 class _MidStreamFailure:
-    def run_turn(self, messages: list[dict[str, object]], tools: Sequence[ToolDefinition], *, system: str) -> ProviderTurn:
+    def run_turn(
+        self, messages: list[dict[str, object]], tools: Sequence[ToolDefinition], *, system: str
+    ) -> ProviderTurn:
         raise AssertionError("not used")
 
     def stream_turn(
