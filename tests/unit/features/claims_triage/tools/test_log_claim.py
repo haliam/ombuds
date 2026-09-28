@@ -24,11 +24,11 @@ def _args(**overrides) -> LogClaimArgs:
     return LogClaimArgs(claim_id="claim-1", disruption=_disruption(**overrides))
 
 
-def test_log_claim_is_denied_by_the_approval_gate_stub() -> None:
+def test_log_claim_is_denied_pending_human_approval() -> None:
     result = log_claim(_args())
 
     assert result.logged is False
-    assert "approval_gate stub" in result.reason
+    assert "awaiting human approval" in result.reason
 
 
 def test_log_claim_recomputes_eligibility_rather_than_trusting_the_caller() -> None:
@@ -44,7 +44,9 @@ def test_log_claim_raises_tool_execution_error_once_approved(monkeypatch) -> Non
     """Persistence isn't implemented yet — an approved decision must raise ToolExecutionError, not crash
     the triage turn with NotImplementedError (see ToolRegistry.dispatch)."""
     monkeypatch.setattr(
-        log_claim_module, "check_approval", lambda action: ApprovalDecision(approved=True, reason="approved")
+        log_claim_module,
+        "check_approval",
+        lambda action, context=None: ApprovalDecision(approved=True, reason="approved", request_id="req-1"),
     )
 
     with pytest.raises(ToolExecutionError, match="not implemented"):

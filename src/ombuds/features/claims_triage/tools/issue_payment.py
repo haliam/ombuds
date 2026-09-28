@@ -39,11 +39,13 @@ ISSUE_PAYMENT_TOOL = ToolDefinition(
 def issue_payment(args: IssuePaymentArgs) -> IssuePaymentResult:
     """Attempt to issue payment for `args.claim_id`.
 
-    Denied unconditionally while `approval_gate` is the deny-all stub (ADR-0004); disbursement to a real
-    payment provider is unreachable code until that gate is replaced in W2, so it isn't written yet
-    (mirrors `log_claim`'s stub, see AGENTS.md).
+    Denied until a human approves the request `check_approval` creates for this `claim_id`/`amount_eur`
+    (see ADR-0008); disbursement to a real payment provider is unreachable code until that happens, so
+    it isn't written yet (mirrors `log_claim`, see AGENTS.md).
     """
-    decision = check_approval(GuardedAction.ISSUE_PAYMENT)
+    decision = check_approval(
+        GuardedAction.ISSUE_PAYMENT, {"claim_id": args.claim_id, "amount_eur": args.amount_eur}
+    )
     if not decision.approved:
         return IssuePaymentResult(issued=False, reason=decision.reason)
     raise ToolExecutionError(
