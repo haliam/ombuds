@@ -1,10 +1,13 @@
-"""Orchestrates the end-to-end triage flow: `run_triage` drives a LangGraph tool-calling loop
-(`agent/graph.py`) against a provider; `stream_triage` still runs the raw streaming loop directly,
-since streaming events aren't yet threaded through the graph.
+"""Orchestrates the end-to-end triage flow over the LangGraph tool-calling loop (`agent/graph.py`).
+
+`run_triage` returns one `TriageResult`; `stream_triage` runs the *same* graph and yields progress events
+followed by the same `TriageResult`, so both endpoints share one verification/repair/escalation path
+(W2 review F-07).
 """
 
 import uuid
-from collections.abc import Iterator
+from collections.abc import Iterator, Mapping
+from typing import Any
 
 from pydantic import BaseModel, ConfigDict
 
@@ -13,20 +16,30 @@ from ombuds.features.claims_triage.agent.graph import (
     MAX_REPAIR_ATTEMPTS,
     MAX_TOOL_TURNS,
     build_triage_graph,
-    tool_result_message,
 )
 from ombuds.features.claims_triage.agent.memory.long_term import LongTermMemory, LongTermMemoryStore
 from ombuds.features.claims_triage.agent.memory.short_term import ShortTermMemory
+from ombuds.features.claims_triage.agent.state import AgentState
 from ombuds.features.claims_triage.application.decision import TriageDecision
 from ombuds.features.claims_triage.tools import build_tool_registry, scope_for_agent
 from ombuds.platform.ai.providers.base import LLMProvider
 from ombuds.platform.ai.providers.fallback import build_default_provider
 from ombuds.platform.ai.schemas.tool_calls import ToolResult
-from ombuds.platform.ai.streaming import StreamEvent, ToolResultEvent, TurnDone
+from ombuds.platform.ai.streaming import ToolCallDelta, ToolResultEvent
 from ombuds.platform.ai.tool_loop import ToolDispatcher
 from ombuds.platform.mcp.client import McpToolClient
 
-__all__ = ["MAX_REPAIR_ATTEMPTS", "MAX_TOOL_TURNS", "TriageResult", "run_triage", "stream_triage"]
+__all__ = [
+    "MAX_REPAIR_ATTEMPTS",
+    "MAX_TOOL_TURNS",
+    "TriageCompleted",
+    "TriageResult",
+    "TriageStreamEvent",
+    "run_triage",
+    "stream_triage",
+]
+
+_RECURSION_LIMIT = 4 * MAX_TOOL_TURNS + 2 * MAX_REPAIR_ATTEMPTS + 10
 
 
 class TriageResult(BaseModel):
@@ -41,7 +54,7 @@ class TriageResult(BaseModel):
     `escalated` is `True` when the run ended via `agent/nodes/escalate_retry.py` instead of a verified
     decision or a clarifying question — the loop couldn't converge, couldn't produce a decision that
     passed repair/verification, or hit a stop_reason it can't recover from. `escalation_reason` then
-    holds a human-readable explanation; `decision` is `None` and `answer` is the best text available.
+    holds a human-readable explanation; `decision` is `None` and `answer` is a fixed human-review message.
     """
 
     model_config = ConfigDict(frozen=True)
@@ -52,6 +65,17 @@ class TriageResult(BaseModel):
     tool_results: tuple[ToolResult, ...]
     escalated: bool = False
     escalation_reason: str | None = None
+
+
+class TriageCompleted(BaseModel):
+    """The last event `stream_triage` yields: the run's verified outcome, identical to `run_triage`'s result."""
+
+    model_config = ConfigDict(frozen=True)
+
+    result: TriageResult
+
+
+TriageStreamEvent = ToolCallDelta | ToolResultEvent | TriageCompleted
 
 
 def run_triage(
@@ -113,26 +137,30 @@ def _invoke_graph(
     long_term: LongTermMemory,
 ) -> tuple[TriageResult, LongTermMemory]:
     app = build_triage_graph(provider, registry, system)
+    final_state = app.invoke(_initial_state(claim_text, long_term), config={"recursion_limit": _RECURSION_LIMIT})
+    return _to_result(claim_id, final_state), _consolidate(long_term, final_state)
 
-    final_state = app.invoke(
-        {
-            "messages": [_first_user_message(claim_text, long_term)],
-            "tool_results": [],
-            "pending_tool_calls": (),
-            "text": "",
-            "turns": 0,
-            "repair_attempts": 0,
-            "answer": None,
-            "decision": None,
-            "done": False,
-            "short_term": ShortTermMemory(),
-            "stop_reason": "",
-            "escalated": False,
-            "escalation_reason": None,
-        },
-        config={"recursion_limit": 4 * MAX_TOOL_TURNS + 2 * MAX_REPAIR_ATTEMPTS + 10},
-    )
-    result = TriageResult(
+
+def _initial_state(claim_text: str, long_term: LongTermMemory) -> AgentState:
+    return {
+        "messages": [_first_user_message(claim_text, long_term)],
+        "tool_results": [],
+        "pending_tool_calls": (),
+        "text": "",
+        "turns": 0,
+        "repair_attempts": 0,
+        "answer": None,
+        "decision": None,
+        "done": False,
+        "short_term": ShortTermMemory(),
+        "stop_reason": "",
+        "escalated": False,
+        "escalation_reason": None,
+    }
+
+
+def _to_result(claim_id: str, final_state: Mapping[str, Any]) -> TriageResult:
+    return TriageResult(
         claim_id=claim_id,
         answer=final_state["answer"],
         decision=final_state["decision"],
@@ -140,11 +168,15 @@ def _invoke_graph(
         escalated=final_state["escalated"],
         escalation_reason=final_state["escalation_reason"],
     )
-    updated_long_term = long_term
-    if final_state["decision"] is not None:
-        for key, value in final_state["short_term"].facts.items():
-            updated_long_term = updated_long_term.remember(f"last_{key}", value)
-    return result, updated_long_term
+
+
+def _consolidate(long_term: LongTermMemory, final_state: Mapping[str, Any]) -> LongTermMemory:
+    """Fold a run's rules-derived short-term facts into long-term memory, only when it reached a verified decision."""
+    if final_state["decision"] is None:
+        return long_term
+    for key, value in final_state["short_term"].facts.items():
+        long_term = long_term.remember(f"last_{key}", value)
+    return long_term
 
 
 def _first_user_message(claim_text: str, long_term: LongTermMemory) -> dict[str, object]:
@@ -162,34 +194,31 @@ def _first_user_message(claim_text: str, long_term: LongTermMemory) -> dict[str,
     }
 
 
-def stream_triage(claim_text: str, *, provider: LLMProvider | None = None) -> Iterator[StreamEvent]:
-    """Like `run_triage`, but yield `StreamEvent`s as they happen instead of returning one final result.
+def stream_triage(
+    claim_text: str, *, claim_id: str | None = None, provider: LLMProvider | None = None
+) -> Iterator[TriageStreamEvent]:
+    """Run the same graph as `run_triage`, yielding progress events as they happen, then the final result.
 
-    Yields every event a provider turn streams (text deltas, completed tool calls), plus a `ToolResultEvent`
-    per dispatched tool call and each turn's `TurnDone`. Callers that need the final answer should watch for
-    the last `TurnDone` with no `tool_calls`.
+    Yields a `ToolCallDelta` as each tool call the model requests completes and a `ToolResultEvent` as each
+    tool returns, then exactly one `TriageCompleted` carrying the same verified `TriageResult` `run_triage`
+    would return. Model text is never yielded on its own: until `finalize` has verified it, a reply may be a
+    verdict the rules engine contradicts, so the only model-derived text a caller sees is the final result's.
     """
+    claim_id = claim_id or str(uuid.uuid4())
     provider = provider or build_default_provider()
-    registry = scope_for_agent(build_tool_registry(), str(uuid.uuid4()))
-    system = load_prompt("claims_triage")
-    messages: list[dict[str, object]] = [{"role": "user", "content": claim_text}]
+    registry = scope_for_agent(build_tool_registry(), claim_id)
+    app = build_triage_graph(provider, registry, load_prompt("claims_triage"), stream=True)
 
-    for _ in range(MAX_TOOL_TURNS):
-        turn_done: TurnDone | None = None
-        for event in provider.stream_turn(messages, registry.definitions(), system=system):
-            yield event
-            if isinstance(event, TurnDone):
-                turn_done = event
-
-        assert turn_done is not None, "provider.stream_turn must end with a TurnDone"
-        messages.append({"role": "assistant", "content": turn_done.content})
-
-        if not turn_done.tool_calls:
-            return
-
-        results = registry.dispatch_all(list(turn_done.tool_calls))
-        for result in results:
-            yield ToolResultEvent(result=result)
-        messages.append(tool_result_message(results))
-
-    raise RuntimeError(f"triage did not converge within {MAX_TOOL_TURNS} tool-use turns")
+    final_state: Mapping[str, Any] | None = None
+    for mode, chunk in app.stream(
+        _initial_state(claim_text, LongTermMemory()),
+        config={"recursion_limit": _RECURSION_LIMIT},
+        stream_mode=["custom", "values"],
+    ):
+        if mode == "custom" and isinstance(chunk, ToolCallDelta | ToolResultEvent):
+            yield chunk
+        elif mode == "values" and isinstance(chunk, Mapping):
+            final_state = chunk
+    if final_state is None:
+        raise RuntimeError("triage graph produced no state")
+    yield TriageCompleted(result=_to_result(claim_id, final_state))

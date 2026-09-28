@@ -1,14 +1,13 @@
 import uuid
 from collections.abc import Iterator, Sequence
 
-import pytest
-
 from ombuds.config import load_prompt
 from ombuds.features.claims_triage.agent.memory.long_term import InMemoryLongTermMemoryStore
 from ombuds.features.claims_triage.agent.nodes.escalate_retry import ESCALATION_ANSWER
 from ombuds.features.claims_triage.application.triage_use_case import (
     MAX_REPAIR_ATTEMPTS,
     MAX_TOOL_TURNS,
+    TriageCompleted,
     run_triage,
     stream_triage,
 )
@@ -343,51 +342,68 @@ def test_run_triage_keeps_the_system_prompt_constant_and_free_of_tool_output() -
     assert provider.systems == [load_prompt("claims_triage")] * 2
 
 
-def test_stream_triage_yields_text_delta_and_turn_done_when_no_tools_are_called() -> None:
-    provider = _FakeProvider(
-        [ProviderTurn(text="Please provide your flight details.", tool_calls=(), stop_reason="end_turn", content=[])]
-    )
+def _check_then(final_text: str) -> list[ProviderTurn]:
+    return [
+        ProviderTurn(
+            text="",
+            tool_calls=(ToolCall(id="call-1", name="check_eligibility", arguments=_disruption_args()),),
+            stop_reason="tool_use",
+            content=[],
+        ),
+        ProviderTurn(text=final_text, tool_calls=(), stop_reason="end_turn", content=[]),
+    ]
 
-    events = list(stream_triage("My flight was delayed.", provider=provider))
 
-    assert events[0] == TextDelta(text="Please provide your flight details.")
+def test_stream_triage_ends_with_the_same_result_run_triage_returns() -> None:
+    streamed = list(stream_triage("claim", claim_id="CLM-1", provider=_FakeProvider(_check_then(_DECISION_JSON))))
+    returned = run_triage("claim", claim_id="CLM-1", provider=_FakeProvider(_check_then(_DECISION_JSON)))
+
+    final = streamed[-1]
+    assert isinstance(final, TriageCompleted)
+    assert final.result == returned
+    assert final.result.decision is not None
+    assert final.result.decision.compensation_amount_eur == 250
+
+
+def test_stream_triage_emits_tool_progress_but_never_model_text() -> None:
+    events = list(stream_triage("claim", provider=_FakeProvider(_check_then(_DECISION_JSON))))
+
+    assert [type(event).__name__ for event in events] == ["ToolCallDelta", "ToolResultEvent", "TriageCompleted"]
+    progress = events[1]
+    assert isinstance(progress, ToolResultEvent)
+    assert progress.result.name == "check_eligibility"
+    assert progress.result.is_error is False
+
+
+def test_stream_triage_repairs_a_mismatched_verdict_without_ever_streaming_it() -> None:
+    turns = [
+        *_check_then(_WRONG_DECISION_JSON),
+        ProviderTurn(text=_DECISION_JSON, tool_calls=(), stop_reason="end_turn", content=[]),
+    ]
+
+    events = list(stream_triage("claim", provider=_FakeProvider(turns)))
+
+    assert all("999" not in repr(event) for event in events)
     final = events[-1]
-    assert isinstance(final, TurnDone)
-    assert final.text == "Please provide your flight details."
-    assert final.tool_calls == ()
+    assert isinstance(final, TriageCompleted)
+    assert final.result.decision is not None
+    assert final.result.decision.compensation_amount_eur == 250
 
 
-def test_stream_triage_emits_tool_call_and_tool_result_events() -> None:
-    call = ToolCall(id="call-1", name="check_eligibility", arguments=_disruption_args())
-    provider = _FakeProvider(
-        [
-            ProviderTurn(text="", tool_calls=(call,), stop_reason="tool_use", content=[]),
-            ProviderTurn(text="You are eligible for EUR 250.", tool_calls=(), stop_reason="end_turn", content=[]),
-        ]
-    )
-
-    events = list(stream_triage("My flight from Berlin to Lisbon was cancelled.", provider=provider))
-
-    tool_call_events = [event for event in events if isinstance(event, ToolCallDelta)]
-    result_events = [event for event in events if isinstance(event, ToolResultEvent)]
-    assert tool_call_events == [ToolCallDelta(call=call)]
-    assert len(result_events) == 1
-    assert result_events[0].result.name == "check_eligibility"
-    assert result_events[0].result.is_error is False
-    assert provider.calls == 2
-
-
-def test_stream_triage_gives_up_after_max_tool_turns() -> None:
+def test_stream_triage_escalates_instead_of_raising_after_max_tool_turns() -> None:
     looping_turn = ProviderTurn(
         text="",
         tool_calls=(ToolCall(id="call-1", name="check_eligibility", arguments=_disruption_args()),),
         stop_reason="tool_use",
         content=[],
     )
-    provider = _FakeProvider([looping_turn] * MAX_TOOL_TURNS)
 
-    with pytest.raises(RuntimeError, match="did not converge"):
-        list(stream_triage("claim", provider=provider))
+    events = list(stream_triage("claim", provider=_FakeProvider([looping_turn] * MAX_TOOL_TURNS)))
+
+    final = events[-1]
+    assert isinstance(final, TriageCompleted)
+    assert final.result.escalated is True
+    assert final.result.answer == ESCALATION_ANSWER
 
 
 def test_run_triage_issues_a_claim_id_when_none_is_given() -> None:
