@@ -3,6 +3,7 @@ from collections.abc import Iterator, Sequence
 import pytest
 
 from ombuds.features.claims_triage.agent.memory.long_term import InMemoryLongTermMemoryStore
+from ombuds.features.claims_triage.agent.nodes.escalate_retry import ESCALATION_ANSWER
 from ombuds.features.claims_triage.application.triage_use_case import (
     MAX_REPAIR_ATTEMPTS,
     MAX_TOOL_TURNS,
@@ -133,6 +134,7 @@ def test_run_triage_escalates_after_max_repair_attempts() -> None:
 
     assert result.escalated is True
     assert result.decision is None
+    assert result.answer == ESCALATION_ANSWER
     assert result.escalation_reason is not None
     assert "does not match the required schema" in result.escalation_reason
 
@@ -180,6 +182,8 @@ def test_run_triage_escalates_after_max_repair_attempts_for_a_persistent_mismatc
 
     assert result.escalated is True
     assert result.decision is None
+    assert result.answer == ESCALATION_ANSWER
+    assert "999" not in result.answer
     assert result.escalation_reason is not None
     assert "does not match check_eligibility" in result.escalation_reason
 
@@ -225,7 +229,7 @@ def test_run_triage_reports_an_unknown_tool_as_an_error_result_without_crashing(
 
 def test_run_triage_escalates_after_max_tool_turns() -> None:
     looping_turn = ProviderTurn(
-        text="",
+        text="Let me check that for you.",
         tool_calls=(ToolCall(id="call-1", name="check_eligibility", arguments=_disruption_args()),),
         stop_reason="tool_use",
         content=[],
@@ -236,6 +240,7 @@ def test_run_triage_escalates_after_max_tool_turns() -> None:
 
     assert result.escalated is True
     assert result.decision is None
+    assert result.answer == ESCALATION_ANSWER
     assert result.escalation_reason is not None
     assert "did not converge" in result.escalation_reason
 
@@ -249,6 +254,8 @@ def test_run_triage_escalates_on_an_unrecoverable_stop_reason() -> None:
 
     assert result.escalated is True
     assert result.decision is None
+    assert result.answer == ESCALATION_ANSWER
+    assert "partial answer trunc" not in result.answer
     assert result.escalation_reason is not None
     assert "max_tokens" in result.escalation_reason
 
