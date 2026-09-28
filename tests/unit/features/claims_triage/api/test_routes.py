@@ -27,7 +27,29 @@ def test_triage_endpoint_returns_the_use_case_result(monkeypatch) -> None:
         "answer": "Please provide your flight details.",
         "decision": None,
         "tool_results": [],
+        "escalated": False,
+        "escalation_reason": None,
     }
+
+
+def test_triage_endpoint_surfaces_an_escalated_result(monkeypatch) -> None:
+    def _fake_run_triage(claim_text: str, *, provider=None) -> TriageResult:
+        return TriageResult(
+            answer="This claim could not be resolved automatically and needs human review.",
+            decision=None,
+            tool_results=(),
+            escalated=True,
+            escalation_reason="did not converge within 8 tool-use turns",
+        )
+
+    monkeypatch.setattr(routes, "run_triage", _fake_run_triage)
+
+    response = client.post("/claims/triage", json={"claim_text": "My flight was cancelled."})
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["escalated"] is True
+    assert body["escalation_reason"] == "did not converge within 8 tool-use turns"
 
 
 def test_triage_endpoint_rejects_an_empty_claim() -> None:

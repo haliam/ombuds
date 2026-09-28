@@ -34,6 +34,11 @@ class TriageResult(BaseModel):
     `decision` is the validated, `check_eligibility`-verified `TriageDecision` when the model's final reply
     was a JSON verdict, or `None` when it instead asked the passenger a plain-text clarifying question
     (see prompt v4's "final answer format" — not every final turn is a decision).
+
+    `escalated` is `True` when the run ended via `agent/nodes/escalate_retry.py` instead of a verified
+    decision or a clarifying question — the loop couldn't converge, couldn't produce a decision that
+    passed repair/verification, or hit a stop_reason it can't recover from. `escalation_reason` then
+    holds a human-readable explanation; `decision` is `None` and `answer` is the best text available.
     """
 
     model_config = ConfigDict(frozen=True)
@@ -41,6 +46,8 @@ class TriageResult(BaseModel):
     answer: str
     decision: TriageDecision | None
     tool_results: tuple[ToolResult, ...]
+    escalated: bool = False
+    escalation_reason: str | None = None
 
 
 def run_triage(
@@ -55,7 +62,9 @@ def run_triage(
 
     Delegates to the LangGraph graph built by `agent/graph.py`, which stops after `MAX_TOOL_TURNS` rounds
     even if the model keeps requesting tool calls, so a misbehaving model (or a stuck approval loop) can't
-    spin forever against a live API.
+    spin forever against a live API. A run that can't converge, or can't produce a decision that survives
+    repair/verification, comes back as `TriageResult.escalated=True` rather than raising — see
+    `agent/nodes/escalate_retry.py`.
 
     `use_mcp=True` dispatches tool calls over a real MCP session (`platform/mcp/client.py`), spawning the
     standalone server (`platform/mcp/server.py`) as a subprocess, instead of the default in-process
@@ -98,6 +107,9 @@ def _invoke_graph(
             "done": False,
             "short_term": ShortTermMemory(),
             "long_term": long_term,
+            "stop_reason": "",
+            "escalated": False,
+            "escalation_reason": None,
         },
         config={"recursion_limit": 4 * MAX_TOOL_TURNS + 2 * MAX_REPAIR_ATTEMPTS + 10},
     )
@@ -105,6 +117,8 @@ def _invoke_graph(
         answer=final_state["answer"],
         decision=final_state["decision"],
         tool_results=tuple(final_state["tool_results"]),
+        escalated=final_state["escalated"],
+        escalation_reason=final_state["escalation_reason"],
     )
     decision = final_state["decision"]
     updated_long_term = long_term.remember("last_decision", decision.explanation) if decision else long_term

@@ -21,6 +21,12 @@ class AgentState(TypedDict):
     into the model's system prompt each turn; `long_term` holds whatever was already known about this
     claimant from past runs (see `agent/memory/long_term.py`) and is read-only within the graph —
     `application/triage_use_case.py` owns persisting updates back to the `LongTermMemoryStore`.
+
+    `stop_reason` is the latest model turn's `ProviderTurn.stop_reason`, checked by `route_after_model`
+    for one the loop can't recover from on its own (see `agent/nodes/escalate_retry.py`). `escalated`
+    and `escalation_reason` mark that `agent/nodes/escalate_retry.py`'s `escalate` node ended the run
+    rather than `finalize` reaching a verified decision — a graceful "this needs a human" outcome, not
+    a crash, so `escalated` runs still populate `answer` and set `done`.
     """
 
     messages: list[dict[str, object]]
@@ -34,3 +40,6 @@ class AgentState(TypedDict):
     done: bool
     short_term: ShortTermMemory
     long_term: LongTermMemory
+    stop_reason: str
+    escalated: bool
+    escalation_reason: str | None

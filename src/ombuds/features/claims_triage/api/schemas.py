@@ -15,10 +15,18 @@ class TriageRequest(BaseModel):
 
 
 class TriageResponse(BaseModel):
-    """The agent's answer plus every tool call it made while reaching it, for auditability."""
+    """The agent's answer plus every tool call it made while reaching it, for auditability.
+
+    `escalated` is `True` when the agent couldn't reach a verified decision on its own and the run was
+    handed to `agent/nodes/escalate_retry.py` instead — see `TriageResult` for what that means for
+    `decision`/`answer`. Callers should route an escalated claim to a human rather than treat `answer`
+    as a verdict.
+    """
 
     model_config = ConfigDict(frozen=True)
 
     answer: str
     decision: TriageDecision | None
     tool_results: tuple[ToolResult, ...]
+    escalated: bool = False
+    escalation_reason: str | None = None

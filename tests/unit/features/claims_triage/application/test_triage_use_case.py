@@ -10,7 +10,6 @@ from ombuds.features.claims_triage.application.triage_use_case import (
     stream_triage,
 )
 from ombuds.platform.ai.providers.base import ProviderTurn
-from ombuds.platform.ai.schemas.structured_output import StructuredOutputError
 from ombuds.platform.ai.schemas.tool_calls import ToolCall, ToolDefinition
 from ombuds.platform.ai.streaming import StreamEvent, TextDelta, ToolCallDelta, ToolResultEvent, TurnDone
 
@@ -122,14 +121,18 @@ def test_run_triage_repairs_an_invalid_final_reply_and_returns_the_corrected_dec
     assert provider.calls == 3
 
 
-def test_run_triage_gives_up_after_max_repair_attempts() -> None:
+def test_run_triage_escalates_after_max_repair_attempts() -> None:
     provider = _FakeProvider(
         [ProviderTurn(text='{"eligible": true}', tool_calls=(), stop_reason="end_turn", content=[])]
         * (MAX_REPAIR_ATTEMPTS + 1)
     )
 
-    with pytest.raises(StructuredOutputError, match="does not match the required schema"):
-        run_triage("claim", provider=provider)
+    result = run_triage("claim", provider=provider)
+
+    assert result.escalated is True
+    assert result.decision is None
+    assert result.escalation_reason is not None
+    assert "does not match the required schema" in result.escalation_reason
 
 
 def test_run_triage_repairs_a_decision_that_disagrees_with_check_eligibility() -> None:
@@ -155,7 +158,7 @@ def test_run_triage_repairs_a_decision_that_disagrees_with_check_eligibility() -
     assert provider.calls == 3
 
 
-def test_run_triage_gives_up_after_max_repair_attempts_for_a_persistent_mismatch() -> None:
+def test_run_triage_escalates_after_max_repair_attempts_for_a_persistent_mismatch() -> None:
     provider = _FakeProvider(
         [
             ProviderTurn(
@@ -171,8 +174,12 @@ def test_run_triage_gives_up_after_max_repair_attempts_for_a_persistent_mismatch
         ]
     )
 
-    with pytest.raises(StructuredOutputError, match="does not match check_eligibility"):
-        run_triage("claim", provider=provider)
+    result = run_triage("claim", provider=provider)
+
+    assert result.escalated is True
+    assert result.decision is None
+    assert result.escalation_reason is not None
+    assert "does not match check_eligibility" in result.escalation_reason
 
 
 def test_run_triage_repairs_a_decision_given_without_calling_check_eligibility_first() -> None:
@@ -214,7 +221,7 @@ def test_run_triage_reports_an_unknown_tool_as_an_error_result_without_crashing(
     assert "unknown tool" in result.tool_results[0].content
 
 
-def test_run_triage_gives_up_after_max_tool_turns() -> None:
+def test_run_triage_escalates_after_max_tool_turns() -> None:
     looping_turn = ProviderTurn(
         text="",
         tool_calls=(ToolCall(id="call-1", name="check_eligibility", arguments=_disruption_args()),),
@@ -223,8 +230,25 @@ def test_run_triage_gives_up_after_max_tool_turns() -> None:
     )
     provider = _FakeProvider([looping_turn] * MAX_TOOL_TURNS)
 
-    with pytest.raises(RuntimeError, match="did not converge"):
-        run_triage("claim", provider=provider)
+    result = run_triage("claim", provider=provider)
+
+    assert result.escalated is True
+    assert result.decision is None
+    assert result.escalation_reason is not None
+    assert "did not converge" in result.escalation_reason
+
+
+def test_run_triage_escalates_on_an_unrecoverable_stop_reason() -> None:
+    provider = _FakeProvider(
+        [ProviderTurn(text="partial answer trunc", tool_calls=(), stop_reason="max_tokens", content=[])]
+    )
+
+    result = run_triage("claim", provider=provider)
+
+    assert result.escalated is True
+    assert result.decision is None
+    assert result.escalation_reason is not None
+    assert "max_tokens" in result.escalation_reason
 
 
 def test_run_triage_saves_the_decision_to_long_term_memory_when_a_claimant_id_is_given() -> None:

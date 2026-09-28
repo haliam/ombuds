@@ -293,4 +293,24 @@ Template — copy this block per finished task, filling in the fields (omit **De
 
 ---
 
+### Add escalation/retry loop on low confidence
+
+**Week:** W2
+**Goal:** Give the tool-calling graph a graceful "hand this to a human" outcome instead of raising a bare exception when it can't reach a confident decision — non-convergence, repeated repair/verification failure, or a stop_reason it can't recover from (F-09/F-10 from the pre-W2 review).
+**Source:** `ombuds_build_tasks.md` Week 2 checklist
+
+**Files & responsibilities:**
+- `src/ombuds/features/claims_triage/agent/nodes/escalate_retry.py` — no longer an empty stub. `UNRECOVERABLE_STOP_REASONS = {"max_tokens", "refusal"}` and `escalate(state)`, the terminal node: marks the run `done`/`escalated`, keeps `escalation_reason`, and falls back to a human-review message if there's no model text to return. First of the `agent/nodes/*.py` stubs to actually get wired into `agent/graph.py`.
+- `src/ombuds/features/claims_triage/agent/graph.py` — `call_model` no longer raises `RuntimeError` past `MAX_TOOL_TURNS`; it returns an `escalation_reason` and lets `route_after_model` send the run to the new `escalate` node instead. It also checks each turn's `stop_reason` against `UNRECOVERABLE_STOP_REASONS`. `finalize`'s repair-exhaustion branch no longer re-raises `StructuredOutputError`; it sets `escalation_reason` and `route_after_finalize` routes to `escalate`.
+- `src/ombuds/features/claims_triage/agent/state.py` — `AgentState` gained `stop_reason: str`, `escalated: bool`, `escalation_reason: str | None`.
+- `src/ombuds/features/claims_triage/application/triage_use_case.py` — `TriageResult` gained `escalated`/`escalation_reason` (defaulted `False`/`None` so existing construction sites don't need updating); `_invoke_graph` passes them through from the final graph state.
+- `src/ombuds/features/claims_triage/api/schemas.py`, `api/routes.py` — `TriageResponse` and the `/claims/triage` handler surface the same two fields to callers.
+- `tests/unit/features/claims_triage/application/test_triage_use_case.py` — the three tests that used to assert a raised exception (`RuntimeError` on non-convergence, `StructuredOutputError` on repair exhaustion, both plain-mismatch and persistent-`verify_decision`-mismatch variants) now assert `result.escalated is True` with a matching `escalation_reason` instead; added a case for an unrecoverable `stop_reason="max_tokens"`.
+- `tests/unit/features/claims_triage/api/test_routes.py` — updated the existing happy-path assertion for the two new response fields; added a case asserting an escalated `TriageResult` comes back as `escalated: true` with its reason.
+
+**Decisions/trade-offs:** there's no model-reported confidence score anywhere in the schema (`TriageDecision` has none), so "low confidence" is operationalized as the three failure modes the pre-W2 review already flagged as escalation candidates (F-09 stop_reason, F-10 non-convergence/repair exhaustion) rather than inventing a confidence field the model would have to self-report and that nothing downstream could verify — `verify_decision` (ADR-0004/F-01) is still the only source of truth for eligibility, so a "low confidence" signal from the model itself wouldn't be trustworthy either. Escalation is expressed as normal graph state (`escalated`/`escalation_reason` fields on the final state, `TriageResult`, `TriageResponse`), not a raised exception — the F-10 write-up considered typed errors (`TriageDidNotConverge`, `DecisionInvalid`) with FastAPI exception handlers, but "the agent couldn't reach a confident decision" is a business outcome the caller needs to route to a human, not a 500; a typed-exception version would have needed the handler layer anyway to turn it back into a 200-with-a-flag response. `stream_triage()` (the raw, non-graph loop) is left untouched — it's already documented as a separate, deferred rebuild target, and folding escalation into it now would mean re-solving the same problem twice for a code path nothing currently depends on going through the graph.
+**Follow-up:** `stream_triage()` still raises `RuntimeError` on non-convergence and has no escalation path — picked up whenever it's rebuilt on the graph. `agent/nodes/classify.py`, `retrieve.py`, `decide.py` remain empty stubs.
+
+---
+
 Library/framework/stdlib-concept entries live in [`ombuds_build_glossary.md`](ombuds_build_glossary.md) — append there, not here, whenever a summary's **Notable libraries** introduces something not already listed.
