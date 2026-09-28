@@ -1,4 +1,6 @@
+import pytest
 from fastapi.testclient import TestClient
+from pydantic import JsonValue
 
 from ombuds.api_app import app
 from ombuds.platform.guardrails import api as approvals_api
@@ -6,31 +8,52 @@ from ombuds.platform.guardrails.approval_gate import ApprovalGate, GuardedAction
 
 client = TestClient(app)
 
+_PAYLOAD: dict[str, JsonValue] = {"claim_id": "claim-1", "eligible": True, "compensation_eur": 250}
 
-def test_list_pending_returns_requests_created_by_check(monkeypatch) -> None:
-    gate = ApprovalGate()
-    monkeypatch.setattr(approvals_api, "list_pending_approvals", gate.list_pending)
-    monkeypatch.setattr(approvals_api, "approve_request", gate.approve)
-    monkeypatch.setattr(approvals_api, "deny_request", gate.deny)
-    pending = gate.check(GuardedAction.LOG_CLAIM, {"claim_id": "claim-1"})
+
+@pytest.fixture
+def gate(monkeypatch) -> ApprovalGate:
+    """A scratch gate per test, so tests don't share state through the module-level singleton."""
+    scratch = ApprovalGate()
+    monkeypatch.setattr(approvals_api, "list_pending_approvals", scratch.list_pending)
+    monkeypatch.setattr(approvals_api, "get_approval_request", scratch.get)
+    monkeypatch.setattr(approvals_api, "approve_request", scratch.approve)
+    monkeypatch.setattr(approvals_api, "deny_request", scratch.deny)
+    return scratch
+
+
+def test_list_pending_shows_each_request_with_its_payload(gate: ApprovalGate) -> None:
+    pending = gate.submit(GuardedAction.LOG_CLAIM, _PAYLOAD)
 
     response = client.get("/approvals")
 
     assert response.status_code == 200
-    ids = [r["id"] for r in response.json()]
-    assert pending.request_id in ids
+    assert response.json() == [
+        {
+            "id": pending.id,
+            "action": "log_claim",
+            "payload": _PAYLOAD,
+            "status": "pending",
+            "approver": None,
+            "note": None,
+        }
+    ]
 
 
-def test_approve_resolves_the_request(monkeypatch) -> None:
-    gate = ApprovalGate()
-    monkeypatch.setattr(approvals_api, "list_pending_approvals", gate.list_pending)
-    monkeypatch.setattr(approvals_api, "approve_request", gate.approve)
-    monkeypatch.setattr(approvals_api, "deny_request", gate.deny)
-    pending = gate.check(GuardedAction.ISSUE_PAYMENT, {"claim_id": "claim-1"})
+def test_get_returns_one_request_in_any_status(gate: ApprovalGate) -> None:
+    request = gate.submit(GuardedAction.LOG_CLAIM, _PAYLOAD)
+    gate.approve(request.id, approver="ops-lead")
 
-    response = client.post(
-        f"/approvals/{pending.request_id}/approve", json={"approver": "ops-lead", "note": "verified"}
-    )
+    response = client.get(f"/approvals/{request.id}")
+
+    assert response.status_code == 200
+    assert response.json()["status"] == "approved"
+
+
+def test_approve_resolves_the_request(gate: ApprovalGate) -> None:
+    pending = gate.submit(GuardedAction.ISSUE_PAYMENT, _PAYLOAD)
+
+    response = client.post(f"/approvals/{pending.id}/approve", json={"approver": "ops-lead", "note": "verified"})
 
     assert response.status_code == 200
     body = response.json()
@@ -39,20 +62,32 @@ def test_approve_resolves_the_request(monkeypatch) -> None:
     assert gate.list_pending() == ()
 
 
-def test_deny_resolves_the_request(monkeypatch) -> None:
-    gate = ApprovalGate()
-    monkeypatch.setattr(approvals_api, "list_pending_approvals", gate.list_pending)
-    monkeypatch.setattr(approvals_api, "approve_request", gate.approve)
-    monkeypatch.setattr(approvals_api, "deny_request", gate.deny)
-    pending = gate.check(GuardedAction.ISSUE_PAYMENT, {"claim_id": "claim-1"})
+def test_deny_resolves_the_request(gate: ApprovalGate) -> None:
+    pending = gate.submit(GuardedAction.ISSUE_PAYMENT, _PAYLOAD)
 
-    response = client.post(f"/approvals/{pending.request_id}/deny", json={"approver": "ops-lead"})
+    response = client.post(f"/approvals/{pending.id}/deny", json={"approver": "ops-lead"})
 
     assert response.status_code == 200
     assert response.json()["status"] == "denied"
 
 
-def test_approving_unknown_request_returns_404() -> None:
-    response = client.post("/approvals/no-such-id/approve", json={"approver": "ops-lead"})
+def test_approving_an_already_resolved_request_returns_409(gate: ApprovalGate) -> None:
+    pending = gate.submit(GuardedAction.ISSUE_PAYMENT, _PAYLOAD)
+    gate.deny(pending.id, approver="ops-lead")
+
+    response = client.post(f"/approvals/{pending.id}/approve", json={"approver": "someone-else"})
+
+    assert response.status_code == 409
+
+
+@pytest.mark.parametrize("path", ["/approvals/no-such-id/approve", "/approvals/no-such-id/deny"])
+def test_resolving_an_unknown_request_returns_404(gate: ApprovalGate, path: str) -> None:
+    response = client.post(path, json={"approver": "ops-lead"})
+
+    assert response.status_code == 404
+
+
+def test_getting_an_unknown_request_returns_404(gate: ApprovalGate) -> None:
+    response = client.get("/approvals/no-such-id")
 
     assert response.status_code == 404

@@ -16,7 +16,7 @@ from ombuds.features.claims_triage.tools import log_claim as log_claim_module
 from ombuds.platform.ai.providers.base import ProviderTurn
 from ombuds.platform.ai.schemas.tool_calls import ToolCall, ToolDefinition
 from ombuds.platform.ai.streaming import StreamEvent, TextDelta, ToolCallDelta, ToolResultEvent, TurnDone
-from ombuds.platform.guardrails.approval_gate import ApprovalDecision, GuardedAction
+from ombuds.platform.guardrails.approval_gate import ApprovalGate
 
 _DECISION_JSON = (
     '{"eligible": true, "compensation_amount_eur": 250, "reason_codes": ["eligible"], '
@@ -402,13 +402,8 @@ def test_run_triage_issues_a_claim_id_when_none_is_given() -> None:
 
 def test_run_triage_binds_log_claim_to_the_server_issued_claim_id(monkeypatch) -> None:
     """A claim_id the model invents (or is steered into by the claim text) never reaches the approval gate."""
-    seen_contexts: list[object] = []
-
-    def _fake_check_approval(action: GuardedAction, context: object = None) -> ApprovalDecision:
-        seen_contexts.append(context)
-        return ApprovalDecision(approved=False, reason="awaiting human approval", request_id="req-1")
-
-    monkeypatch.setattr(log_claim_module, "check_approval", _fake_check_approval)
+    gate = ApprovalGate()
+    monkeypatch.setattr(log_claim_module, "submit_for_approval", gate.submit)
     provider = _FakeProvider(
         [
             ProviderTurn(
@@ -432,6 +427,6 @@ def test_run_triage_binds_log_claim_to_the_server_issued_claim_id(monkeypatch) -
     result = run_triage("claim", claim_id="CLM-SERVER", provider=provider)
 
     assert result.claim_id == "CLM-SERVER"
-    assert len(seen_contexts) == 1
-    assert "CLM-SERVER" in str(seen_contexts[0])
-    assert "CLM-FROM-MODEL" not in str(seen_contexts[0])
+    (request,) = gate.list_pending()
+    assert request.payload["claim_id"] == "CLM-SERVER"
+    assert "CLM-FROM-MODEL" not in str(request.payload)

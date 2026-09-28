@@ -1,8 +1,8 @@
-"""The claims-triage tool catalogue: every tool the agent can call, wired to its handler.
+"""The claims-triage tool catalogue: every claims-triage tool, wired to its handler.
 
 `build_tool_registry()` is the one place that knows the full set of claims-triage tools and how to
 adapt each `ToolCall`'s validated arguments into its handler's call. `application/triage_use_case.py`
-uses it directly; `platform/mcp/tool_bindings.py` (a composition root's concern — see ADR-0003) wraps
+narrows it to the agent's tools for one run via `scope_for_agent()`; `platform/mcp/tool_bindings.py` (a composition root's concern — see ADR-0003) wraps
 whatever `ToolRegistry` it's given for MCP exposure without needing to know this feature exists.
 """
 
@@ -53,21 +53,29 @@ def _issue_payment(args: BaseModel) -> BaseModel:
     return _issue_payment_impl(args)
 
 
+AGENT_TOOL_NAMES = frozenset({SEARCH_KB_TOOL.name, CHECK_ELIGIBILITY_TOOL.name, LOG_CLAIM_TOOL.name})
 CLAIM_SCOPED_TOOLS = frozenset({LOG_CLAIM_TOOL.name, ISSUE_PAYMENT_TOOL.name})
 
 
-class _ClaimBoundDispatcher:
-    """A `ToolDispatcher` that pins every claim-scoped tool call to one server-issued `claim_id`."""
+class _AgentScopedDispatcher:
+    """A `ToolDispatcher` limited to the triage agent's tools, with claim-scoped calls pinned to one claim."""
 
     def __init__(self, inner: ToolDispatcher, claim_id: str) -> None:
         self._inner = inner
         self._claim_id = claim_id
 
     def definitions(self) -> Sequence[ToolDefinition]:
-        return self._inner.definitions()
+        return [definition for definition in self._inner.definitions() if definition.name in AGENT_TOOL_NAMES]
 
     def dispatch_all(self, calls: list[ToolCall]) -> list[ToolResult]:
-        return self._inner.dispatch_all([self._bind(call) for call in calls])
+        allowed = [self._bind(call) for call in calls if call.name in AGENT_TOOL_NAMES]
+        dispatched = iter(self._inner.dispatch_all(allowed))
+        return [
+            next(dispatched)
+            if call.name in AGENT_TOOL_NAMES
+            else ToolResult(call_id=call.id, name=call.name, content=f"unknown tool: {call.name}", is_error=True)
+            for call in calls
+        ]
 
     def _bind(self, call: ToolCall) -> ToolCall:
         if call.name not in CLAIM_SCOPED_TOOLS:
@@ -75,14 +83,17 @@ class _ClaimBoundDispatcher:
         return call.model_copy(update={"arguments": {**call.arguments, "claim_id": self._claim_id}})
 
 
-def bind_to_claim(dispatcher: ToolDispatcher, claim_id: str) -> ToolDispatcher:
-    """Wrap `dispatcher` so any `claim_id` the model passes to a claim-scoped tool is replaced with `claim_id`.
+def scope_for_agent(dispatcher: ToolDispatcher, claim_id: str) -> ToolDispatcher:
+    """Wrap `dispatcher` into exactly what the triage agent may do in one run (ADR-0009).
 
-    The model never chooses which claim a state-changing call acts on: `claim_id` is issued by the server
-    (`run_triage`) and is the key approvals and, from W3, persistence dedupe on (ADR-0009). Works over any
-    `ToolDispatcher`, so the in-process registry and the MCP client path are bound the same way.
+    - Only `AGENT_TOOL_NAMES` are offered, and a call to any other tool comes back as an error result
+      without being dispatched: `issue_payment` stays available over MCP for operators, never to the agent.
+    - Any `claim_id` the model passes to a claim-scoped tool is replaced with the run's server-issued
+      `claim_id`, the key approvals and, from W3, persistence dedupe on.
+
+    Works over any `ToolDispatcher`, so the in-process registry and the MCP client path are scoped the same way.
     """
-    return _ClaimBoundDispatcher(dispatcher, claim_id)
+    return _AgentScopedDispatcher(dispatcher, claim_id)
 
 
 def build_tool_registry() -> ToolRegistry:

@@ -1,6 +1,6 @@
 from collections.abc import Sequence
 
-from ombuds.features.claims_triage.tools import bind_to_claim, build_tool_registry
+from ombuds.features.claims_triage.tools import build_tool_registry, scope_for_agent
 from ombuds.features.claims_triage.tools.check_eligibility import CHECK_ELIGIBILITY_TOOL
 from ombuds.features.claims_triage.tools.issue_payment import ISSUE_PAYMENT_TOOL
 from ombuds.features.claims_triage.tools.log_claim import LOG_CLAIM_TOOL
@@ -26,40 +26,49 @@ class _RecordingDispatcher:
         self.calls: list[ToolCall] = []
 
     def definitions(self) -> Sequence[ToolDefinition]:
-        return [CHECK_ELIGIBILITY_TOOL, LOG_CLAIM_TOOL]
+        return [SEARCH_KB_TOOL, CHECK_ELIGIBILITY_TOOL, LOG_CLAIM_TOOL, ISSUE_PAYMENT_TOOL]
 
     def dispatch_all(self, calls: list[ToolCall]) -> list[ToolResult]:
         self.calls.extend(calls)
         return [ToolResult(call_id=call.id, name=call.name, content="{}") for call in calls]
 
 
-def test_bind_to_claim_replaces_a_model_supplied_claim_id_on_claim_scoped_tools() -> None:
+def test_scope_for_agent_replaces_a_model_supplied_claim_id() -> None:
     inner = _RecordingDispatcher()
-    bound = bind_to_claim(inner, "CLM-SERVER")
 
-    bound.dispatch_all(
+    scope_for_agent(inner, "CLM-SERVER").dispatch_all(
+        [ToolCall(id="c1", name=LOG_CLAIM_TOOL.name, arguments={"claim_id": "CLM-FROM-MODEL", "disruption": {}})]
+    )
+
+    assert inner.calls[0].arguments == {"claim_id": "CLM-SERVER", "disruption": {}}
+
+
+def test_scope_for_agent_never_offers_issue_payment() -> None:
+    names = {d.name for d in scope_for_agent(_RecordingDispatcher(), "CLM-SERVER").definitions()}
+
+    assert names == {SEARCH_KB_TOOL.name, CHECK_ELIGIBILITY_TOOL.name, LOG_CLAIM_TOOL.name}
+
+
+def test_scope_for_agent_refuses_a_call_to_a_tool_outside_the_agent_set_without_dispatching_it() -> None:
+    inner = _RecordingDispatcher()
+
+    results = scope_for_agent(inner, "CLM-SERVER").dispatch_all(
         [
-            ToolCall(id="c1", name=LOG_CLAIM_TOOL.name, arguments={"claim_id": "CLM-FROM-MODEL", "disruption": {}}),
-            ToolCall(id="c2", name=ISSUE_PAYMENT_TOOL.name, arguments={}),
+            ToolCall(id="c1", name=ISSUE_PAYMENT_TOOL.name, arguments={"claim_id": "CLM-SERVER"}),
+            ToolCall(id="c2", name=CHECK_ELIGIBILITY_TOOL.name, arguments={}),
         ]
     )
 
-    assert [call.arguments["claim_id"] for call in inner.calls] == ["CLM-SERVER", "CLM-SERVER"]
-    assert inner.calls[0].arguments["disruption"] == {}
+    assert [call.name for call in inner.calls] == [CHECK_ELIGIBILITY_TOOL.name]
+    assert [(r.call_id, r.is_error) for r in results] == [("c1", True), ("c2", False)]
 
 
-def test_bind_to_claim_leaves_other_tools_arguments_untouched() -> None:
+def test_scope_for_agent_leaves_other_tools_arguments_untouched() -> None:
     inner = _RecordingDispatcher()
     arguments: dict[str, object] = {"distance_km": 1200}
 
-    bind_to_claim(inner, "CLM-SERVER").dispatch_all(
+    scope_for_agent(inner, "CLM-SERVER").dispatch_all(
         [ToolCall(id="c1", name=CHECK_ELIGIBILITY_TOOL.name, arguments=arguments)]
     )
 
     assert inner.calls[0].arguments == {"distance_km": 1200}
-
-
-def test_bind_to_claim_passes_definitions_through() -> None:
-    inner = _RecordingDispatcher()
-
-    assert list(bind_to_claim(inner, "CLM-SERVER").definitions()) == list(inner.definitions())
