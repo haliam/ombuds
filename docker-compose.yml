@@ -1,7 +1,22 @@
-# services:
-#   api:
-#     build: .
-#   postgres:
-#     image: postgres:16
-#   vector-db:
-#     image: pgvector/pgvector:pg16
+services:
+  # Postgres + pgvector: relational tables and KB embeddings in one database (ADR-0010).
+  db:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: ombuds
+      POSTGRES_PASSWORD: ombuds
+      POSTGRES_DB: ombuds
+    ports:
+      - "5433:5432"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ombuds -d ombuds"]
+      interval: 2s
+      timeout: 3s
+      retries: 20
+
+  # api:  (added by the full-stack Docker Compose task)
+
+volumes:
+  db-data:
