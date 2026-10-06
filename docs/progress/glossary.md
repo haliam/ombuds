@@ -87,3 +87,12 @@ Grouped by category; append new terms under the matching section.
 | **`uv`** | Fast Python package/project manager (Astral, same team as `ruff`) that replaces pip + virtualenv + pip-tools with one tool: resolves and installs dependencies, manages the project's virtual environment, and runs commands inside it via `uv run` (e.g. `uv run pytest`). Used for every `make` target in this repo.<br>↳ *First seen:* [FastAPI /triage](task_summaries.md#build-fastapi-triage-endpoint-raw-sdk-no-framework) |
 | **`.venv`** | The project's virtual environment directory: an isolated Python install plus this project's dependencies, kept separate from system Python. `uv` creates and updates it automatically on first `uv run`, reading dependencies from `pyproject.toml` — no manual `activate` step needed.<br>↳ *First seen:* [FastAPI /triage](task_summaries.md#build-fastapi-triage-endpoint-raw-sdk-no-framework) |
 | **`python-dotenv` (`load_dotenv`)** | Reads a `.env` file into `os.environ` at runtime — used for scripts/local dev; the app's own config path is separate.<br>↳ *First seen:* [Raw provider APIs](task_summaries.md#call-openai--anthropic-apis-directly-compare-outputs) |
+
+## Data layer (Postgres)
+
+| Term | What it is |
+|---|---|
+| **`psycopg` (psycopg3)** | The Python driver for Postgres (successor to `psycopg2`); runs SQL you write yourself, with parameter binding and `dict_row` row factories. `psycopg_pool.ConnectionPool` hands out connections, and each `with pool.connection()` block is one transaction.<br>↳ *First seen:* [Postgres + pgvector](task_summaries.md#set-up-postgres-relational--pgvectorchroma-embeddings) |
+| **pgvector** | Postgres extension adding a `vector(N)` column type and distance operators (`<=>` cosine); lets embeddings live next to relational data (ADR-0010).<br>↳ *First seen:* [Postgres + pgvector](task_summaries.md#set-up-postgres-relational--pgvectorchroma-embeddings) |
+| **HNSW index** | Approximate nearest-neighbour index (hierarchical navigable small world graph); trades a little recall for much faster vector search than a full scan. Created with `USING hnsw (embedding vector_cosine_ops)`.<br>↳ *First seen:* [Postgres + pgvector](task_summaries.md#set-up-postgres-relational--pgvectorchroma-embeddings) |
+| **`INSERT ... ON CONFLICT`** | Postgres upsert: on a unique-constraint clash do nothing or update instead of erroring — how approval dedup avoids a read-then-write race.<br>↳ *First seen:* [Postgres + pgvector](task_summaries.md#set-up-postgres-relational--pgvectorchroma-embeddings) |

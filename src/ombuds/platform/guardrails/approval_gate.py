@@ -15,6 +15,7 @@ import uuid
 from collections.abc import Mapping
 from enum import StrEnum
 from threading import Lock
+from typing import Protocol
 
 from pydantic import BaseModel, ConfigDict, JsonValue
 
@@ -56,8 +57,24 @@ class ApprovalStateError(Exception):
     """Raised for a transition the request's current status doesn't allow (e.g. approving it twice)."""
 
 
-def _dedup_key(action: GuardedAction, payload: Mapping[str, JsonValue]) -> tuple[str, str]:
+def dedup_key(action: GuardedAction, payload: Mapping[str, JsonValue]) -> tuple[str, str]:
     return (action, json.dumps(payload, sort_keys=True, separators=(",", ":")))
+
+
+class ApprovalStore(Protocol):
+    """What the gate needs from a store of approval requests; `ApprovalGate` and the Postgres store both fit."""
+
+    def submit(self, action: GuardedAction, payload: Mapping[str, JsonValue]) -> ApprovalRequest: ...
+
+    def list_pending(self) -> tuple[ApprovalRequest, ...]: ...
+
+    def get(self, request_id: str) -> ApprovalRequest: ...
+
+    def approve(self, request_id: str, approver: str, note: str | None = None) -> ApprovalRequest: ...
+
+    def deny(self, request_id: str, approver: str, note: str | None = None) -> ApprovalRequest: ...
+
+    def claim_for_execution(self, request_id: str) -> ApprovalRequest: ...
 
 
 class ApprovalGate:
@@ -76,7 +93,7 @@ class ApprovalGate:
         """Create a `PENDING` request for `action`/`payload`, or return the existing one in its current state."""
         if not payload:
             raise ValueError("an approval request needs a non-empty payload describing exactly what is approved")
-        key = _dedup_key(action, payload)
+        key = dedup_key(action, payload)
         with self._lock:
             request_id = self._by_key.get(key)
             if request_id is None:

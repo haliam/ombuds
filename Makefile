@@ -16,5 +16,14 @@ format:
 test: lint
 	uv run pytest tests/unit
 
+db-up: # Postgres + pgvector for dev and integration tests
+	docker compose up -d --wait db
+
+db-down:
+	docker compose down
+
+test-integration: db-up
+	uv run pytest tests/integration -m integration
+
 eval: # will eventually run evals/run_evals.py
 	@true

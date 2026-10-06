@@ -359,4 +359,29 @@ Template — copy this block per finished task, filling in the fields (omit **De
 
 ---
 
+### Set up Postgres (relational) + pgvector/Chroma (embeddings)
+
+**Week:** W3
+**Goal:** Give the system a durable, cross-process data layer: Postgres for relational state and pgvector for KB embeddings, behind the existing store interfaces.
+**Source:** ADR-0009 (shared approval store), ADR-0010 (pgvector over Chroma, psycopg3 over an ORM), W2 review O-1
+
+**Files & responsibilities:**
+- `0010-pgvector-in-postgres-over-chroma.md` — records the vector-store and DB-access choices.
+- `docker-compose.yml` — `db` service (`pgvector/pgvector:pg16`, host port 5433 because 5432 is often taken locally), with a healthcheck.
+- `config.py`, `.env.example` — `DATABASE_URL` and pool size; the unused `VECTOR_DB_URL` is gone.
+- `postgres.py` — connection pool and the numbered-SQL migration runner (advisory-locked, tracked in `schema_migrations`).
+- `0001_init.sql` — `approval_requests` (UNIQUE `(action, payload_key)`), `claims`, `long_term_memory`, `kb_chunks` with an HNSW cosine index.
+- `repositories.py` — `PostgresApprovalStore` (upsert dedup, compare-and-set transitions) and `PostgresClaimantFactsRepository`.
+- `approval_gate.py` — extracted the `ApprovalStore` Protocol; `dedup_key` is now public so both stores share one canonical key.
+- `vector_store.py` — `VectorStore` Protocol, `PgVectorStore`, `EMBEDDING_DIM`.
+- `postgres_long_term.py` — adapts the facts repository to `LongTermMemoryStore` (kept in `features/` so `platform/` never imports it).
+- `tests/integration/` — `conftest.py` (session pool, per-test truncate, auto `integration` marker, skips if Postgres is down) plus store, vector and migration tests including concurrent-claim races.
+
+**Notable libraries:** `psycopg` / `psycopg_pool`, pgvector, HNSW, `INSERT ... ON CONFLICT` — see glossary.
+
+**Decisions/trade-offs:** Vectors go in as text literals (`%s::vector`), so the `pgvector` Python package and numpy aren't needed. `EMBEDDING_DIM = 1536` is a placeholder until the RAG task picks an embedding provider; changing it needs a new migration. Nothing is wired into `create_app` yet.
+**Follow-up:** DI at the composition root (O-1) to swap in these stores; executors that run `claim_for_execution` in the same transaction as their write (ADR-0009); `claims` is created but unused until `log_claim` has an executor.
+
+---
+
 Library/framework/stdlib-concept entries live in [`glossary.md`](glossary.md) — append there, not here, whenever a summary's **Notable libraries** introduces something not already listed.
