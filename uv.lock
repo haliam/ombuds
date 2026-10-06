@@ -1140,6 +1140,7 @@ dependencies = [
     { name = "fastapi" },
     { name = "langgraph" },
     { name = "mcp" },
+    { name = "openai" },
     { name = "psycopg", extra = ["binary", "pool"] },
     { name = "pydantic" },
     { name = "python-dotenv" },
@@ -1155,9 +1156,6 @@ dev = [
     { name = "pytest-asyncio" },
     { name = "ruff" },
 ]
-scripts = [
-    { name = "openai" },
-]
 
 [package.metadata]
 requires-dist = [
@@ -1165,6 +1163,7 @@ requires-dist = [
     { name = "fastapi", specifier = ">=0.115" },
     { name = "langgraph", specifier = ">=0.2" },
     { name = "mcp", specifier = ">=1.6,<2" },
+    { name = "openai", specifier = ">=1.55" },
     { name = "psycopg", extras = ["binary", "pool"], specifier = ">=3.2" },
     { name = "pydantic", specifier = ">=2.7" },
     { name = "python-dotenv", specifier = ">=1.0" },
@@ -1180,7 +1179,6 @@ dev = [
     { name = "pytest-asyncio", specifier = ">=0.24" },
     { name = "ruff", specifier = ">=0.6" },
 ]
-scripts = [{ name = "openai", specifier = ">=1.55" }]
 
 [[package]]
 name = "openai"

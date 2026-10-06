@@ -2,8 +2,9 @@
 
 `build_tool_registry()` is the one place that knows the full set of claims-triage tools and how to
 adapt each `ToolCall`'s validated arguments into its handler's call. `application/triage_use_case.py`
-narrows it to the agent's tools for one run via `scope_for_agent()`; `platform/mcp/tool_bindings.py` (a composition root's concern — see ADR-0003) wraps
-whatever `ToolRegistry` it's given for MCP exposure without needing to know this feature exists.
+narrows it to the agent's tools for one run via `scope_for_agent()`; `platform/mcp/tool_bindings.py`
+(a composition root's concern — see ADR-0003) wraps whatever `ToolRegistry` it's given for MCP
+exposure without needing to know this feature exists.
 """
 
 from collections.abc import Sequence

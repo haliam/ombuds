@@ -14,6 +14,9 @@ ANTHROPIC_FALLBACK_MODEL = os.environ.get("ANTHROPIC_FALLBACK_MODEL", "claude-ha
 ANTHROPIC_TIMEOUT_SECONDS = float(os.environ.get("ANTHROPIC_TIMEOUT_SECONDS", "30"))
 ANTHROPIC_MAX_RETRIES = int(os.environ.get("ANTHROPIC_MAX_RETRIES", "2"))
 
+# Embeddings for RAG. text-embedding-3-small emits 1536 dims, matching `kb_chunks.embedding vector(1536)`.
+EMBEDDING_MODEL = os.environ.get("EMBEDDING_MODEL", "text-embedding-3-small")
+
 # Postgres (relational + pgvector, ADR-0010). The default matches the `db` service in docker-compose.yml.
 DATABASE_URL = os.environ.get("DATABASE_URL") or "postgresql://ombuds:ombuds@localhost:5433/ombuds"
 DATABASE_POOL_MAX_SIZE = int(os.environ.get("DATABASE_POOL_MAX_SIZE", "10"))
