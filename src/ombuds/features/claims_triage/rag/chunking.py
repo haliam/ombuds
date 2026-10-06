@@ -43,8 +43,19 @@ def _sections(text: str) -> list[str]:
     """Cut `text` at each markdown heading, keeping the heading line at the top of its section."""
     starts = [match.start() for match in _HEADING.finditer(text)]
     bounds = sorted({0, *starts, len(text)})
-    sections = (text[start:end].strip() for start, end in zip(bounds, bounds[1:], strict=False))
-    return [section for section in sections if section]
+    sections: list[str] = []
+    carried = ""  # a heading with no body of its own, joined onto the next section so it isn't a useless chunk
+    for start, end in zip(bounds, bounds[1:], strict=False):
+        section = text[start:end].strip()
+        if not section:
+            continue
+        section = f"{carried}\n\n{section}" if carried else section
+        carried = section if _HEADING.match(section) and "\n" not in section else ""
+        if not carried:
+            sections.append(section)
+    if carried:
+        sections.append(carried)
+    return sections
 
 
 def _split_section(section: str, max_chars: int, overlap: int) -> list[str]:

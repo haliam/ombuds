@@ -2,13 +2,17 @@ import pytest
 from mcp.shared.memory import create_connected_server_and_client_session
 from mcp.types import TextContent
 
+from ombuds.features.claims_triage.rag.retriever import Retriever
 from ombuds.features.claims_triage.tools import build_tool_registry
+from ombuds.platform.infrastructure.vector_store import PgVectorStore
 from ombuds.platform.mcp.tool_bindings import build_mcp_server
+from tests.fakes import DownEmbedder
 
 
 @pytest.fixture
 def registry():
-    return build_tool_registry()
+    # search_kb's embedding provider is down, so the one tool call that needs it fails predictably.
+    return build_tool_registry(lambda: Retriever(DownEmbedder(), PgVectorStore(None)))  # type: ignore[arg-type]
 
 
 async def test_list_tools_exposes_all_four_claims_triage_tools(registry) -> None:
@@ -56,4 +60,4 @@ async def test_call_tool_surfaces_a_tool_execution_error_as_an_error_result(regi
     assert result.isError is True
     content = result.content[0]
     assert isinstance(content, TextContent)
-    assert "not implemented" in content.text
+    assert "unavailable" in content.text

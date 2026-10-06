@@ -17,6 +17,18 @@ def test_each_heading_section_becomes_its_own_chunk() -> None:
     assert {c.source for c in chunks} == {"doc.md"}
 
 
+def test_heading_with_no_body_is_joined_onto_the_next_section() -> None:
+    chunks = chunk_document("doc.md", "# Title\n\n## Scope\nBody.")
+
+    assert [c.content for c in chunks] == ["# Title\n\n## Scope\nBody."]
+
+
+def test_trailing_heading_with_no_body_is_kept() -> None:
+    chunks = chunk_document("doc.md", "# Title\nBody.\n\n## Empty")
+
+    assert [c.content for c in chunks] == ["# Title\nBody.", "## Empty"]
+
+
 def test_text_before_the_first_heading_is_kept() -> None:
     chunks = chunk_document("doc.md", "Preamble.\n\n# Heading\nBody.")
 

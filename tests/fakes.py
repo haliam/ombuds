@@ -5,6 +5,7 @@ import math
 import re
 from collections.abc import Sequence
 
+from ombuds.platform.ai.providers.base import ProviderUnavailableError
 from ombuds.platform.infrastructure.vector_store import EMBEDDING_DIM
 
 
@@ -25,3 +26,10 @@ class FakeEmbedder:
             vector[int.from_bytes(hashlib.sha256(word.encode()).digest()[:4], "big") % EMBEDDING_DIM] += 1.0
         norm = math.sqrt(sum(x * x for x in vector)) or 1.0
         return [x / norm for x in vector]
+
+
+class DownEmbedder:
+    """An embedder whose provider is unavailable, for testing how callers surface that."""
+
+    def embed(self, texts: Sequence[str]) -> list[list[float]]:
+        raise ProviderUnavailableError("embedding provider is down")
