@@ -25,5 +25,8 @@ db-down:
 test-integration: db-up
 	uv run pytest tests/integration -m integration
 
+ingest: db-up # chunk + embed the KB seed documents into pgvector (needs OPENAI_API_KEY)
+	uv run python -m ombuds.features.claims_triage.rag.ingest
+
 eval: # will eventually run evals/run_evals.py
 	@true
