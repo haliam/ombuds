@@ -1,13 +1,15 @@
 """Tool: search_kb. Read-only — retrieves airline policy KB passages relevant to a query.
 
-Retrieval isn't implemented yet: `features/claims_triage/rag/retriever.py` is still a stub (chunking,
-embeddings and ingest land with the RAG work). This tool exists so the agent and MCP clients can bind
-against its schema now; it raises `ToolExecutionError` rather than returning fabricated hits.
+The single retrieval entry point (W2 review F-10): the agent decides when to look something up, and the
+passages come back only as a tool result, never in the system prompt (F-06), so retrieved text can't
+masquerade as instructions.
 """
 
 from pydantic import BaseModel, ConfigDict, Field
 
 from ombuds.domain.errors import ToolExecutionError
+from ombuds.features.claims_triage.rag.retriever import Retriever
+from ombuds.platform.ai.providers.base import ProviderUnavailableError
 from ombuds.platform.ai.schemas.tool_calls import ToolDefinition
 
 
@@ -26,7 +28,9 @@ class KbHit(BaseModel):
     model_config = ConfigDict(frozen=True)
 
     source: str
+    chunk_index: int
     snippet: str
+    score: float
 
 
 class SearchKbResult(BaseModel):
@@ -44,13 +48,18 @@ SEARCH_KB_TOOL = ToolDefinition(
 )
 
 
-def search_kb(args: SearchKbArgs) -> SearchKbResult:
-    """Retrieve KB passages relevant to `args.query`.
+def search_kb(args: SearchKbArgs, retriever: Retriever) -> SearchKbResult:
+    """Retrieve KB passages relevant to `args.query`; no hit above the relevance floor is an empty result.
 
-    Always raises: the retriever behind this tool (`rag/retriever.py`) hasn't been built yet, so there
-    is no real index to search. Raising here keeps that gap visible instead of returning empty or
-    fabricated hits that would look like a working retrieval path.
+    An unavailable embedding provider becomes a `ToolExecutionError`, so the agent sees an error result
+    and can carry on (or escalate) instead of the whole triage run crashing.
     """
-    raise ToolExecutionError(
-        f"search_kb retrieval not implemented yet (query={args.query!r}) — rag/retriever.py is still a stub"
+    try:
+        citations = retriever.retrieve(args.query, args.top_k)
+    except ProviderUnavailableError as exc:
+        raise ToolExecutionError(f"knowledge base search is unavailable right now: {exc}") from exc
+    return SearchKbResult(
+        hits=tuple(
+            KbHit(source=c.source, chunk_index=c.chunk_index, snippet=c.snippet, score=c.score) for c in citations
+        )
     )

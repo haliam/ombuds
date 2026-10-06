@@ -7,6 +7,8 @@ Embedding generation is not here — callers pass vectors in. Cosine similarity,
 from collections.abc import Sequence
 from typing import Protocol
 
+from psycopg import Connection
+from psycopg.rows import DictRow
 from pydantic import BaseModel, ConfigDict
 
 from ombuds.platform.infrastructure.postgres import Pool
@@ -44,6 +46,10 @@ class VectorStore(Protocol):
         """Insert chunks, replacing any existing chunk with the same `(source, chunk_index)`."""
         ...
 
+    def replace_source(self, source: str, chunks: Sequence[KbChunk]) -> None:
+        """Make `chunks` the complete set stored for `source`, dropping any stale chunks, atomically."""
+        ...
+
     def search(self, embedding: Sequence[float], top_k: int) -> list[ScoredChunk]:
         """Return up to `top_k` chunks, most similar first."""
         ...
@@ -62,8 +68,19 @@ class PgVectorStore:
         self._pool = pool
 
     def upsert(self, chunks: Sequence[KbChunk]) -> None:
+        with self._pool.connection() as conn:
+            self._insert(conn, chunks)
+
+    def replace_source(self, source: str, chunks: Sequence[KbChunk]) -> None:
+        # One transaction, so a concurrent search never sees the source half-deleted.
+        with self._pool.connection() as conn:
+            conn.execute("DELETE FROM kb_chunks WHERE source = %s", (source,))
+            self._insert(conn, chunks)
+
+    @staticmethod
+    def _insert(conn: Connection[DictRow], chunks: Sequence[KbChunk]) -> None:
         rows = [(c.source, c.chunk_index, c.content, _to_vector_literal(c.embedding)) for c in chunks]
-        with self._pool.connection() as conn, conn.cursor() as cur:
+        with conn.cursor() as cur:
             cur.executemany(
                 "INSERT INTO kb_chunks (source, chunk_index, content, embedding) VALUES (%s, %s, %s, %s::vector) "
                 "ON CONFLICT (source, chunk_index) DO UPDATE "
