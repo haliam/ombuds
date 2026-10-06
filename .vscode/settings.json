@@ -5,7 +5,8 @@
     "**/.mypy_cache": true,
     "**/.ruff_cache": true,
     "**/*.egg-info": true,
-    ".venv": true
+    ".venv": true,
+    ".claude": true
   },
   "search.exclude": {
     ".venv": true
