@@ -384,4 +384,28 @@ Template — copy this block per finished task, filling in the fields (omit **De
 
 ---
 
+### Build RAG pipeline — chunk → embed → store → retrieve → cite
+
+**Week:** W3
+**Goal:** Let the agent look up airline policy through `search_kb` and get back passages it can cite.
+**Source:** ADR-0010 (pgvector), ADR-0011 (chunking + embeddings), W2 review F-10 / F-06
+
+**Files & responsibilities:**
+- `platform/ai/embeddings.py` — `Embedder` Protocol and `OpenAIEmbedder` (batching, retryable errors → `ProviderUnavailableError`).
+- `rag/chunking.py` — heading-aware markdown splitter returning frozen `Chunk`s.
+- `verticals/airline/kb_seed/*.md` — three EU261 policy documents (scope and amounts, delays and cancellations, extraordinary circumstances and claims).
+- `rag/ingest.py` — chunk, embed and `replace_source` per document; `make ingest` runs it.
+- `vector_store.py` — new `replace_source` (delete + insert in one transaction).
+- `rag/retriever.py`, `rag/citation.py` — `Retriever` with a relevance floor, `Citation` model, lazy `default_retriever()`.
+- `tools/search_kb.py`, `tools/__init__.py` — `search_kb` takes an injected retriever; `build_tool_registry(retriever_factory)`; hits now carry `chunk_index` and `score`.
+- `tests/fakes.py` — `FakeEmbedder` (deterministic bag-of-words) and `DownEmbedder`.
+- Deleted the unused `classify` / `retrieve` / `decide` node stubs (O-2).
+
+**Notable libraries:** `openai` SDK (embeddings endpoint) — see glossary.
+
+**Decisions/trade-offs:** see ADR-0011. The retriever is built lazily so the registry needs no DB or API key.
+**Follow-up:** the retrieval eval set tunes `DEFAULT_MIN_SCORE`; prompt v5 must teach the model to call `search_kb` (nothing in v4 mentions it); `Citation`s are not yet part of `TriageDecision`; integration tests still truncate the dev `kb_chunks` (needs a separate `ombuds_test` database), so re-run `make ingest` afterwards.
+
+---
+
 Library/framework/stdlib-concept entries live in [`glossary.md`](glossary.md) — append there, not here, whenever a summary's **Notable libraries** introduces something not already listed.

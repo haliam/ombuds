@@ -96,3 +96,11 @@ Grouped by category; append new terms under the matching section.
 | **pgvector** | Postgres extension adding a `vector(N)` column type and distance operators (`<=>` cosine); lets embeddings live next to relational data (ADR-0010).<br>↳ *First seen:* [Postgres + pgvector](task_summaries.md#set-up-postgres-relational--pgvectorchroma-embeddings) |
 | **HNSW index** | Approximate nearest-neighbour index (hierarchical navigable small world graph); trades a little recall for much faster vector search than a full scan. Created with `USING hnsw (embedding vector_cosine_ops)`.<br>↳ *First seen:* [Postgres + pgvector](task_summaries.md#set-up-postgres-relational--pgvectorchroma-embeddings) |
 | **`INSERT ... ON CONFLICT`** | Postgres upsert: on a unique-constraint clash do nothing or update instead of erroring — how approval dedup avoids a read-then-write race.<br>↳ *First seen:* [Postgres + pgvector](task_summaries.md#set-up-postgres-relational--pgvectorchroma-embeddings) |
+
+## RAG
+
+| Term | What it is |
+|---|---|
+| **Embedding** | A fixed-length vector of numbers representing a text's meaning; texts with similar meaning get vectors pointing in similar directions. Here `text-embedding-3-small` produces 1536 numbers per text.<br>↳ *First seen:* [RAG pipeline](task_summaries.md#build-rag-pipeline--chunk--embed--store--retrieve--cite) |
+| **Chunking** | Splitting documents into pieces small enough to embed and cite individually. Ours cuts at markdown headings so a chunk is one self-contained section.<br>↳ *First seen:* [RAG pipeline](task_summaries.md#build-rag-pipeline--chunk--embed--store--retrieve--cite) |
+| **Cosine similarity** | How alike two vectors' directions are: 1.0 identical, 0.0 unrelated. The retriever's `score` is `1 - cosine_distance`, and hits below `min_score` are dropped.<br>↳ *First seen:* [RAG pipeline](task_summaries.md#build-rag-pipeline--chunk--embed--store--retrieve--cite) |
