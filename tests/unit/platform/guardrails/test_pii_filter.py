@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from ombuds.platform.guardrails.pii_filter import Finding, PiiKind, redact
+from ombuds.platform.guardrails.pii_filter import Finding, PiiKind, redact, redact_value
 
 _KB_SEED = Path(__file__).parents[4] / "src/ombuds/features/claims_triage/verticals/airline/kb_seed"
 
@@ -110,3 +110,13 @@ def test_a_card_is_not_also_reported_as_a_phone_number() -> None:
     result = redact("card 4111 1111 1111 1111")
 
     assert result.findings == (Finding(kind=PiiKind.CARD, count=1),)
+
+
+def test_redact_value_redacts_strings_at_any_depth_and_leaves_other_types_alone() -> None:
+    value = {"query": "mail a@b.com", "nested": {"items": ["call +49 30 1234 5678", 3, None, True]}, "top_k": 5}
+
+    assert redact_value(value) == {
+        "query": "mail [EMAIL]",
+        "nested": {"items": ["call [PHONE]", 3, None, True]},
+        "top_k": 5,
+    }

@@ -63,7 +63,9 @@ _IBAN = re.compile(r"\b[A-Z]{2}\d{2}(?: ?[A-Z0-9]{4}){2,7}(?: ?[A-Z0-9]{1,3})?\b
 _CARD = re.compile(r"\b\d(?:[ -]?\d){12,18}\b")
 # Group 1 is the keyword the value follows and is kept; the value needs a digit so that
 # "passport control" is left alone.
-_PASSPORT = re.compile(r"(\bpassport(?:\s+(?:no\.?|number|#))?\s*[:#]?\s*)((?=[A-Z0-9]*\d)[A-Z0-9]{6,9})\b", re.IGNORECASE)
+_PASSPORT = re.compile(
+    r"(\bpassport(?:\s+(?:no\.?|number|#))?\s*[:#]?\s*)((?=[A-Z0-9]*\d)[A-Z0-9]{6,9})\b", re.IGNORECASE
+)
 # The code is uppercase on purpose, and "NUMBER"/"CODE" are excluded so "BOOKING NUMBER" isn't a match.
 _BOOKING_REF = re.compile(
     r"((?i:\b(?:booking|reservation|confirmation|pnr)(?:\s+(?:code|number|no\.?|ref(?:erence)?|id))?)\s*(?:is|:|#)?\s*)"
@@ -158,7 +160,9 @@ def redact(text: str) -> RedactionResult:
     counts: Counter[PiiKind] = Counter()
     for kind, pattern, replacement in _RULES:
 
-        def substitute(match: Match[str], kind: PiiKind = kind, replacement: Callable[[Match[str]], str | None] = replacement) -> str:
+        def substitute(
+            match: Match[str], kind: PiiKind = kind, replacement: Callable[[Match[str]], str | None] = replacement
+        ) -> str:
             replaced = replacement(match)
             if replaced is None:
                 return match.group()
@@ -167,3 +171,17 @@ def redact(text: str) -> RedactionResult:
 
         text = pattern.sub(substitute, text)
     return RedactionResult(text=text, findings=tuple(Finding(kind=kind, count=count) for kind, count in counts.items()))
+
+
+def redact_value(value: object) -> object:
+    """Redact every string inside a JSON-like value (dicts, lists, tuples), leaving keys and other types alone.
+
+    For tool-call arguments, whose shape isn't known to the guardrail layer.
+    """
+    if isinstance(value, str):
+        return redact(value).text
+    if isinstance(value, dict):
+        return {key: redact_value(item) for key, item in value.items()}
+    if isinstance(value, list | tuple):
+        return [redact_value(item) for item in value]
+    return value
