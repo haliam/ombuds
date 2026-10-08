@@ -1,9 +1,12 @@
 import uuid
 from collections.abc import Iterator, Sequence
 
+from pydantic import BaseModel
+
 from ombuds.config import load_prompt
 from ombuds.features.claims_triage.agent.memory.long_term import InMemoryLongTermMemoryStore
 from ombuds.features.claims_triage.agent.nodes.escalate_retry import ESCALATION_ANSWER
+from ombuds.features.claims_triage.application import triage_use_case
 from ombuds.features.claims_triage.application.triage_use_case import (
     MAX_REPAIR_ATTEMPTS,
     MAX_TOOL_TURNS,
@@ -15,6 +18,7 @@ from ombuds.features.claims_triage.tools import log_claim as log_claim_module
 from ombuds.platform.ai.providers.base import ProviderTurn
 from ombuds.platform.ai.schemas.tool_calls import ToolCall, ToolDefinition
 from ombuds.platform.ai.streaming import StreamEvent, TextDelta, ToolCallDelta, ToolResultEvent, TurnDone
+from ombuds.platform.ai.tool_loop import ToolRegistry
 from ombuds.platform.guardrails.approval_gate import ApprovalGate
 
 _DECISION_JSON = (
@@ -446,3 +450,100 @@ def test_run_triage_binds_log_claim_to_the_server_issued_claim_id(monkeypatch) -
     (request,) = gate.list_pending()
     assert request.payload["claim_id"] == "CLM-SERVER"
     assert "CLM-FROM-MODEL" not in str(request.payload)
+
+
+_PII_CLAIM = "My flight was cancelled. Reach me at jane.doe@example.com or +49 30 1234 5678."
+
+
+def _first_user_text(provider: _FakeProvider) -> str:
+    return str(provider.messages[0][0]["content"])
+
+
+def test_run_triage_sends_the_model_the_claim_with_pii_redacted() -> None:
+    provider = _FakeProvider([ProviderTurn(text="Which airline?", tool_calls=(), stop_reason="end_turn", content=[])])
+
+    run_triage(_PII_CLAIM, provider=provider)
+
+    sent = _first_user_text(provider)
+    assert "jane.doe@example.com" not in sent
+    assert "+49 30 1234 5678" not in sent
+    assert "[EMAIL]" in sent
+    assert "[PHONE]" in sent
+
+
+def test_stream_triage_sends_the_model_the_claim_with_pii_redacted() -> None:
+    provider = _FakeProvider([ProviderTurn(text="Which airline?", tool_calls=(), stop_reason="end_turn", content=[])])
+
+    sent: list[str] = []
+    original = provider.stream_turn
+
+    def capture(messages, tools, *, system):
+        sent.append(str(messages[0]["content"]))
+        return original(messages, tools, system=system)
+
+    provider.stream_turn = capture  # type: ignore[method-assign]
+
+    list(stream_triage(_PII_CLAIM, provider=provider))
+
+    assert "jane.doe@example.com" not in sent[0]
+    assert "[EMAIL]" in sent[0]
+
+
+def test_run_triage_redacts_pii_in_the_answer_and_the_decision_explanation() -> None:
+    leaking = (
+        '{"eligible": true, "compensation_amount_eur": 250, "reason_codes": ["eligible"], '
+        '"explanation": "We will email jane.doe@example.com."}'
+    )
+    provider = _FakeProvider(_check_then(leaking))
+
+    result = run_triage("claim", provider=provider)
+
+    assert result.decision is not None
+    assert result.decision.explanation == "We will email [EMAIL]."
+    assert "jane.doe@example.com" not in result.answer
+
+
+class _QueryArgs(BaseModel):
+    query: str
+
+
+def _search_call() -> ToolCall:
+    return ToolCall(id="call-1", name="search_kb", arguments={"query": "refund for jane.doe@example.com"})
+
+
+def _search_turns() -> list[ProviderTurn]:
+    return [
+        ProviderTurn(text="", tool_calls=(_search_call(),), stop_reason="tool_use", content=[]),
+        ProviderTurn(text="Which airline?", tool_calls=(), stop_reason="end_turn", content=[]),
+    ]
+
+
+def _recording_registry(received: list[str]) -> ToolRegistry:
+    def handler(args: BaseModel) -> BaseModel:
+        assert isinstance(args, _QueryArgs)
+        received.append(args.query)
+        return args
+
+    registry = ToolRegistry()
+    registry.register(ToolDefinition(name="search_kb", description="d", args_model=_QueryArgs), handler)
+    return registry
+
+
+def test_run_triage_redacts_pii_from_the_arguments_of_the_models_tool_calls(monkeypatch) -> None:
+    received: list[str] = []
+    monkeypatch.setattr(triage_use_case, "build_tool_registry", lambda: _recording_registry(received))
+
+    run_triage("claim", provider=_FakeProvider(_search_turns()))
+
+    assert received == ["refund for [EMAIL]"]
+
+
+def test_stream_triage_redacts_pii_from_the_tool_call_frames_it_emits(monkeypatch) -> None:
+    received: list[str] = []
+    monkeypatch.setattr(triage_use_case, "build_tool_registry", lambda: _recording_registry(received))
+
+    events = list(stream_triage("claim", provider=_FakeProvider(_search_turns())))
+
+    (call_event,) = [event for event in events if isinstance(event, ToolCallDelta)]
+    assert call_event.call.arguments == {"query": "refund for [EMAIL]"}
+    assert received == ["refund for [EMAIL]"]
