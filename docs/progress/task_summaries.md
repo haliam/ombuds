@@ -468,4 +468,21 @@ Template — copy this block per finished task, filling in the fields (omit **De
 
 ---
 
+### Write integration test for `/triage` end-to-end
+
+**Week:** W3
+**Goal:** Prove HTTP → `run_triage` → LangGraph → scoped/guarded tools → Postgres works as one path; the unit tests fake everything below the route.
+**Source:** AGENTS.md "Testing" (integration: real Postgres, mock the LLM)
+
+**Files & responsibilities:**
+- `tests/integration/api/test_triage_endpoint.py` — drives the real `create_app()` through `TestClient`: verified decision after a real pgvector `search_kb`, `log_claim` parked in the approval gate under the server-issued `claim_id`, clarifying question, injection escalation, repeated rules-engine contradiction escalating, SSE frames matching the JSON endpoint, 422 on empty input.
+- `tests/fakes.py` — `ScriptedProvider`, a replay-only `LLMProvider`.
+
+**Notable libraries:** `fastapi.testclient.TestClient` — already in the glossary's FastAPI entry; nothing new.
+
+**Decisions/trade-offs:** Only the LLM and the embedder are faked; seams are `triage_use_case.build_default_provider` / `build_tool_registry`, patched with `monkeypatch`, so no production code changed. The approval gate is still in-memory, so each test swaps in a fresh one. Checked the test can fail by breaking `scope_for_agent`'s `claim_id` binding.
+**Follow-up:** the MCP-dispatch path (`use_mcp=True`) is not reached via HTTP; the Docker Compose task should rerun this against the containerised stack.
+
+---
+
 Library/framework/stdlib-concept entries live in [`glossary.md`](glossary.md) — append there, not here, whenever a summary's **Notable libraries** introduces something not already listed.

@@ -32,7 +32,7 @@ Extracted from the "🤖 AI Build" view of the AI Interview Notion database (sna
 - [ ] Write Docker Compose for full stack, verify `docker compose up`
 - [x] Add PII filtering on inputs/outputs — [summary](task_summaries.md#add-pii-filtering-on-inputsoutputs)
 - [x] Add prompt-injection test cases — [summary](task_summaries.md#add-prompt-injection-test-cases)
-- [ ] Write integration test for `/triage` end-to-end
+- [x] Write integration test for `/triage` end-to-end — [summary](task_summaries.md#write-integration-test-for-triage-end-to-end)
 
 ## Week 4 — Observability, Governance, Polish
 
