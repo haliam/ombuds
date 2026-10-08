@@ -28,7 +28,7 @@ Extracted from the "🤖 AI Build" view of the AI Interview Notion database (sna
 
 - [x] Set up Postgres (relational) + pgvector/Chroma (embeddings) — [summary](task_summaries.md#set-up-postgres-relational--pgvectorchroma-embeddings)
 - [x] Build RAG pipeline — chunk → embed → store → retrieve → cite — [summary](task_summaries.md#build-rag-pipeline--chunk--embed--store--retrieve--cite)
-- [ ] Build small eval set (20–30 Q/A pairs), measure retrieval quality
+- [x] Build small eval set (20–30 Q/A pairs), measure retrieval quality — [summary](task_summaries.md#build-small-eval-set-2030-qa-pairs-measure-retrieval-quality)
 - [ ] Write Docker Compose for full stack, verify `docker compose up`
 - [ ] Add PII filtering on inputs/outputs
 - [ ] Add prompt-injection test cases
