@@ -10,14 +10,14 @@ Python ≥3.11 · FastAPI · LangGraph · MCP · PostgreSQL + pgvector (or Chrom
 
 ## Commands
 Keep this section accurate or delete a stale line — a wrong command here is worse than no command.
-**Status (2026-10-08):** `make test`, `make lint`, `make format`, `make db-up`/`db-down`, `make test-integration`, `make ingest` and `make eval` are wired; `up` is still a no-op placeholder. Add a command here only once it actually works.
+**Status (2026-10-08):** `make test`, `make lint`, `make format`, `make db-up`/`db-down`, `make test-integration`, `make ingest`, `make eval`, `make up` and `make down` are wired. Add a command here only once it actually works.
 - `make test` → `make lint` then `uv run pytest tests/unit` (uv creates `.venv` and installs deps on first run)
 - `make lint` → `ruff check` + `ruff format --check` + `mypy`; `make format` → ruff auto-fix. Config in `pyproject.toml`
 - `make db-up` → `docker compose up -d --wait db` (Postgres + pgvector on host port 5433); `make test-integration` starts it and runs `tests/integration`
 - `make ingest` → starts the db, then chunks + embeds `verticals/airline/kb_seed/*.md` into pgvector (needs `OPENAI_API_KEY`); safe to re-run
 - `uv run pre-commit install` → one-time, runs the same checks on every commit
 - `make eval` → `make ingest`, then `python -m evals.run_evals`: retrieval hit@k/MRR per relevance floor over `evals/datasets/airline_retrieval.jsonl` (needs `OPENAI_API_KEY`; prints a report, never fails)
-- Planned: `make up` → `docker compose up`
+- `make up` → `docker compose up --build -d --wait`: db, a one-shot `migrate-ingest` (migrations + KB ingest, needs `OPENAI_API_KEY` in `.env`), then the API on `localhost:8000` (needs `ANTHROPIC_API_KEY` too); `make down` stops it. Single API replica only — the approval gate is in-memory
 - Planned: MCP standalone → `python -m ombuds.platform.mcp.server`; API app factory lives in `src/ombuds/api_app.py`
 
 ## Layout (feature-sliced — see ADR-0002)
