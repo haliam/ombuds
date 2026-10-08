@@ -28,6 +28,7 @@ from ombuds.platform.ai.schemas.tool_calls import ToolResult
 from ombuds.platform.ai.streaming import ToolCallDelta, ToolResultEvent
 from ombuds.platform.ai.tool_loop import ToolDispatcher
 from ombuds.platform.guardrails.guarded_dispatcher import GuardedDispatcher
+from ombuds.platform.guardrails.injection_detection import detect
 from ombuds.platform.guardrails.pii_filter import redact, redact_value
 from ombuds.platform.mcp.client import McpToolClient
 
@@ -42,6 +43,8 @@ __all__ = [
 ]
 
 _RECURSION_LIMIT = 4 * MAX_TOOL_TURNS + 2 * MAX_REPAIR_ATTEMPTS + 10
+
+INJECTION_ESCALATION_REASON = "Possible prompt injection in the claim text; needs human review."
 
 
 class TriageResult(BaseModel):
@@ -101,6 +104,9 @@ def run_triage(
     standalone server (`platform/mcp/server.py`) as a subprocess, instead of the default in-process
     `ToolRegistry`. The graph itself doesn't know the difference — both satisfy `ToolDispatcher`.
 
+    Claim text that looks like a prompt injection (`platform/guardrails/injection_detection.py`) is escalated
+    to a human before any model call or tool dispatch — see `_injection_escalation`.
+
     `claim_id` identifies the claim this run acts on; a new one is issued when omitted. The model never
     chooses it: any `claim_id` it passes to `log_claim` is replaced with this one, and the model is only
     offered the agent's tool set — never `issue_payment` (`tools.scope_for_agent`, ADR-0009).
@@ -111,6 +117,8 @@ def run_triage(
     facts back into the store. Omit either and there is no cross-run recall.
     """
     claim_id = claim_id or str(uuid.uuid4())
+    if detect(claim_text).suspicious:
+        return _injection_escalation(claim_id)
     claim_text = redact(claim_text).text
     provider = provider or build_default_provider()
     system = load_prompt("claims_triage")
@@ -129,6 +137,14 @@ def run_triage(
     if claimant_id and long_term_store:
         long_term_store.save(claimant_id, long_term)
     return result
+
+
+def _injection_escalation(claim_id: str) -> TriageResult:
+    """The result for a claim whose text looks like an instruction to the model: it never reaches the model (ADR-0014)."""
+    return TriageResult(
+        claim_id=claim_id, answer=INJECTION_ESCALATION_REASON, decision=None, tool_results=(), escalated=True,
+        escalation_reason=INJECTION_ESCALATION_REASON,
+    )
 
 
 def _guarded(dispatcher: ToolDispatcher) -> ToolDispatcher:
@@ -218,6 +234,9 @@ def stream_triage(
     verdict the rules engine contradicts, so the only model-derived text a caller sees is the final result's.
     """
     claim_id = claim_id or str(uuid.uuid4())
+    if detect(claim_text).suspicious:
+        yield TriageCompleted(result=_injection_escalation(claim_id))
+        return
     claim_text = redact(claim_text).text
     provider = provider or build_default_provider()
     registry = _guarded(scope_for_agent(build_tool_registry(), claim_id))
