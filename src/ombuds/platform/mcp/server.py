@@ -13,6 +13,7 @@ from ombuds.features.claims_triage.tools import build_tool_registry
 from ombuds.platform.ai.tool_loop import ToolRegistry
 from ombuds.platform.guardrails.guarded_dispatcher import GuardedDispatcher
 from ombuds.platform.mcp.tool_bindings import build_mcp_server
+from ombuds.platform.observability.logging import configure_logging
 
 
 def build_server(registry: ToolRegistry | None = None) -> Server:
@@ -30,6 +31,7 @@ async def _run() -> None:
 
 
 def main() -> None:
+    configure_logging()
     anyio.run(_run)
 
 
