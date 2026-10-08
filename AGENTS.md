@@ -33,7 +33,7 @@ Keep this section accurate or delete a stale line — a wrong command here is wo
   - `api/` — FastAPI routes and schemas. Thin — delegate to `application/`.
 - `platform/` — feature-agnostic. Must not import from `features/` or contain airline/triage knowledge.
   - `ai/` — provider-agnostic LLM layer: `providers/` (anthropic, openai, fallback), structured-output schemas, `tool_loop.py`, streaming.
-  - `guardrails/` — the one governance layer: `pii_filter`, `injection_detection`, `approval_gate`, `policy_engine` + `policies/*.rego`.
+  - `guardrails/` — the one governance layer: `pii_filter` (+ `guarded_dispatcher`, which applies it to tool-call arguments; ADR-0013), `injection_detection`, `approval_gate`, `policy_engine` + `policies/*.rego`.
   - `mcp/` — `tool_bindings.py` wraps a `ToolRegistry` for MCP exposure without importing `features/`; `server.py` (a composition root) builds the registry from a feature (e.g. `claims_triage.tools.build_tool_registry()`) and hands it to `tool_bindings.py`. A subpackage, not a service (ADR-0003).
   - `infrastructure/` — Postgres, vector store, repositories, audit log.
   - `observability/` — logging, tracing, metrics.
@@ -58,4 +58,4 @@ Architecture decisions live in `docs/decisions/` as ADRs — start from `docs/de
 - `evals/` is not `tests/` — it measures agent/RAG quality against `evals/datasets/*.jsonl`, not pass/fail correctness. A failing eval shouldn't fail CI by itself, but a score regression should block a prompt or model change from merging.
 
 ## Security
-Never commit real claim data, API keys, or `.env` — only `.env.example`. PII stays inside `platform/guardrails/pii_filter.py`'s reach; don't log raw evidence payloads in `platform/observability/logging.py`.
+Never commit real claim data, API keys, or `.env` — only `.env.example`. PII stays inside `platform/guardrails/pii_filter.py`'s reach (redacted at the use-case seams, tool dispatch, MCP and logs — ADR-0013); don't log raw evidence payloads in `platform/observability/logging.py`.

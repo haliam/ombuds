@@ -428,4 +428,25 @@ Template — copy this block per finished task, filling in the fields (omit **De
 
 ---
 
+### Add PII filtering on inputs/outputs
+
+**Week:** W3
+**Goal:** Keep personal identifiers out of the LLM and embedding APIs, the response, logs and approval records.
+**Source:** ADR-0013, AGENTS.md "Security", W2 review F-07
+
+**Files & responsibilities:**
+- `platform/guardrails/pii_filter.py` — `redact` / `redact_value`: regex detection with Luhn and mod-97 checks, typed placeholders, per-kind counts.
+- `platform/guardrails/guarded_dispatcher.py` — `GuardedDispatcher` redacts the arguments of every tool call for any `ToolDispatcher`.
+- `application/triage_use_case.py` — redacts `claim_text` on the way in, and the answer, decision explanation, escalation reason and streamed tool-call frames on the way out.
+- `platform/guardrails/approval_gate.py` — approver `note` stored redacted.
+- `platform/mcp/server.py` + `tool_bindings.py` — `build_server()` guards external MCP clients; `build_mcp_server` takes any `ToolDispatcher`.
+- `platform/observability/logging.py` — `PiiRedactingFilter` and `configure_logging()`, called from `api_app.py` and the MCP `main()`.
+
+**Notable libraries:** stdlib `re` and `logging` only — see glossary.
+
+**Decisions/trade-offs:** see ADR-0013. Regex and checksums rather than Presidio, so names and addresses are not covered. Redaction is one-way and has no off switch. Passport and booking references only after a keyword, to protect flight numbers.
+**Follow-up:** names/addresses (Presidio behind the same `redact()` signature); the W4 audit log should store redacted text plus `findings` counts; prompt v5 may need a line about placeholders; `escalation_reason` redaction has no dedicated test; the uvicorn handler wiring is untested against a running server.
+
+---
+
 Library/framework/stdlib-concept entries live in [`glossary.md`](glossary.md) — append there, not here, whenever a summary's **Notable libraries** introduces something not already listed.
