@@ -1,7 +1,7 @@
 """Logging: a handler-level filter that keeps PII out of every log line.
 
 Nothing in the codebase should log a claim's text, but exception messages and third-party loggers can still
-carry user-supplied strings, so the filter redacts the formatted message, the traceback text and any stack
+carry user-supplied strings, so the filter redacts the message template, its string arguments, the traceback text and any stack
 info with `pii_filter.redact` — the same one-way redaction used on requests (ADR-0013). It is attached to
 handlers, not loggers, because a logger's filters don't apply to records propagated from its children.
 """
@@ -20,8 +20,13 @@ class PiiRedactingFilter(logging.Filter):
     """Rewrites a record so its message, traceback and stack info contain no recognised PII."""
 
     def filter(self, record: LogRecord) -> bool:
-        record.msg = redact(record.getMessage()).text
-        record.args = None
+        # Redact the template and each string arg separately instead of flattening to one string: uvicorn's
+        # access formatter unpacks `record.args` as a tuple, so it has to keep its shape.
+        record.msg = redact(str(record.msg)).text
+        if isinstance(record.args, tuple):
+            record.args = tuple(redact(a).text if isinstance(a, str) else a for a in record.args)
+        elif isinstance(record.args, dict):
+            record.args = {k: redact(v).text if isinstance(v, str) else v for k, v in record.args.items()}
         if record.exc_info and not record.exc_text:
             record.exc_text = logging.Formatter().formatException(record.exc_info)
         if record.exc_text:

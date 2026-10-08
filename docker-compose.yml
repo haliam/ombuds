@@ -16,7 +16,40 @@ services:
       timeout: 3s
       retries: 20
 
-  # api:  (added by the full-stack Docker Compose task)
+  # One-shot: apply migrations, then chunk + embed the KB seed docs. Idempotent, so safe on every `up`.
+  # The API never migrates on its own, so it waits for this to finish.
+  migrate-ingest:
+    build: .
+    image: ombuds
+    command: ["python", "-m", "ombuds.features.claims_triage.rag.ingest"]
+    restart: "no"
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql://ombuds:ombuds@db:5432/ombuds
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # Keep to a single replica: the approval gate is in-memory per process (ADR-0008/0009).
+  # MCP tool dispatch spawns its stdio server as a subprocess of this container (ADR-0003).
+  api:
+    build: .
+    image: ombuds
+    ports:
+      - "8000:8000"
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql://ombuds:ombuds@db:5432/ombuds
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate-ingest:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/openapi.json')"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
 
 volumes:
   db-data:

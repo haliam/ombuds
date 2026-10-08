@@ -1,8 +1,8 @@
-up: # will eventually run docker compose up
-	@true
+up: # full stack: db, one-shot migrate + ingest, api on :8000 (needs keys in .env)
+	docker compose up --build -d --wait
 
-down: # will eventually run docker compose down
-	@true
+down:
+	docker compose down
 
 lint:
 	uv run ruff check .

@@ -60,3 +60,19 @@ def test_configure_logging_filters_every_root_handler_once() -> None:
         assert [type(f) for f in handler.filters] == [PiiRedactingFilter]
     finally:
         root.removeHandler(handler)
+
+
+def test_args_keep_their_tuple_shape_for_uvicorn_style_formatters(captured) -> None:
+    logger, _ = captured
+    seen: list[object] = []
+
+    def spy(record: logging.LogRecord) -> bool:
+        seen.append(record.args)
+        return True
+
+    # Handler filters run in order, so this one sees the record after the PII filter has rewritten it.
+    logger.handlers[0].addFilter(spy)
+
+    logger.info('%s - "%s %s HTTP/%s" %d', "10.0.0.1", "GET", "/u/jane.doe@example.com", "1.1", 200)
+
+    assert seen == [("10.0.0.1", "GET", "/u/[EMAIL]", "1.1", 200)]

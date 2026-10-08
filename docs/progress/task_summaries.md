@@ -485,4 +485,25 @@ Template — copy this block per finished task, filling in the fields (omit **De
 
 ---
 
+### Write Docker Compose for full stack, verify `docker compose up`
+
+**Week:** W3
+**Goal:** One command brings up db, schema + KB, and the API, and `/claims/triage` works against it.
+**Source:** AGENTS.md "Commands" (`make up` was a placeholder)
+
+**Files & responsibilities:**
+- `Dockerfile` — `python:3.11-slim` + `uv sync --frozen --no-dev` (deps layer, then `src/`), non-root, uvicorn on :8000.
+- `.dockerignore` — keeps `.env`, `.git`, tests, docs out of the build context and image.
+- `docker-compose.yml` — adds `migrate-ingest` (one-shot, runs `rag.ingest`, which applies migrations first) and `api` (waits for it via `service_completed_successfully`; healthcheck on `/openapi.json`). Both share the `ombuds` image and override `DATABASE_URL` to the `db` service.
+- `Makefile` — `up` / `down` wired.
+- `platform/observability/logging.py` — bug found by the stack: the PII filter set `record.args = None`, which broke uvicorn's access-log formatter ("Logging error" on every request). It now redacts the template and each string arg and keeps the args' shape.
+
+**Notable libraries:** `uv` (in the image build) and Docker Compose `depends_on` conditions; nothing new for the glossary beyond that.
+
+**Decisions/trade-offs:** The API doesn't migrate on startup (unchanged); the one-shot service owns schema + KB so the API stays stateless to start. No separate MCP service: the stdio server is a subprocess of the API container (ADR-0003); verified `McpToolClient` lists all four tools in-container. No ADR: compose was already the stated deployment shape.
+**Verified:** clean `down -v` → `make up`: db healthy → ingest 12 chunks, exit 0 → api healthy; real triage returned a decision with `log_claim` parked for approval; injection claim escalated; a second `make up` is idempotent.
+**Follow-up:** no `/health` endpoint (healthcheck uses `/openapi.json`); the approval gate is still in-memory so keep one replica; `use_mcp=True` isn't reachable over HTTP, only checked via `McpToolClient`.
+
+---
+
 Library/framework/stdlib-concept entries live in [`glossary.md`](glossary.md) — append there, not here, whenever a summary's **Notable libraries** introduces something not already listed.
