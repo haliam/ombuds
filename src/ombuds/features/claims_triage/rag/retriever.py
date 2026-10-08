@@ -9,8 +9,9 @@ from ombuds.platform.infrastructure.postgres import create_pool
 from ombuds.platform.infrastructure.vector_store import PgVectorStore, VectorStore
 
 # Cosine similarity below this is treated as "nothing relevant" rather than returned as a weak match,
-# so the agent isn't handed an off-topic passage to cite. Tune against the retrieval eval set.
-DEFAULT_MIN_SCORE = 0.2
+# so the agent isn't handed an off-topic passage to cite. Chosen from the retrieval eval sweep (`make eval`,
+# ADR-0012): just under the lowest score of any answerable question's best chunk. Re-run it if the KB or model changes.
+DEFAULT_MIN_SCORE = 0.35
 
 
 class Retriever:

@@ -408,4 +408,24 @@ Template — copy this block per finished task, filling in the fields (omit **De
 
 ---
 
+### Build small eval set (20–30 Q/A pairs), measure retrieval quality
+
+**Week:** W3
+**Goal:** Measure how well `search_kb` finds the right policy section, and choose the relevance floor from data instead of a guess.
+**Source:** ADR-0012 (floor), ADR-0011 (floor was a starting guess), W2 review O-3
+
+**Files & responsibilities:**
+- `evals/datasets/airline_retrieval.jsonl` — 30 questions: 26 answerable (gold = file + heading, including 3 multi-section), 4 off-topic.
+- `evals/dataset.py` — loads and validates the questions, resolves gold headings to `(source, chunk_index)` against the KB seed.
+- `evals/retrieval_metrics.py` — hit@k, MRR, off-topic rejection rate (pure functions).
+- `evals/run_evals.py` — one unfloored search per question, then the floor sweep, score separation and misses; `make eval` runs it after `make ingest`.
+- `rag/retriever.py` — `DEFAULT_MIN_SCORE` 0.2 → 0.35.
+
+**Notable libraries:** none new.
+
+**Decisions/trade-offs:** see ADR-0012. Gold is labelled by heading, not chunk index, so re-chunking doesn't invalidate it. Results: hit@5 0.96, MRR 0.84; the floor mostly can't separate off-topic from answerable because the scores overlap (0.384 vs 0.389).
+**Follow-up:** `scope-2` (a late check-in phrased without the word "scope") misses at every floor; grow the off-topic set; prompt v5 can now be gated on this set; `Citation`s are not yet part of `TriageDecision`; separate `ombuds_test` database (integration tests truncate dev `kb_chunks`, so run `make ingest` before `make eval`).
+
+---
+
 Library/framework/stdlib-concept entries live in [`glossary.md`](glossary.md) — append there, not here, whenever a summary's **Notable libraries** introduces something not already listed.

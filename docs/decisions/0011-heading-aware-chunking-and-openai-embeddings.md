@@ -17,7 +17,7 @@ The RAG pipeline needs a chunking strategy for the airline policy documents and 
 - The policy documents are short and structured, so a character-based splitter is enough; no tokenizer dependency.
 - Embedding needs `OPENAI_API_KEY` and a network call at ingest and at every `search_kb`. An outage surfaces as a tool error the agent can see.
 - Switching to another embedding model with a different dimension needs a new migration and a full re-ingest.
-- The `0.2` floor is a starting guess; tune it against the retrieval eval set (the next W3 task).
+- The `0.2` floor was a starting guess; ADR-0012 re-tuned it against the retrieval eval set.
 
 ## Alternatives considered
 - **Fixed-size sliding windows** — simpler, but splits sections mid-rule and gives citations that start mid-sentence.
