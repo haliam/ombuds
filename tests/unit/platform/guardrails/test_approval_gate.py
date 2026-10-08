@@ -128,3 +128,12 @@ def test_resolving_an_unknown_request_id_raises(gate: ApprovalGate, method: str)
 def test_getting_an_unknown_request_id_raises(gate: ApprovalGate) -> None:
     with pytest.raises(ApprovalNotFoundError):
         gate.get("no-such-id")
+
+
+@pytest.mark.parametrize("decide", ["approve", "deny"])
+def test_an_approvers_note_is_stored_without_pii(gate: ApprovalGate, decide: str) -> None:
+    request = gate.submit(GuardedAction.LOG_CLAIM, _PAYLOAD)
+
+    decided = getattr(gate, decide)(request.id, "alice", "called passenger on +49 30 1234 5678")
+
+    assert decided.note == "called passenger on [PHONE]"

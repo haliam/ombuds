@@ -27,6 +27,8 @@ from ombuds.platform.ai.providers.fallback import build_default_provider
 from ombuds.platform.ai.schemas.tool_calls import ToolResult
 from ombuds.platform.ai.streaming import ToolCallDelta, ToolResultEvent
 from ombuds.platform.ai.tool_loop import ToolDispatcher
+from ombuds.platform.guardrails.guarded_dispatcher import GuardedDispatcher
+from ombuds.platform.guardrails.pii_filter import redact, redact_value
 from ombuds.platform.mcp.client import McpToolClient
 
 __all__ = [
@@ -109,6 +111,7 @@ def run_triage(
     facts back into the store. Omit either and there is no cross-run recall.
     """
     claim_id = claim_id or str(uuid.uuid4())
+    claim_text = redact(claim_text).text
     provider = provider or build_default_provider()
     system = load_prompt("claims_triage")
     long_term = long_term_store.load(claimant_id) if claimant_id and long_term_store else LongTermMemory()
@@ -116,16 +119,21 @@ def run_triage(
     if use_mcp:
         with McpToolClient() as mcp_client:
             result, long_term = _invoke_graph(
-                provider, scope_for_agent(mcp_client, claim_id), claim_id, system, claim_text, long_term
+                provider, _guarded(scope_for_agent(mcp_client, claim_id)), claim_id, system, claim_text, long_term
             )
     else:
         result, long_term = _invoke_graph(
-            provider, scope_for_agent(build_tool_registry(), claim_id), claim_id, system, claim_text, long_term
+            provider, _guarded(scope_for_agent(build_tool_registry(), claim_id)), claim_id, system, claim_text, long_term
         )
 
     if claimant_id and long_term_store:
         long_term_store.save(claimant_id, long_term)
     return result
+
+
+def _guarded(dispatcher: ToolDispatcher) -> ToolDispatcher:
+    """Redact PII from the arguments of every tool call the model makes (ADR-0013)."""
+    return GuardedDispatcher(dispatcher)
 
 
 def _invoke_graph(
@@ -160,13 +168,18 @@ def _initial_state(claim_text: str, long_term: LongTermMemory) -> AgentState:
 
 
 def _to_result(claim_id: str, final_state: Mapping[str, Any]) -> TriageResult:
+    """Build the caller-facing result, redacting the model-authored free text in it (ADR-0013)."""
+    decision: TriageDecision | None = final_state["decision"]
+    if decision is not None:
+        decision = decision.model_copy(update={"explanation": redact(decision.explanation).text})
+    escalation_reason = final_state["escalation_reason"]
     return TriageResult(
         claim_id=claim_id,
-        answer=final_state["answer"],
-        decision=final_state["decision"],
+        answer=redact(final_state["answer"]).text,
+        decision=decision,
         tool_results=tuple(final_state["tool_results"]),
         escalated=final_state["escalated"],
-        escalation_reason=final_state["escalation_reason"],
+        escalation_reason=None if escalation_reason is None else redact(escalation_reason).text,
     )
 
 
@@ -205,8 +218,9 @@ def stream_triage(
     verdict the rules engine contradicts, so the only model-derived text a caller sees is the final result's.
     """
     claim_id = claim_id or str(uuid.uuid4())
+    claim_text = redact(claim_text).text
     provider = provider or build_default_provider()
-    registry = scope_for_agent(build_tool_registry(), claim_id)
+    registry = _guarded(scope_for_agent(build_tool_registry(), claim_id))
     app = build_triage_graph(provider, registry, load_prompt("claims_triage"), stream=True)
 
     final_state: Mapping[str, Any] | None = None
@@ -216,9 +230,18 @@ def stream_triage(
         stream_mode=["custom", "values"],
     ):
         if mode == "custom" and isinstance(chunk, ToolCallDelta | ToolResultEvent):
-            yield chunk
+            yield _redact_event(chunk)
         elif mode == "values" and isinstance(chunk, Mapping):
             final_state = chunk
     if final_state is None:
         raise RuntimeError("triage graph produced no state")
     yield TriageCompleted(result=_to_result(claim_id, final_state))
+
+
+def _redact_event(event: ToolCallDelta | ToolResultEvent) -> ToolCallDelta | ToolResultEvent:
+    """Redact the model-authored arguments of a streamed tool call; results come from our own tools."""
+    if isinstance(event, ToolCallDelta):
+        arguments = redact_value(event.call.arguments)
+        assert isinstance(arguments, dict)
+        return ToolCallDelta(call=event.call.model_copy(update={"arguments": arguments}))
+    return event

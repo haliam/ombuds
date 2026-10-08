@@ -107,3 +107,13 @@ Grouped by category; append new terms under the matching section.
 | **hit@k** | Fraction of questions whose correct chunk appears in the top k results. hit@5 of 0.96 means 25 of 26 questions found their section in the top 5.<br>↳ *First seen:* [Retrieval eval](task_summaries.md#build-small-eval-set-2030-qa-pairs-measure-retrieval-quality) |
 | **MRR (mean reciprocal rank)** | Average of 1/rank of the first correct result (a miss counts 0). 1.0 means the right chunk is always first; it rewards ranking it higher, which hit@k doesn't.<br>↳ *First seen:* [Retrieval eval](task_summaries.md#build-small-eval-set-2030-qa-pairs-measure-retrieval-quality) |
 | **Relevance floor** | The minimum cosine score for a hit to be returned (`DEFAULT_MIN_SCORE`). Too high drops right answers, too low returns weak matches; picked by sweeping it over the eval set.<br>↳ *First seen:* [Retrieval eval](task_summaries.md#build-small-eval-set-2030-qa-pairs-measure-retrieval-quality) |
+
+## Guardrails
+
+| Term | What it is |
+|---|---|
+| **PII (personal identifiable information)** | Data that identifies a person: email, phone, card and bank numbers, passport number. `pii_filter.redact` replaces it with placeholders like `[EMAIL]` before it leaves our process.<br>↳ *First seen:* [PII filtering](task_summaries.md#add-pii-filtering-on-inputsoutputs) |
+| **Luhn checksum** | A check digit rule that valid card numbers satisfy; it lets the filter tell a card from any other 16-digit number.<br>↳ *First seen:* [PII filtering](task_summaries.md#add-pii-filtering-on-inputsoutputs) |
+| **IBAN mod-97** | The checksum on international bank account numbers (move the first four characters to the end, read letters as numbers, remainder must be 1).<br>↳ *First seen:* [PII filtering](task_summaries.md#add-pii-filtering-on-inputsoutputs) |
+| **`logging.Filter`** | A hook on a logger or handler that can edit or drop a log record before it is written. Attached to handlers here, since a logger's filters don't apply to records from its child loggers.<br>↳ *First seen:* [PII filtering](task_summaries.md#add-pii-filtering-on-inputsoutputs) |
+| **Presidio** | Microsoft's open-source PII detector (regex recognisers plus spaCy NER, which catches names). The documented upgrade path if regex isn't enough.<br>↳ *First seen:* [PII filtering](task_summaries.md#add-pii-filtering-on-inputsoutputs) |

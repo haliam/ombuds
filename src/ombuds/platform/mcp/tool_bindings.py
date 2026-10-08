@@ -1,4 +1,4 @@
-"""Wraps a `ToolRegistry` for MCP exposure.
+"""Wraps a `ToolDispatcher` (normally a `ToolRegistry`) for MCP exposure.
 
 Feature-agnostic (ADR-0003): this module never imports from `features/`. It only knows the provider-
 agnostic `ToolRegistry`/`ToolCall`/`ToolResult` shapes from `platform/ai/`. The composition root
@@ -10,11 +10,14 @@ import mcp.types as types
 from mcp.server.lowlevel import Server
 
 from ombuds.platform.ai.schemas.tool_calls import ToolCall
-from ombuds.platform.ai.tool_loop import ToolRegistry
+from ombuds.platform.ai.tool_loop import ToolDispatcher
 
 
-def build_mcp_server(registry: ToolRegistry, *, name: str = "ombuds") -> Server:
+def build_mcp_server(registry: ToolDispatcher, *, name: str = "ombuds") -> Server:
     """Build an MCP `Server` that lists and dispatches every tool in `registry`.
+
+    Takes any `ToolDispatcher` rather than a `ToolRegistry` so a composition root can wrap the registry
+    (e.g. `GuardedDispatcher`) before exposing it.
 
     Each tool's MCP input schema comes straight from its `ToolDefinition.args_model`, so the schema a
     client sees is exactly the schema `ToolRegistry.dispatch` validates against — no second definition
@@ -36,7 +39,7 @@ def build_mcp_server(registry: ToolRegistry, *, name: str = "ombuds") -> Server:
     @server.call_tool()  # type: ignore[untyped-decorator]
     async def call_tool(name: str, arguments: dict[str, object]) -> list[types.TextContent]:
         call = ToolCall(id=name, name=name, arguments=arguments)
-        result = registry.dispatch(call)
+        (result,) = registry.dispatch_all([call])
         if result.is_error:
             raise RuntimeError(result.content)
         return [types.TextContent(type="text", text=result.content)]

@@ -19,6 +19,8 @@ from typing import Protocol
 
 from pydantic import BaseModel, ConfigDict, JsonValue
 
+from ombuds.platform.guardrails.pii_filter import redact
+
 
 class GuardedAction(StrEnum):
     """State-changing actions that must pass through the approval gate."""
@@ -77,6 +79,11 @@ class ApprovalStore(Protocol):
     def claim_for_execution(self, request_id: str) -> ApprovalRequest: ...
 
 
+def _redacted(note: str | None) -> str | None:
+    """An approver's free-text note, with PII removed: it's stored and listed by `/approvals`."""
+    return None if note is None else redact(note).text
+
+
 class ApprovalGate:
     """In-memory, lock-guarded store of approval requests.
 
@@ -113,12 +120,14 @@ class ApprovalGate:
     def approve(self, request_id: str, approver: str, note: str | None = None) -> ApprovalRequest:
         """Approve a `PENDING` request. Approving never executes anything by itself — see `claim_for_execution`."""
         return self._transition(
-            request_id, ApprovalStatus.PENDING, ApprovalStatus.APPROVED, approver=approver, note=note
+            request_id, ApprovalStatus.PENDING, ApprovalStatus.APPROVED, approver=approver, note=_redacted(note)
         )
 
     def deny(self, request_id: str, approver: str, note: str | None = None) -> ApprovalRequest:
         """Deny a `PENDING` request. Terminal: a denied payload can't be re-approved, only re-submitted changed."""
-        return self._transition(request_id, ApprovalStatus.PENDING, ApprovalStatus.DENIED, approver=approver, note=note)
+        return self._transition(
+            request_id, ApprovalStatus.PENDING, ApprovalStatus.DENIED, approver=approver, note=_redacted(note)
+        )
 
     def claim_for_execution(self, request_id: str) -> ApprovalRequest:
         """Atomically move an `APPROVED` request to `EXECUTED` and return it; raise for any other status.
