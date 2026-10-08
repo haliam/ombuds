@@ -3,9 +3,11 @@
 import hashlib
 import math
 import re
-from collections.abc import Sequence
+from collections.abc import Iterator, Sequence
 
-from ombuds.platform.ai.providers.base import ProviderUnavailableError
+from ombuds.platform.ai.providers.base import ProviderTurn, ProviderUnavailableError
+from ombuds.platform.ai.schemas.tool_calls import ToolDefinition
+from ombuds.platform.ai.streaming import StreamEvent, TextDelta, ToolCallDelta, TurnDone
 from ombuds.platform.infrastructure.vector_store import EMBEDDING_DIM
 
 
@@ -33,3 +35,28 @@ class DownEmbedder:
 
     def embed(self, texts: Sequence[str]) -> list[list[float]]:
         raise ProviderUnavailableError("embedding provider is down")
+
+
+class ScriptedProvider:
+    """An `LLMProvider` that replays a fixed sequence of turns, ignoring what it is sent — no real API calls."""
+
+    def __init__(self, turns: Sequence[ProviderTurn]) -> None:
+        self._turns = list(turns)
+        self.calls = 0
+
+    def run_turn(
+        self, messages: list[dict[str, object]], tools: Sequence[ToolDefinition], *, system: str
+    ) -> ProviderTurn:
+        self.calls += 1
+        return self._turns.pop(0)
+
+    def stream_turn(
+        self, messages: list[dict[str, object]], tools: Sequence[ToolDefinition], *, system: str
+    ) -> Iterator[StreamEvent]:
+        self.calls += 1
+        turn = self._turns.pop(0)
+        if turn.text:
+            yield TextDelta(text=turn.text)
+        for call in turn.tool_calls:
+            yield ToolCallDelta(call=call)
+        yield TurnDone(text=turn.text, tool_calls=turn.tool_calls, stop_reason=turn.stop_reason, content=turn.content)
