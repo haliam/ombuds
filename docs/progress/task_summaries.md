@@ -449,4 +449,23 @@ Template — copy this block per finished task, filling in the fields (omit **De
 
 ---
 
+### Add prompt-injection test cases
+
+**Week:** W3
+**Goal:** Stop passenger text that tries to instruct the model from reaching it, and prove the structural guardrails hold when detection misses.
+**Source:** ADR-0014, AGENTS.md "Guardrails", W2 review F-06, `build_and_explain.md` Q11
+
+**Files & responsibilities:**
+- `platform/guardrails/injection_detection.py` — `detect()`: normalise, regex per kind, base64 decode-and-rescan; counts only.
+- `application/triage_use_case.py` — `run_triage` / `stream_triage` escalate a flagged claim before any model call, tool dispatch or memory write.
+- `tests/unit/platform/guardrails/test_injection_detection.py` — attacks per kind, obfuscation, false-positive corpus including the KB seed.
+- `tests/unit/features/claims_triage/application/test_triage_use_case.py` — no provider call on a hit; a paraphrase that evades detection still cannot trigger `issue_payment`.
+
+**Notable libraries:** stdlib `unicodedata` and `base64` — see glossary.
+
+**Decisions/trade-offs:** see ADR-0014. Heuristics rather than an LLM classifier; escalate rather than reject. The structural limits (tool scope, server-issued `claim_id`, approval gate) are the real defence.
+**Follow-up:** paraphrase and non-EN/DE/FR/ES attacks are missed; an agent-level eval set of injected claims (`airline_claims.jsonl` is still empty); scan tool results if a tool ever returns third-party text; the audit log (W4) should record the `findings` counts.
+
+---
+
 Library/framework/stdlib-concept entries live in [`glossary.md`](glossary.md) — append there, not here, whenever a summary's **Notable libraries** introduces something not already listed.
