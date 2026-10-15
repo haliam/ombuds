@@ -37,3 +37,12 @@ def test_an_injected_store_is_used_as_given_and_opens_no_pool(monkeypatch: pytes
 
     with TestClient(api_app.create_app(gate)) as client:
         assert client.get("/approvals").json() == []
+
+
+def test_the_scalar_api_reference_is_served_and_points_at_the_openapi_schema() -> None:
+    with TestClient(api_app.create_app(ApprovalGate())) as client:
+        response = client.get("/scalar")
+
+    assert response.status_code == 200
+    assert 'data-url="/openapi.json"' in response.text
+    assert "/scalar" not in client.get("/openapi.json").json()["paths"]

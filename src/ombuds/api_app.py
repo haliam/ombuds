@@ -4,6 +4,7 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from fastapi.responses import HTMLResponse
 
 from ombuds import config
 from ombuds.features.claims_triage.api.routes import router as claims_triage_router
@@ -13,6 +14,21 @@ from ombuds.platform.guardrails.api import router as approvals_router
 from ombuds.platform.guardrails.approval_gate import ApprovalStore
 from ombuds.platform.infrastructure.postgres import create_pool
 from ombuds.platform.observability.logging import configure_logging
+
+
+_SCALAR_HTML = """<!doctype html>
+<html>
+  <head>
+    <title>ombuds API reference</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+  </head>
+  <body>
+    <script id="api-reference" data-url="/openapi.json"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@scalar/api-reference"></script>
+  </body>
+</html>
+"""
 
 
 @asynccontextmanager
@@ -47,6 +63,12 @@ def create_app(approvals: ApprovalStore | None = None, registry: ToolDispatcher 
             app.state.registry = registry
     app.include_router(claims_triage_router)
     app.include_router(approvals_router)
+
+    @app.get("/scalar", include_in_schema=False)
+    def scalar() -> HTMLResponse:
+        """Scalar API reference, rendered from `/openapi.json` (alongside FastAPI's `/docs` and `/redoc`)."""
+        return HTMLResponse(_SCALAR_HTML)
+
     return app
 
 
