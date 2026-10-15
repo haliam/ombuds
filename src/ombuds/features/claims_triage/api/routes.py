@@ -20,6 +20,7 @@ from ombuds.features.claims_triage.application.triage_use_case import (
 )
 from ombuds.platform.ai.providers.base import ProviderUnavailableError
 from ombuds.platform.ai.streaming import ToolCallDelta, ToolResultEvent
+from ombuds.platform.guardrails.api import Approvals
 
 logger = logging.getLogger(__name__)
 
@@ -27,23 +28,24 @@ router = APIRouter(prefix="/claims", tags=["claims"])
 
 
 @router.post("/triage", response_model=TriageResponse)
-def triage(request: TriageRequest) -> TriageResponse:
+def triage(request: TriageRequest, approvals: Approvals) -> TriageResponse:
     """Run the claims-triage tool-use loop over one claim and return its answer plus every tool call made.
 
     The `claim_id` is always issued by the server (ADR-0009) and returned so the caller can follow up on it.
     """
-    return _to_response(run_triage(request.claim_text))
+    return _to_response(run_triage(request.claim_text, approvals=approvals))
 
 
 @router.post("/triage/stream")
-def triage_stream(request: TriageRequest) -> StreamingResponse:
+def triage_stream(request: TriageRequest, approvals: Approvals) -> StreamingResponse:
     """Run the same triage as `/triage`, streaming progress over Server-Sent Events (ADR-0007).
 
     Frames, one JSON object each: `tool_call` and `tool_result` as they happen, then exactly one `final`
     carrying the same fields as `/triage`'s response — or an `error` frame if the LLM provider is unavailable.
     Unverified model text is never streamed (see `stream_triage`).
     """
-    return StreamingResponse(_to_sse(stream_triage(request.claim_text)), media_type="text/event-stream")
+    events = stream_triage(request.claim_text, approvals=approvals)
+    return StreamingResponse(_to_sse(events), media_type="text/event-stream")
 
 
 def _to_response(result: TriageResult) -> TriageResponse:

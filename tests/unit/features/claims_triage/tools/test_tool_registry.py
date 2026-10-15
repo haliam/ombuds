@@ -6,10 +6,11 @@ from ombuds.features.claims_triage.tools.issue_payment import ISSUE_PAYMENT_TOOL
 from ombuds.features.claims_triage.tools.log_claim import LOG_CLAIM_TOOL
 from ombuds.features.claims_triage.tools.search_kb import SEARCH_KB_TOOL
 from ombuds.platform.ai.schemas.tool_calls import ToolCall, ToolDefinition, ToolResult
+from ombuds.platform.guardrails.approval_gate import ApprovalGate
 
 
 def test_build_tool_registry_registers_exactly_the_four_claims_triage_tools() -> None:
-    registry = build_tool_registry()
+    registry = build_tool_registry(ApprovalGate())
 
     definitions = registry.definitions()
 

@@ -1,6 +1,5 @@
 import pytest
 
-import ombuds.features.claims_triage.tools.issue_payment as issue_payment_module
 from ombuds.domain.errors import ToolExecutionError
 from ombuds.features.claims_triage.tools.issue_payment import ISSUE_PAYMENT_TOOL, IssuePaymentArgs, issue_payment
 from ombuds.features.claims_triage.verticals.airline.evidence_schema import DisruptionType, FlightDisruption
@@ -8,10 +7,8 @@ from ombuds.platform.guardrails.approval_gate import ApprovalGate, ApprovalStatu
 
 
 @pytest.fixture
-def gate(monkeypatch) -> ApprovalGate:
-    scratch = ApprovalGate()
-    monkeypatch.setattr(issue_payment_module, "submit_for_approval", scratch.submit)
-    return scratch
+def gate() -> ApprovalGate:
+    return ApprovalGate()
 
 
 def _disruption(**overrides) -> FlightDisruption:
@@ -32,7 +29,7 @@ def _args(**overrides) -> IssuePaymentArgs:
 
 
 def test_issue_payment_submits_a_pending_request_instead_of_paying(gate: ApprovalGate) -> None:
-    result = issue_payment(_args())
+    result = issue_payment(_args(), gate)
 
     assert result.status is ApprovalStatus.PENDING
     assert gate.list_pending()[0].id == result.approval_request_id
@@ -45,7 +42,7 @@ def test_the_amount_comes_from_the_rules_engine_not_the_caller(gate: ApprovalGat
         {"claim_id": "claim-1", "amount_eur": 9999, "disruption": _disruption().model_dump(mode="json")}
     )
 
-    result = issue_payment(args)
+    result = issue_payment(args, gate)
 
     assert result.amount_eur == 250
     assert gate.get(result.approval_request_id).payload["amount_eur"] == 250
@@ -53,7 +50,7 @@ def test_the_amount_comes_from_the_rules_engine_not_the_caller(gate: ApprovalGat
 
 def test_issue_payment_refuses_a_claim_with_no_compensation_due(gate: ApprovalGate) -> None:
     with pytest.raises(ToolExecutionError, match="not entitled to compensation"):
-        issue_payment(_args(extraordinary_circumstances=True))
+        issue_payment(_args(extraordinary_circumstances=True), gate)
 
     assert gate.list_pending() == ()
 

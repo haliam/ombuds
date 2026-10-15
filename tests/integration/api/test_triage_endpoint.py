@@ -18,8 +18,8 @@ from ombuds.features.claims_triage.rag.retriever import Retriever
 from ombuds.features.claims_triage.tools import build_tool_registry
 from ombuds.platform.ai.providers.base import ProviderTurn
 from ombuds.platform.ai.schemas.tool_calls import ToolCall
-from ombuds.platform.guardrails import approval_gate
 from ombuds.platform.infrastructure.postgres import Pool
+from ombuds.platform.infrastructure.repositories import PostgresApprovalStore
 from ombuds.platform.infrastructure.vector_store import PgVectorStore
 from tests.fakes import FakeEmbedder, ScriptedProvider
 
@@ -64,10 +64,9 @@ def app_client(pool: Pool, monkeypatch: pytest.MonkeyPatch) -> Iterator[TestClie
     monkeypatch.setattr(
         triage_use_case,
         "build_tool_registry",
-        lambda: build_tool_registry(lambda: Retriever(embedder, store, min_score=0.0)),
+        lambda approvals: build_tool_registry(approvals, lambda: Retriever(embedder, store, min_score=0.0)),
     )
-    monkeypatch.setattr(approval_gate, "_GATE", approval_gate.ApprovalGate())
-    yield TestClient(create_app())
+    yield TestClient(create_app(PostgresApprovalStore(pool)))
 
 
 def _script(monkeypatch: pytest.MonkeyPatch, *turns: ProviderTurn) -> ScriptedProvider:

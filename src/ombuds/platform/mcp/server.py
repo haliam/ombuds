@@ -9,25 +9,32 @@ import anyio
 from mcp.server.lowlevel import Server
 from mcp.server.stdio import stdio_server
 
+from ombuds import config
 from ombuds.features.claims_triage.tools import build_tool_registry
 from ombuds.platform.ai.tool_loop import ToolRegistry
 from ombuds.platform.guardrails.guarded_dispatcher import GuardedDispatcher
+from ombuds.platform.infrastructure.postgres import create_pool
+from ombuds.platform.infrastructure.repositories import PostgresApprovalStore
 from ombuds.platform.mcp.tool_bindings import build_mcp_server
 from ombuds.platform.observability.logging import configure_logging
 
 
-def build_server(registry: ToolRegistry | None = None) -> Server:
-    """Build the MCP server over `registry` (default: the claims-triage tools), with PII redacted from every
-    call's arguments — external clients reach `search_kb` and the rest without passing through the agent (ADR-0013).
+def build_server(registry: ToolRegistry) -> Server:
+    """Build the MCP server over `registry`, with PII redacted from every call's arguments — external
+    clients reach `search_kb` and the rest without passing through the agent (ADR-0013).
     """
-    return build_mcp_server(GuardedDispatcher(registry or build_tool_registry()), name="ombuds-claims-triage")
+    return build_mcp_server(GuardedDispatcher(registry), name="ombuds-claims-triage")
 
 
 async def _run() -> None:
-    server = build_server()
-
-    async with stdio_server() as (read_stream, write_stream):
-        await server.run(read_stream, write_stream, server.create_initialization_options())
+    # The same Postgres-backed approval store the API uses, so an approval submitted here is visible to `/approvals`.
+    pool = create_pool(config.DATABASE_URL, config.DATABASE_POOL_MAX_SIZE)
+    try:
+        server = build_server(build_tool_registry(PostgresApprovalStore(pool)))
+        async with stdio_server() as (read_stream, write_stream):
+            await server.run(read_stream, write_stream, server.create_initialization_options())
+    finally:
+        pool.close()
 
 
 def main() -> None:

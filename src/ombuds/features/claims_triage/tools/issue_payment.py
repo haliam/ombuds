@@ -10,7 +10,7 @@ from ombuds.domain.errors import ToolExecutionError
 from ombuds.features.claims_triage.verticals.airline.evidence_schema import FlightDisruption
 from ombuds.features.claims_triage.verticals.airline.rules import evaluate
 from ombuds.platform.ai.schemas.tool_calls import ToolDefinition
-from ombuds.platform.guardrails.approval_gate import ApprovalStatus, GuardedAction, submit_for_approval
+from ombuds.platform.guardrails.approval_gate import ApprovalStatus, ApprovalStore, GuardedAction
 
 
 class IssuePaymentArgs(BaseModel):
@@ -46,7 +46,7 @@ ISSUE_PAYMENT_TOOL = ToolDefinition(
 )
 
 
-def issue_payment(args: IssuePaymentArgs) -> IssuePaymentResult:
+def issue_payment(args: IssuePaymentArgs, approvals: ApprovalStore) -> IssuePaymentResult:
     """Submit a payment for human approval, with the amount the rules engine derives from `args.disruption`.
 
     Raises `ToolExecutionError` when the facts don't entitle the claim to any compensation — there is
@@ -58,7 +58,7 @@ def issue_payment(args: IssuePaymentArgs) -> IssuePaymentResult:
             f"claim {args.claim_id} is not entitled to compensation (reasons: {', '.join(eligibility.reasons)}); "
             "no payment to issue"
         )
-    request = submit_for_approval(
+    request = approvals.submit(
         GuardedAction.ISSUE_PAYMENT,
         {
             "claim_id": args.claim_id,

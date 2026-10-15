@@ -5,7 +5,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from ombuds.features.claims_triage.verticals.airline.evidence_schema import FlightDisruption
 from ombuds.features.claims_triage.verticals.airline.rules import evaluate
 from ombuds.platform.ai.schemas.tool_calls import ToolDefinition
-from ombuds.platform.guardrails.approval_gate import ApprovalStatus, GuardedAction, submit_for_approval
+from ombuds.platform.guardrails.approval_gate import ApprovalStatus, ApprovalStore, GuardedAction
 
 
 class LogClaimArgs(BaseModel):
@@ -48,7 +48,7 @@ _STATUS_REASONS = {
 }
 
 
-def log_claim(args: LogClaimArgs) -> LogClaimResult:
+def log_claim(args: LogClaimArgs, approvals: ApprovalStore) -> LogClaimResult:
     """Submit a claim decision for human approval.
 
     Recomputes eligibility from `args.disruption` via the rules engine itself — it never trusts a
@@ -58,7 +58,7 @@ def log_claim(args: LogClaimArgs) -> LogClaimResult:
     request. Re-submitting identical facts returns the existing request, whatever its status (ADR-0009).
     """
     eligibility = evaluate(args.disruption)
-    request = submit_for_approval(
+    request = approvals.submit(
         GuardedAction.LOG_CLAIM,
         {
             "claim_id": args.claim_id,

@@ -1,8 +1,9 @@
 """Human-approval gate: a state-changing action is submitted as a pending request, never executed inline.
 
-Every state-changing tool (`log_claim`, `issue_payment`) calls `submit_for_approval` with the exact payload
-it wants executed. A human then approves or denies that request (over HTTP, `platform/guardrails/api.py`),
-and an approved request is executed at most once: the executor that runs it must first win
+Every state-changing tool (`log_claim`, `issue_payment`) submits the exact payload it wants executed to the
+`ApprovalStore` its composition root gave it. A human then approves or denies that request (over HTTP,
+`platform/guardrails/api.py`), and an approved request is executed at most once: the executor that runs it
+must first win
 `claim_for_execution`, an atomic `APPROVED -> EXECUTED` transition. See ADR-0009, which supersedes ADR-0008.
 
 Requests dedupe on `(action, payload)`: re-submitting the same action for the same payload returns the
@@ -87,8 +88,8 @@ def _redacted(note: str | None) -> str | None:
 class ApprovalGate:
     """In-memory, lock-guarded store of approval requests.
 
-    Per-process only: a second process (e.g. the MCP server subprocess) has its own gate. ADR-0009 moves
-    this to Postgres in W3, where `claim_for_execution` shares a transaction with the executor's write.
+    The in-memory fake for tests: per-instance, so nothing is shared through a global. The runtime store is
+    `PostgresApprovalStore`, which the API and the MCP server subprocess both open (ADR-0009).
     """
 
     def __init__(self) -> None:
@@ -159,31 +160,3 @@ class ApprovalGate:
             updated = request.model_copy(update={"status": to_status, **updates})
             self._requests[request_id] = updated
             return updated
-
-
-_GATE = ApprovalGate()
-
-
-def submit_for_approval(action: GuardedAction, payload: Mapping[str, JsonValue]) -> ApprovalRequest:
-    """Submit (or look up) the approval request for `action`/`payload` on the module-level gate."""
-    return _GATE.submit(action, payload)
-
-
-def list_pending_approvals() -> tuple[ApprovalRequest, ...]:
-    return _GATE.list_pending()
-
-
-def get_approval_request(request_id: str) -> ApprovalRequest:
-    return _GATE.get(request_id)
-
-
-def approve_request(request_id: str, approver: str, note: str | None = None) -> ApprovalRequest:
-    return _GATE.approve(request_id, approver, note)
-
-
-def deny_request(request_id: str, approver: str, note: str | None = None) -> ApprovalRequest:
-    return _GATE.deny(request_id, approver, note)
-
-
-def claim_for_execution(request_id: str) -> ApprovalRequest:
-    return _GATE.claim_for_execution(request_id)

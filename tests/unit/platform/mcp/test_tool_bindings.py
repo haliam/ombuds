@@ -4,6 +4,7 @@ from mcp.types import TextContent
 
 from ombuds.features.claims_triage.rag.retriever import Retriever
 from ombuds.features.claims_triage.tools import build_tool_registry
+from ombuds.platform.guardrails.approval_gate import ApprovalGate
 from ombuds.platform.infrastructure.vector_store import PgVectorStore
 from ombuds.platform.mcp.tool_bindings import build_mcp_server
 from tests.fakes import DownEmbedder
@@ -12,7 +13,7 @@ from tests.fakes import DownEmbedder
 @pytest.fixture
 def registry():
     # search_kb's embedding provider is down, so the one tool call that needs it fails predictably.
-    return build_tool_registry(lambda: Retriever(DownEmbedder(), PgVectorStore(None)))  # type: ignore[arg-type]
+    return build_tool_registry(ApprovalGate(), lambda: Retriever(DownEmbedder(), PgVectorStore(None)))  # type: ignore[arg-type]
 
 
 async def test_list_tools_exposes_all_four_claims_triage_tools(registry) -> None:
