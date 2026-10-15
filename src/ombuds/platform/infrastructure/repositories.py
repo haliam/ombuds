@@ -144,3 +144,40 @@ class PostgresClaimantFactsRepository:
                 "ON CONFLICT (claimant_id) DO UPDATE SET facts = EXCLUDED.facts, updated_at = now()",
                 (claimant_id, Jsonb(dict(facts))),
             )
+
+
+class PostgresClaimRepository:
+    """Logged claim decisions in `claims`; written only by the `log_claim` executor after a human approves."""
+
+    def __init__(self, pool: Pool) -> None:
+        self._pool = pool
+
+    def record(self, claim_id: str, facts: JsonValue, decision: JsonValue) -> None:
+        """Insert the claim, or do nothing if `claim_id` is already logged, so a retried execution is harmless."""
+        with self._pool.connection() as conn:
+            conn.execute(
+                "INSERT INTO claims (claim_id, facts, decision) VALUES (%s, %s, %s) ON CONFLICT (claim_id) DO NOTHING",
+                (claim_id, Jsonb(facts), Jsonb(decision)),
+            )
+
+    def decision_for(self, claim_id: str) -> dict[str, JsonValue] | None:
+        """The decision logged for `claim_id`, or `None` when no such claim has been logged."""
+        with self._pool.connection() as conn:
+            row = conn.execute("SELECT decision FROM claims WHERE claim_id = %s", (claim_id,)).fetchone()
+        return None if row is None else dict(row["decision"])
+
+
+class PostgresPaymentRepository:
+    """Simulated payout records in `payments`, one per claim."""
+
+    def __init__(self, pool: Pool) -> None:
+        self._pool = pool
+
+    def record(self, claim_id: str, amount_eur: int, approval_request_id: str) -> None:
+        """Insert the payout, or do nothing if the claim already has one, so a retried execution is harmless."""
+        with self._pool.connection() as conn:
+            conn.execute(
+                "INSERT INTO payments (claim_id, amount_eur, approval_request_id) VALUES (%s, %s, %s) "
+                "ON CONFLICT (claim_id) DO NOTHING",
+                (claim_id, amount_eur, approval_request_id),
+            )

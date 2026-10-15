@@ -5,6 +5,8 @@ import math
 import re
 from collections.abc import Iterator, Sequence
 
+from pydantic import JsonValue
+
 from ombuds.platform.ai.providers.base import ProviderTurn, ProviderUnavailableError
 from ombuds.platform.ai.schemas.tool_calls import ToolDefinition
 from ombuds.platform.ai.streaming import StreamEvent, TextDelta, ToolCallDelta, TurnDone
@@ -60,3 +62,22 @@ class ScriptedProvider:
         for call in turn.tool_calls:
             yield ToolCallDelta(call=call)
         yield TurnDone(text=turn.text, tool_calls=turn.tool_calls, stop_reason=turn.stop_reason, content=turn.content)
+
+
+class InMemoryClaims:
+    """In-memory logged claims and payouts, standing in for the Postgres claim and payment repositories."""
+
+    def __init__(self) -> None:
+        self.claims: dict[str, tuple[JsonValue, dict[str, JsonValue]]] = {}
+        self.payments: dict[str, tuple[int, str]] = {}
+
+    def record(self, claim_id: str, facts: JsonValue, decision: JsonValue) -> None:
+        assert isinstance(decision, dict)
+        self.claims.setdefault(claim_id, (facts, decision))
+
+    def decision_for(self, claim_id: str) -> dict[str, JsonValue] | None:
+        logged = self.claims.get(claim_id)
+        return None if logged is None else logged[1]
+
+    def record_payment(self, claim_id: str, amount_eur: int, approval_request_id: str) -> None:
+        self.payments.setdefault(claim_id, (amount_eur, approval_request_id))

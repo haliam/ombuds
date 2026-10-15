@@ -14,7 +14,7 @@ from pydantic import BaseModel
 from ombuds.features.claims_triage.rag.retriever import Retriever, default_retriever
 from ombuds.features.claims_triage.tools.check_eligibility import CHECK_ELIGIBILITY_TOOL
 from ombuds.features.claims_triage.tools.check_eligibility import check_eligibility as _check_eligibility_impl
-from ombuds.features.claims_triage.tools.issue_payment import ISSUE_PAYMENT_TOOL, IssuePaymentArgs
+from ombuds.features.claims_triage.tools.issue_payment import ISSUE_PAYMENT_TOOL, ClaimLookup, IssuePaymentArgs
 from ombuds.features.claims_triage.tools.issue_payment import issue_payment as _issue_payment_impl
 from ombuds.features.claims_triage.tools.log_claim import LOG_CLAIM_TOOL, LogClaimArgs
 from ombuds.features.claims_triage.tools.log_claim import log_claim as _log_claim_impl
@@ -82,13 +82,14 @@ def scope_for_agent(dispatcher: ToolDispatcher, claim_id: str) -> ToolDispatcher
 
 
 def build_tool_registry(
-    approvals: ApprovalStore, retriever_factory: Callable[[], Retriever] = default_retriever
+    approvals: ApprovalStore, claims: ClaimLookup, retriever_factory: Callable[[], Retriever] = default_retriever
 ) -> ToolRegistry:
     """Build a `ToolRegistry` with every claims-triage tool: `search_kb`, `check_eligibility`, `log_claim`
     and `issue_payment`.
 
-    `approvals` is the store the state-changing tools submit to; the composition root (`api_app.py`, the
-    MCP server) chooses it, so no tool reaches for a global.
+    `approvals` is the store the state-changing tools submit to and `claims` the logged claims
+    `issue_payment` checks against; the composition root (`api_app.py`, the MCP server) chooses both, so no
+    tool reaches for a global.
 
     `retriever_factory` is only called when `search_kb` actually runs, so building the registry needs no
     database or API key; tests pass a factory returning a retriever over fakes.
@@ -107,7 +108,7 @@ def build_tool_registry(
     def _issue_payment(args: BaseModel) -> BaseModel:
         if not isinstance(args, IssuePaymentArgs):
             raise TypeError(f"issue_payment expected IssuePaymentArgs, got {type(args).__name__}")
-        return _issue_payment_impl(args, approvals)
+        return _issue_payment_impl(args, approvals, claims)
 
     registry = ToolRegistry()
     registry.register(SEARCH_KB_TOOL, _search_kb)

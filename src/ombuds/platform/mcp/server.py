@@ -10,11 +10,10 @@ from mcp.server.lowlevel import Server
 from mcp.server.stdio import stdio_server
 
 from ombuds import config
-from ombuds.features.claims_triage.tools import build_tool_registry
+from ombuds.features.claims_triage.application.runtime import build_runtime
 from ombuds.platform.ai.tool_loop import ToolRegistry
 from ombuds.platform.guardrails.guarded_dispatcher import GuardedDispatcher
 from ombuds.platform.infrastructure.postgres import create_pool
-from ombuds.platform.infrastructure.repositories import PostgresApprovalStore
 from ombuds.platform.mcp.tool_bindings import build_mcp_server
 from ombuds.platform.observability.logging import configure_logging
 
@@ -27,10 +26,10 @@ def build_server(registry: ToolRegistry) -> Server:
 
 
 async def _run() -> None:
-    # The same Postgres-backed approval store the API uses, so an approval submitted here is visible to `/approvals`.
+    # The same Postgres-backed runtime the API uses, so an approval submitted here is visible to `/approvals`.
     pool = create_pool(config.DATABASE_URL, config.DATABASE_POOL_MAX_SIZE)
     try:
-        server = build_server(build_tool_registry(PostgresApprovalStore(pool)))
+        server = build_server(build_runtime(pool).registry)
         async with stdio_server() as (read_stream, write_stream):
             await server.run(read_stream, write_stream, server.create_initialization_options())
     finally:

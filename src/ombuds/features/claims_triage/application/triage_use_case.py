@@ -21,13 +21,12 @@ from ombuds.features.claims_triage.agent.memory.long_term import LongTermMemory,
 from ombuds.features.claims_triage.agent.memory.short_term import ShortTermMemory
 from ombuds.features.claims_triage.agent.state import AgentState
 from ombuds.features.claims_triage.application.decision import TriageDecision
-from ombuds.features.claims_triage.tools import build_tool_registry, scope_for_agent
+from ombuds.features.claims_triage.tools import scope_for_agent
 from ombuds.platform.ai.providers.base import LLMProvider
 from ombuds.platform.ai.providers.fallback import build_default_provider
 from ombuds.platform.ai.schemas.tool_calls import ToolResult
 from ombuds.platform.ai.streaming import ToolCallDelta, ToolResultEvent
 from ombuds.platform.ai.tool_loop import ToolDispatcher
-from ombuds.platform.guardrails.approval_gate import ApprovalStore
 from ombuds.platform.guardrails.guarded_dispatcher import GuardedDispatcher
 from ombuds.platform.guardrails.injection_detection import detect
 from ombuds.platform.guardrails.pii_filter import redact, redact_value
@@ -87,7 +86,7 @@ TriageStreamEvent = ToolCallDelta | ToolResultEvent | TriageCompleted
 def run_triage(
     claim_text: str,
     *,
-    approvals: ApprovalStore,
+    registry: ToolDispatcher,
     claim_id: str | None = None,
     provider: LLMProvider | None = None,
     use_mcp: bool = False,
@@ -102,8 +101,9 @@ def run_triage(
     repair/verification, comes back as `TriageResult.escalated=True` rather than raising — see
     `agent/nodes/escalate_retry.py`.
 
-    `approvals` is the store state-changing tools submit to; the in-process registry is built over it. With
-    `use_mcp=True` the server subprocess opens its own connection to the same Postgres store instead.
+    `registry` is the full tool catalogue the composition root built (`application/runtime.py`), narrowed here
+    to the agent's tools. With `use_mcp=True` it is unused: the server subprocess builds its own over the same
+    Postgres.
 
     `use_mcp=True` dispatches tool calls over a real MCP session (`platform/mcp/client.py`), spawning the
     standalone server (`platform/mcp/server.py`) as a subprocess, instead of the default in-process
@@ -137,7 +137,7 @@ def run_triage(
     else:
         result, long_term = _invoke_graph(
             provider,
-            _guarded(scope_for_agent(build_tool_registry(approvals), claim_id)),
+            _guarded(scope_for_agent(registry, claim_id)),
             claim_id,
             system,
             claim_text,
@@ -238,7 +238,7 @@ def _first_user_message(claim_text: str, long_term: LongTermMemory) -> dict[str,
 
 
 def stream_triage(
-    claim_text: str, *, approvals: ApprovalStore, claim_id: str | None = None, provider: LLMProvider | None = None
+    claim_text: str, *, registry: ToolDispatcher, claim_id: str | None = None, provider: LLMProvider | None = None
 ) -> Iterator[TriageStreamEvent]:
     """Run the same graph as `run_triage`, yielding progress events as they happen, then the final result.
 
@@ -253,8 +253,8 @@ def stream_triage(
         return
     claim_text = redact(claim_text).text
     provider = provider or build_default_provider()
-    registry = _guarded(scope_for_agent(build_tool_registry(approvals), claim_id))
-    app = build_triage_graph(provider, registry, load_prompt("claims_triage"), stream=True)
+    agent_tools = _guarded(scope_for_agent(registry, claim_id))
+    app = build_triage_graph(provider, agent_tools, load_prompt("claims_triage"), stream=True)
 
     final_state: Mapping[str, Any] | None = None
     for mode, chunk in app.stream(

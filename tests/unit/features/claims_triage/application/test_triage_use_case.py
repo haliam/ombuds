@@ -7,7 +7,6 @@ from pydantic import BaseModel
 from ombuds.config import load_prompt
 from ombuds.features.claims_triage.agent.memory.long_term import InMemoryLongTermMemoryStore, LongTermMemory
 from ombuds.features.claims_triage.agent.nodes.escalate_retry import ESCALATION_ANSWER
-from ombuds.features.claims_triage.application import triage_use_case
 from ombuds.features.claims_triage.application.triage_use_case import (
     INJECTION_ESCALATION_REASON,
     MAX_REPAIR_ATTEMPTS,
@@ -20,12 +19,14 @@ from ombuds.features.claims_triage.application.triage_use_case import run_triage
 from ombuds.features.claims_triage.application.triage_use_case import (
     stream_triage as _stream_triage,
 )
+from ombuds.features.claims_triage.tools import build_tool_registry
 from ombuds.platform.ai.providers.base import ProviderTurn
 from ombuds.platform.ai.schemas.tool_calls import ToolCall, ToolDefinition
 from ombuds.platform.ai.streaming import StreamEvent, TextDelta, ToolCallDelta, ToolResultEvent, TurnDone
-from ombuds.platform.ai.tool_loop import ToolRegistry
+from ombuds.platform.ai.tool_loop import ToolDispatcher, ToolRegistry
 from ombuds.platform.guardrails.approval_gate import ApprovalGate, ApprovalStore
 from ombuds.platform.guardrails.injection_detection import detect
+from tests.fakes import InMemoryClaims
 
 _DECISION_JSON = (
     '{"eligible": true, "compensation_amount_eur": 250, "reason_codes": ["eligible"], '
@@ -40,15 +41,29 @@ _WRONG_DECISION_JSON = (
 )
 
 
-def run_triage(claim_text: str, *, approvals: ApprovalStore | None = None, **kwargs: Any) -> TriageResult:
-    """`run_triage` over a scratch in-memory gate unless the test supplies the one it inspects."""
-    return _run_triage(claim_text, approvals=approvals or ApprovalGate(), **kwargs)
+def _tools(approvals: ApprovalStore | None, registry: ToolDispatcher | None) -> ToolDispatcher:
+    return registry or build_tool_registry(approvals or ApprovalGate(), InMemoryClaims())
+
+
+def run_triage(
+    claim_text: str,
+    *,
+    approvals: ApprovalStore | None = None,
+    registry: ToolDispatcher | None = None,
+    **kwargs: Any,
+) -> TriageResult:
+    """`run_triage` over the real tools on a scratch in-memory gate unless the test supplies its own."""
+    return _run_triage(claim_text, registry=_tools(approvals, registry), **kwargs)
 
 
 def stream_triage(
-    claim_text: str, *, approvals: ApprovalStore | None = None, **kwargs: Any
+    claim_text: str,
+    *,
+    approvals: ApprovalStore | None = None,
+    registry: ToolDispatcher | None = None,
+    **kwargs: Any,
 ) -> Iterator[TriageStreamEvent]:
-    return _stream_triage(claim_text, approvals=approvals or ApprovalGate(), **kwargs)
+    return _stream_triage(claim_text, registry=_tools(approvals, registry), **kwargs)
 
 
 class _FakeProvider:
@@ -547,18 +562,18 @@ def _recording_registry(received: list[str]) -> ToolRegistry:
 
 def test_run_triage_redacts_pii_from_the_arguments_of_the_models_tool_calls(monkeypatch) -> None:
     received: list[str] = []
-    monkeypatch.setattr(triage_use_case, "build_tool_registry", lambda approvals: _recording_registry(received))
 
-    run_triage("claim", provider=_FakeProvider(_search_turns()))
+    run_triage("claim", registry=_recording_registry(received), provider=_FakeProvider(_search_turns()))
 
     assert received == ["refund for [EMAIL]"]
 
 
 def test_stream_triage_redacts_pii_from_the_tool_call_frames_it_emits(monkeypatch) -> None:
     received: list[str] = []
-    monkeypatch.setattr(triage_use_case, "build_tool_registry", lambda approvals: _recording_registry(received))
 
-    events = list(stream_triage("claim", provider=_FakeProvider(_search_turns())))
+    events = list(
+        stream_triage("claim", registry=_recording_registry(received), provider=_FakeProvider(_search_turns()))
+    )
 
     (call_event,) = [event for event in events if isinstance(event, ToolCallDelta)]
     assert call_event.call.arguments == {"query": "refund for [EMAIL]"}
