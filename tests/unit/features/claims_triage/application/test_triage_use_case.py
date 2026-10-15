@@ -590,6 +590,7 @@ def test_run_triage_escalates_an_injection_attempt_without_calling_the_model() -
 
     assert provider.calls == 0
     assert result.escalated
+    assert result.answer == ESCALATION_ANSWER
     assert result.escalation_reason == INJECTION_ESCALATION_REASON
     assert result.decision is None
     assert result.tool_results == ()
