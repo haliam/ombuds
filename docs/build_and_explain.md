@@ -44,16 +44,22 @@ Four gaps existed between this plan and the Notion board when the build started.
 
 The README's leftover chat-text artifact from the original draft was also cleaned up as part of this pass.
 
-## What's actually built through W2
+## What was built in W1 and W2
 
 - **Raw loop (W1):** direct Anthropic/OpenAI calls, hand-rolled tool-use loop, Pydantic-validated structured output with repair-on-failure, two-layer resilience (retry/backoff + fallback model), `/triage` over FastAPI with SSE streaming.
-- **Agentic loop (W2):** the same responsibilities rebuilt as a LangGraph graph (`agent/graph.py`, `agent/nodes/{classify,retrieve,decide,escalate_retry}.py`) — `/triage` and `/triage/stream` now run the same graph rather than two parallel implementations, decided as an amendment to ADR-0007.
+- **Agentic loop (W2):** the same responsibilities rebuilt as a LangGraph graph (`agent/graph.py` and `agent/nodes/escalate_retry.py`; classify, retrieve and decide happen inside the model's tool loop, and the unused stubs were deleted) — `/triage` and `/triage/stream` now run the same graph rather than two parallel implementations, decided as an amendment to ADR-0007.
 - **MCP (W2):** `platform/mcp/server.py` builds a `ToolRegistry` from `claims_triage.tools.build_tool_registry()` and exposes it over `tool_bindings.py`, so the same tools are callable directly or via MCP without duplicating dispatch logic (ADR-0003).
-- **Memory (W2):** short-term and long-term memory under `agent/memory/`, feeding the escalate/retry node when confidence is low.
-- **Governance (W2):** `platform/guardrails/approval_gate.py` + `policy_engine.py` sit in front of `log_claim` and `issue_payment`. Per ADR-0009, a tool call only *submits* a payload-bound approval request with server-issued `claim_id` and rules-derived amounts — never model-authored ones — and execution happens exactly once, after a human approves, never inline in the tool.
+- **Memory (W2):** short-term and long-term memory under `agent/memory/`, added to the model's system prompt by `agent/graph.py`. Escalation on low confidence is a separate node, `escalate_retry.py`.
+- **Governance (W2):** `platform/guardrails/approval_gate.py` sits in front of `log_claim` and `issue_payment`. (`policy_engine.py` is still an empty stub; the OPA policy is a W4 task.) Per ADR-0009, a tool call only *submits* a payload-bound approval request with server-issued `claim_id` and rules-derived amounts — never model-authored ones — and execution happens exactly once, after a human approves, never inline in the tool.
 
 A fuller review of what W2 changed architecturally, plus the hardening work done before W3 started, is in [`reviews/w2_review_pre_w3_plan.md`](reviews/w2_review_pre_w3_plan.md).
 
-## Next: W3
+## W3 and the pre-W4 refactor: what shipped
 
-Suggested order: Postgres + pgvector schema first (RAG needs somewhere to embed into), then the chunk → embed → store → retrieve → cite pipeline, then the eval set against it, then PII/injection guardrails, then Docker Compose to wire the full stack together. Same method as W1–2: read just enough, build the core logic by hand, test in the same commit, write the paired Notion answer, and record any real decision (pgvector vs Chroma is the first one due) as an ADR.
+- **W3:** Postgres + pgvector (ADR-0010), the RAG pipeline (ADR-0011), the retrieval eval and relevance floor (ADR-0012), PII redaction (ADR-0013), prompt-injection detection (ADR-0014), Docker Compose, and an end-to-end `/triage` integration test.
+- **Pre-W4 refactor (from [`reviews/w3_review_pre_w4_plan.md`](reviews/w3_review_pre_w4_plan.md)):** the approval store, pool and tool registry are injected at the composition roots; an approved request now runs its executor exactly once and writes `claims` and `payments` rows; `run_triage` and `stream_triage` share one setup step; the docs were reconciled.
+- Of the decisions the plan said to record, pgvector vs Chroma was the first one due, and it is ADR-0010.
+
+## Next: W4
+
+Remaining tasks: OpenTelemetry tracing, one OPA/Rego payout policy, and the audit trail (the architecture diagram + README task is done). Same method as before: read just enough, build the core logic by hand, test in the same commit, write the paired Notion answer, and record any real decision as an ADR. Status lives in [`progress/tasks.md`](progress/tasks.md).

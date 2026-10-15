@@ -36,7 +36,7 @@
    "id": "usecase",
    "type": "backend",
    "label": "API + use case",
-   "sublabel": "screen \u00b7 redact",
+   "sublabel": "screen · redact",
    "sources": [
     {
      "path": "src/ombuds/features/claims_triage/api/routes.py",
@@ -58,7 +58,7 @@
    "id": "agent",
    "type": "backend",
    "label": "LangGraph agent",
-   "sublabel": "loop \u00b7 verify",
+   "sublabel": "loop · verify",
    "sources": [
     {
      "path": "src/ombuds/features/claims_triage/agent/graph.py",
@@ -71,7 +71,7 @@
    "id": "llm",
    "type": "external",
    "label": "LLM",
-   "sublabel": "Anthropic \u00b7 OpenAI",
+   "sublabel": "Anthropic · OpenAI",
    "sources": [
     {
      "path": "src/ombuds/platform/ai/providers/fallback.py",
@@ -84,7 +84,7 @@
    "id": "tools",
    "type": "security",
    "label": "Guarded tools",
-   "sublabel": "scoped \u00b7 rules \u00b7 RAG",
+   "sublabel": "scoped · rules · RAG",
    "sources": [
     {
      "path": "src/ombuds/platform/guardrails/guarded_dispatcher.py",
@@ -126,7 +126,7 @@
    "id": "db",
    "type": "database",
    "label": "PostgreSQL",
-   "sublabel": "claims \u00b7 approvals",
+   "sublabel": "claims · approvals",
    "sources": [
     {
      "path": "src/ombuds/platform/infrastructure/repositories.py",
@@ -150,8 +150,7 @@
    "to": "agent",
    "y": 198,
    "label": "run graph",
-   "variant": "emphasis",
-   "note": "Before this: injection screen (suspected claim returns an escalation with no model call) and PII redaction"
+   "variant": "emphasis"
   },
   {
    "id": "m-turn1",
@@ -175,8 +174,7 @@
    "to": "tools",
    "y": 282,
    "label": "dispatch",
-   "variant": "security",
-   "note": "claim_id pinned by the server, tool args PII-redacted"
+   "variant": "security"
   },
   {
    "id": "m-results",
@@ -184,8 +182,7 @@
    "to": "agent",
    "y": 310,
    "label": "eligibility, KB",
-   "variant": "return",
-   "note": "Eligibility comes from the EU261 rules engine, not the model"
+   "variant": "return"
   },
   {
    "id": "m-logclaim",
@@ -217,8 +214,7 @@
    "to": "llm",
    "y": 422,
    "label": "repair on mismatch",
-   "variant": "dashed",
-   "note": "Verdict is checked against the rules result; at most 2 repairs, then escalate"
+   "variant": "dashed"
   },
   {
    "id": "m-resp",
@@ -262,6 +258,16 @@
   }
  ],
  "cards": [
+  {
+   "dot": "cyan",
+   "title": "What the arrows don't show",
+   "items": [
+    "Before the graph runs: injection screen (a hit escalates, no model call) and PII redaction",
+    "Dispatch: claim_id is pinned by the server and tool arguments are PII-redacted",
+    "Eligibility comes from the EU261 rules engine, not the model",
+    "Repair: the verdict is checked against the rules result, at most 2 repairs"
+   ]
+  },
   {
    "dot": "rose",
    "title": "Callable is not permitted",

@@ -224,7 +224,7 @@ Template — copy this block per finished task, filling in the fields (omit **De
 **Notable libraries:** LangGraph (`StateGraph`, `CompiledStateGraph`, `END`) — see glossary.
 
 **Decisions/trade-offs:** `stream_triage()` was deliberately left on the old manual loop rather than also rebuilt on the graph — streaming events (`TextDelta`/`ToolCallDelta`/`TurnDone`) aren't yet a first-class graph concept here, and folding them in would have doubled this task's scope for no behavior change; picked up as a later W2/W3 follow-up if streaming needs the same node structure. The tool-loop nodes (`call_model`/`dispatch_tools`/`finalize`) were written directly in `agent/graph.py` rather than split across `agent/nodes/*.py` (`classify.py`/`decide.py`/`retrieve.py`/`escalate_retry.py` per `AGENTS.md`'s layout) — those stubs are for the broader classify→retrieve→decide pipeline, which doesn't exist yet; wiring the tool loop into that node package is deferred to whichever task builds that pipeline, rather than guessing its shape now.
-**Follow-up:** `agent/nodes/classify.py`, `retrieve.py`, `decide.py`, `escalate_retry.py` remain empty stubs — not wired into this graph. `stream_triage()` still bypasses the graph.
+**Follow-up:** `agent/nodes/classify.py`, `retrieve.py`, `decide.py`, `escalate_retry.py` remain empty stubs — not wired into this graph. `stream_triage()` still bypasses the graph. *(Resolved later: `escalate_retry` was built, the other stubs were deleted, and `stream_triage` runs the same graph — see "Pre-W3 hardening" and the W3 RAG entry.)*
 
 ---
 
@@ -309,7 +309,7 @@ Template — copy this block per finished task, filling in the fields (omit **De
 - `test_routes.py` — updated the existing happy-path assertion for the two new response fields; added a case asserting an escalated `TriageResult` comes back as `escalated: true` with its reason.
 
 **Decisions/trade-offs:** there's no model-reported confidence score anywhere in the schema (`TriageDecision` has none), so "low confidence" is operationalized as the three failure modes the pre-W2 review already flagged as escalation candidates (F-09 stop_reason, F-10 non-convergence/repair exhaustion) rather than inventing a confidence field the model would have to self-report and that nothing downstream could verify — `verify_decision` (ADR-0004/F-01) is still the only source of truth for eligibility, so a "low confidence" signal from the model itself wouldn't be trustworthy either. Escalation is expressed as normal graph state (`escalated`/`escalation_reason` fields on the final state, `TriageResult`, `TriageResponse`), not a raised exception — the F-10 write-up considered typed errors (`TriageDidNotConverge`, `DecisionInvalid`) with FastAPI exception handlers, but "the agent couldn't reach a confident decision" is a business outcome the caller needs to route to a human, not a 500; a typed-exception version would have needed the handler layer anyway to turn it back into a 200-with-a-flag response. `stream_triage()` (the raw, non-graph loop) is left untouched — it's already documented as a separate, deferred rebuild target, and folding escalation into it now would mean re-solving the same problem twice for a code path nothing currently depends on going through the graph.
-**Follow-up:** `stream_triage()` still raises `RuntimeError` on non-convergence and has no escalation path — picked up whenever it's rebuilt on the graph. `agent/nodes/classify.py`, `retrieve.py`, `decide.py` remain empty stubs.
+**Follow-up:** `stream_triage()` still raises `RuntimeError` on non-convergence and has no escalation path — picked up whenever it's rebuilt on the graph. `agent/nodes/classify.py`, `retrieve.py`, `decide.py` remain empty stubs. *(Resolved later: the stubs were deleted and `stream_triage` runs the graph — see "Pre-W3 hardening".)*
 
 ---
 
@@ -502,7 +502,7 @@ Template — copy this block per finished task, filling in the fields (omit **De
 
 **Decisions/trade-offs:** The API doesn't migrate on startup (unchanged); the one-shot service owns schema + KB so the API stays stateless to start. No separate MCP service: the stdio server is a subprocess of the API container (ADR-0003); verified `McpToolClient` lists all four tools in-container. No ADR: compose was already the stated deployment shape.
 **Verified:** clean `down -v` → `make up`: db healthy → ingest 12 chunks, exit 0 → api healthy; real triage returned a decision with `log_claim` parked for approval; injection claim escalated; a second `make up` is idempotent.
-**Follow-up:** no `/health` endpoint (healthcheck uses `/openapi.json`); the approval gate is still in-memory so keep one replica; `use_mcp=True` isn't reachable over HTTP, only checked via `McpToolClient`.
+**Follow-up:** no `/health` endpoint (healthcheck uses `/openapi.json`); the approval gate is still in-memory so keep one replica *(resolved by the Pre-W4 refactor: approvals live in Postgres)*; `use_mcp=True` isn't reachable over HTTP, only checked via `McpToolClient`.
 
 ### Pre-W4 refactor (W3 review)
 
@@ -529,17 +529,18 @@ Template — copy this block per finished task, filling in the fields (omit **De
 ### Write architecture diagram + README (problem, design, trade-offs)
 
 **Week:** W4
-**Goal:** Give the project a readable front door: two diagrams traced from the code, and a README that states the problem, the design and the trade-offs without claiming anything unbuilt.
+**Goal:** Give the project a readable front door: two diagrams traced from the code (plus a development-overview board, added afterwards), and a README that states the problem, the design and the trade-offs without claiming anything unbuilt.
 
 **Files & responsibilities:**
 - `docs/diagrams/architecture.json`, `architecture.png` — component view (archify `architecture`), pinned to commit `7342b6c` with source lines per component.
 - `docs/diagrams/triage-approval-flow.json`, `triage-approval-flow.png` — sequence view (archify `sequence`) of one triage and the later human approval.
+- `docs/diagrams/development-overview.*` and `development-overview-v2.*` — build timeline boards (archify `architecture`): v1 shows steps and ADR decisions; v2 shows steps only, each linked to its code at a pinned commit. Every diagram now has `.json`, `.html` and `.png`.
 - `docs/architecture.md` — was an empty stub; now embeds both diagrams, a component table, layering, deployment and what is not built.
 - `README.md` — restructured into Problem, Design, Trade-offs (table linking each ADR) and Known limitations; Week 4 items are marked as not built.
 
 **Notable libraries:** archify (Claude Code skill) for the diagrams.
 
-**Decisions/trade-offs:** The generated interactive HTML (~760 KB) is not committed because the repo's `check-added-large-files` hook caps files at 500 KB; the JSON source is committed and `docs/architecture.md` has the command to regenerate it. PNGs are headless-Chrome screenshots of that HTML. OTel, Rego and audit are listed as planned rather than drawn as components.
+**Decisions/trade-offs:** The generated interactive HTML (~800-900 KB each) was first left out because the repo's `check-added-large-files` hook capped files at 500 KB; the hook limit is now 1000 KB (`.pre-commit-config.yaml`), so the HTML is committed alongside the JSON source. `docs/architecture.md` still has the command to regenerate it. Under archify 3.1.0 the triage-flow notes no longer fit beside the arrows, so their text moved into a card. PNGs are headless-Chrome screenshots of the diagram area of that HTML. OTel, Rego and audit are listed as planned rather than drawn as components.
 **Verified:** both diagrams pass archify `finalize` (validate, deliver, check, browser-check); README links resolve; claims checked against the code and ADRs. Visual review was done by eye on the screenshots only.
 **Follow-up:** redraw the diagram when tracing, the policy engine and the audit trail land; `docs/demo-script.md` is still a stub.
 
