@@ -526,4 +526,23 @@ Template — copy this block per finished task, filling in the fields (omit **De
 
 ---
 
+### Write architecture diagram + README (problem, design, trade-offs)
+
+**Week:** W4
+**Goal:** Give the project a readable front door: two diagrams traced from the code, and a README that states the problem, the design and the trade-offs without claiming anything unbuilt.
+
+**Files & responsibilities:**
+- `docs/diagrams/architecture.json`, `architecture.png` — component view (archify `architecture`), pinned to commit `7342b6c` with source lines per component.
+- `docs/diagrams/triage-approval-flow.json`, `triage-approval-flow.png` — sequence view (archify `sequence`) of one triage and the later human approval.
+- `docs/architecture.md` — was an empty stub; now embeds both diagrams, a component table, layering, deployment and what is not built.
+- `README.md` — restructured into Problem, Design, Trade-offs (table linking each ADR) and Known limitations; Week 4 items are marked as not built.
+
+**Notable libraries:** archify (Claude Code skill) for the diagrams.
+
+**Decisions/trade-offs:** The generated interactive HTML (~760 KB) is not committed because the repo's `check-added-large-files` hook caps files at 500 KB; the JSON source is committed and `docs/architecture.md` has the command to regenerate it. PNGs are headless-Chrome screenshots of that HTML. OTel, Rego and audit are listed as planned rather than drawn as components.
+**Verified:** both diagrams pass archify `finalize` (validate, deliver, check, browser-check); README links resolve; claims checked against the code and ADRs. Visual review was done by eye on the screenshots only.
+**Follow-up:** redraw the diagram when tracing, the policy engine and the audit trail land; `docs/demo-script.md` is still a stub.
+
+---
+
 Library/framework/stdlib-concept entries live in [`glossary.md`](glossary.md) — append there, not here, whenever a summary's **Notable libraries** introduces something not already listed.
