@@ -46,7 +46,7 @@ Extracted from the "🤖 AI Build" view of the AI Interview Notion database (sna
 - [ ] Add OpenTelemetry tracing (span per LLM/tool call)
 - [ ] Write one OPA/Rego policy (block auto-payout above €X)
 - [ ] Build audit trail — log every tool call + decision
-- [ ] Write architecture diagram + README (problem, design, trade-offs)
+- [x] Write architecture diagram + README (problem, design, trade-offs) — [summary](task_summaries.md#write-architecture-diagram--readme-problem-design-trade-offs)
 
 ---
 
