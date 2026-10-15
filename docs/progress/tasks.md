@@ -53,7 +53,3 @@ Extracted from the "🤖 AI Build" view of the AI Interview Notion database (sna
 Tool names follow ADR-0004 (EU261 tool set, not generic helpdesk tools). Last synced with Notion 2026-09-24.
 
 Per-task recaps (goal, files touched, libraries used) live in [`task_summaries.md`](task_summaries.md) — each item with a summary link above points to its entry. Library/framework glossary lives separately in [`glossary.md`](glossary.md).
-
-## Notion sync pending
-
-- 2026-09-25: "Call OpenAI & Anthropic APIs directly, compare outputs" marked done here. No Notion connector was available in that session to update the board itself — mark it done on the Notion page manually, or re-run the sync from a session with Notion access. See the "Done, W1: provider comparison" note below for what to paste into the page.
