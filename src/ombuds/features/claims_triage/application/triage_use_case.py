@@ -7,7 +7,8 @@ followed by the same `TriageResult`, so both endpoints share one verification/re
 
 import uuid
 from collections.abc import Iterator, Mapping
-from typing import Any
+from dataclasses import dataclass
+from typing import cast
 
 from pydantic import BaseModel, ConfigDict
 
@@ -19,9 +20,10 @@ from ombuds.features.claims_triage.agent.graph import (
 )
 from ombuds.features.claims_triage.agent.memory.long_term import LongTermMemory, LongTermMemoryStore
 from ombuds.features.claims_triage.agent.memory.short_term import ShortTermMemory
+from ombuds.features.claims_triage.agent.nodes.escalate_retry import ESCALATION_ANSWER
 from ombuds.features.claims_triage.agent.state import AgentState
 from ombuds.features.claims_triage.application.decision import TriageDecision
-from ombuds.features.claims_triage.tools import build_tool_registry, scope_for_agent
+from ombuds.features.claims_triage.tools import scope_for_agent
 from ombuds.platform.ai.providers.base import LLMProvider
 from ombuds.platform.ai.providers.fallback import build_default_provider
 from ombuds.platform.ai.schemas.tool_calls import ToolResult
@@ -86,6 +88,7 @@ TriageStreamEvent = ToolCallDelta | ToolResultEvent | TriageCompleted
 def run_triage(
     claim_text: str,
     *,
+    registry: ToolDispatcher,
     claim_id: str | None = None,
     provider: LLMProvider | None = None,
     use_mcp: bool = False,
@@ -99,6 +102,10 @@ def run_triage(
     spin forever against a live API. A run that can't converge, or can't produce a decision that survives
     repair/verification, comes back as `TriageResult.escalated=True` rather than raising — see
     `agent/nodes/escalate_retry.py`.
+
+    `registry` is the full tool catalogue the composition root built (`application/runtime.py`), narrowed here
+    to the agent's tools. With `use_mcp=True` it is unused: the server subprocess builds its own over the same
+    Postgres.
 
     `use_mcp=True` dispatches tool calls over a real MCP session (`platform/mcp/client.py`), spawning the
     standalone server (`platform/mcp/server.py`) as a subprocess, instead of the default in-process
@@ -116,53 +123,80 @@ def run_triage(
     turn, and a run that ends with a verified decision consolidates its rules-derived `ShortTermMemory`
     facts back into the store. Omit either and there is no cross-run recall.
     """
-    claim_id = claim_id or str(uuid.uuid4())
-    if detect(claim_text).suspicious:
-        return _injection_escalation(claim_id)
-    claim_text = redact(claim_text).text
-    provider = provider or build_default_provider()
-    system = load_prompt("claims_triage")
+    run = _prepare_run(claim_text, claim_id, provider)
+    if isinstance(run, TriageResult):
+        return run
     long_term = long_term_store.load(claimant_id) if claimant_id and long_term_store else LongTermMemory()
 
     if use_mcp:
         with McpToolClient() as mcp_client:
-            result, long_term = _invoke_graph(
-                provider, _guarded(scope_for_agent(mcp_client, claim_id)), claim_id, system, claim_text, long_term
-            )
+            result, long_term = _invoke_graph(run, _agent_tools(mcp_client, run.claim_id), long_term)
     else:
-        result, long_term = _invoke_graph(
-            provider, _guarded(scope_for_agent(build_tool_registry(), claim_id)), claim_id, system, claim_text, long_term
-        )
+        result, long_term = _invoke_graph(run, _agent_tools(registry, run.claim_id), long_term)
 
     if claimant_id and long_term_store:
         long_term_store.save(claimant_id, long_term)
     return result
 
 
+@dataclass(frozen=True)
+class _PreparedRun:
+    """What `run_triage` and `stream_triage` share once a claim has passed the pre-model checks."""
+
+    claim_id: str
+    claim_text: str
+    provider: LLMProvider
+    system: str
+
+
+def _prepare_run(claim_text: str, claim_id: str | None, provider: LLMProvider | None) -> _PreparedRun | TriageResult:
+    """The setup both entry points run before the graph: issue the `claim_id`, screen for injection, redact PII.
+
+    Returns the injection escalation instead when the claim text looks like an instruction to the model, so
+    the caller returns it without ever building a provider or touching a tool. One place for both paths means
+    one place to attach tracing or auditing to a run.
+    """
+    claim_id = claim_id or str(uuid.uuid4())
+    if detect(claim_text).suspicious:
+        return _injection_escalation(claim_id)
+    return _PreparedRun(
+        claim_id=claim_id,
+        claim_text=redact(claim_text).text,
+        provider=provider or build_default_provider(),
+        system=load_prompt("claims_triage"),
+    )
+
+
 def _injection_escalation(claim_id: str) -> TriageResult:
-    """The result for a claim whose text looks like an instruction to the model: it never reaches the model (ADR-0014)."""
+    """The result for a claim that looks like an instruction to the model: it never reaches the model (ADR-0014).
+
+    Shaped like every other escalation: the fixed human-review `answer`, with the specific cause in
+    `escalation_reason`.
+    """
     return TriageResult(
-        claim_id=claim_id, answer=INJECTION_ESCALATION_REASON, decision=None, tool_results=(), escalated=True,
+        claim_id=claim_id,
+        answer=ESCALATION_ANSWER,
+        decision=None,
+        tool_results=(),
+        escalated=True,
         escalation_reason=INJECTION_ESCALATION_REASON,
     )
 
 
-def _guarded(dispatcher: ToolDispatcher) -> ToolDispatcher:
-    """Redact PII from the arguments of every tool call the model makes (ADR-0013)."""
-    return GuardedDispatcher(dispatcher)
+def _agent_tools(dispatcher: ToolDispatcher, claim_id: str) -> ToolDispatcher:
+    """The agent's tools for one run: pinned to `claim_id` (ADR-0009), PII redacted from arguments (ADR-0013)."""
+    return GuardedDispatcher(scope_for_agent(dispatcher, claim_id))
 
 
 def _invoke_graph(
-    provider: LLMProvider,
-    registry: ToolDispatcher,
-    claim_id: str,
-    system: str,
-    claim_text: str,
-    long_term: LongTermMemory,
+    run: _PreparedRun, tools: ToolDispatcher, long_term: LongTermMemory
 ) -> tuple[TriageResult, LongTermMemory]:
-    app = build_triage_graph(provider, registry, system)
-    final_state = app.invoke(_initial_state(claim_text, long_term), config={"recursion_limit": _RECURSION_LIMIT})
-    return _to_result(claim_id, final_state), _consolidate(long_term, final_state)
+    app = build_triage_graph(run.provider, tools, run.system)
+    final_state = cast(
+        AgentState,
+        app.invoke(_initial_state(run.claim_text, long_term), config={"recursion_limit": _RECURSION_LIMIT}),
+    )
+    return _to_result(run.claim_id, final_state), _consolidate(long_term, final_state)
 
 
 def _initial_state(claim_text: str, long_term: LongTermMemory) -> AgentState:
@@ -183,7 +217,7 @@ def _initial_state(claim_text: str, long_term: LongTermMemory) -> AgentState:
     }
 
 
-def _to_result(claim_id: str, final_state: Mapping[str, Any]) -> TriageResult:
+def _to_result(claim_id: str, final_state: AgentState) -> TriageResult:
     """Build the caller-facing result, redacting the model-authored free text in it (ADR-0013)."""
     decision: TriageDecision | None = final_state["decision"]
     if decision is not None:
@@ -191,7 +225,7 @@ def _to_result(claim_id: str, final_state: Mapping[str, Any]) -> TriageResult:
     escalation_reason = final_state["escalation_reason"]
     return TriageResult(
         claim_id=claim_id,
-        answer=redact(final_state["answer"]).text,
+        answer=redact(final_state["answer"] or "").text,
         decision=decision,
         tool_results=tuple(final_state["tool_results"]),
         escalated=final_state["escalated"],
@@ -199,7 +233,7 @@ def _to_result(claim_id: str, final_state: Mapping[str, Any]) -> TriageResult:
     )
 
 
-def _consolidate(long_term: LongTermMemory, final_state: Mapping[str, Any]) -> LongTermMemory:
+def _consolidate(long_term: LongTermMemory, final_state: AgentState) -> LongTermMemory:
     """Fold a run's rules-derived short-term facts into long-term memory, only when it reached a verified decision."""
     if final_state["decision"] is None:
         return long_term
@@ -224,7 +258,7 @@ def _first_user_message(claim_text: str, long_term: LongTermMemory) -> dict[str,
 
 
 def stream_triage(
-    claim_text: str, *, claim_id: str | None = None, provider: LLMProvider | None = None
+    claim_text: str, *, registry: ToolDispatcher, claim_id: str | None = None, provider: LLMProvider | None = None
 ) -> Iterator[TriageStreamEvent]:
     """Run the same graph as `run_triage`, yielding progress events as they happen, then the final result.
 
@@ -233,28 +267,25 @@ def stream_triage(
     would return. Model text is never yielded on its own: until `finalize` has verified it, a reply may be a
     verdict the rules engine contradicts, so the only model-derived text a caller sees is the final result's.
     """
-    claim_id = claim_id or str(uuid.uuid4())
-    if detect(claim_text).suspicious:
-        yield TriageCompleted(result=_injection_escalation(claim_id))
+    run = _prepare_run(claim_text, claim_id, provider)
+    if isinstance(run, TriageResult):
+        yield TriageCompleted(result=run)
         return
-    claim_text = redact(claim_text).text
-    provider = provider or build_default_provider()
-    registry = _guarded(scope_for_agent(build_tool_registry(), claim_id))
-    app = build_triage_graph(provider, registry, load_prompt("claims_triage"), stream=True)
+    app = build_triage_graph(run.provider, _agent_tools(registry, run.claim_id), run.system, stream=True)
 
-    final_state: Mapping[str, Any] | None = None
+    final_state: AgentState | None = None
     for mode, chunk in app.stream(
-        _initial_state(claim_text, LongTermMemory()),
+        _initial_state(run.claim_text, LongTermMemory()),
         config={"recursion_limit": _RECURSION_LIMIT},
         stream_mode=["custom", "values"],
     ):
         if mode == "custom" and isinstance(chunk, ToolCallDelta | ToolResultEvent):
             yield _redact_event(chunk)
         elif mode == "values" and isinstance(chunk, Mapping):
-            final_state = chunk
+            final_state = cast(AgentState, chunk)
     if final_state is None:
         raise RuntimeError("triage graph produced no state")
-    yield TriageCompleted(result=_to_result(claim_id, final_state))
+    yield TriageCompleted(result=_to_result(run.claim_id, final_state))
 
 
 def _redact_event(event: ToolCallDelta | ToolResultEvent) -> ToolCallDelta | ToolResultEvent:

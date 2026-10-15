@@ -9,7 +9,7 @@ from psycopg_pool import PoolTimeout
 from ombuds import config
 from ombuds.platform.infrastructure.postgres import Pool, apply_migrations, create_pool
 
-_TABLES = "approval_requests, claims, long_term_memory, kb_chunks"
+_TABLES = "payments, approval_requests, claims, long_term_memory, kb_chunks"
 
 
 @pytest.fixture(scope="session")

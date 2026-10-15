@@ -4,7 +4,7 @@ from collections.abc import Iterator
 import pytest
 from fastapi.testclient import TestClient
 
-from ombuds.api_app import app
+from ombuds.api_app import create_app
 from ombuds.features.claims_triage.api import routes
 from ombuds.features.claims_triage.api.schemas import MAX_CLAIM_TEXT_CHARS
 from ombuds.features.claims_triage.application.decision import TriageDecision
@@ -16,12 +16,14 @@ from ombuds.features.claims_triage.application.triage_use_case import (
 from ombuds.platform.ai.providers.base import ProviderUnavailableError
 from ombuds.platform.ai.schemas.tool_calls import ToolCall, ToolResult
 from ombuds.platform.ai.streaming import ToolCallDelta, ToolResultEvent
+from ombuds.platform.ai.tool_loop import ToolRegistry
+from ombuds.platform.guardrails.approval_gate import ApprovalGate
 
-client = TestClient(app)
+client = TestClient(create_app(ApprovalGate(), ToolRegistry()))
 
 
 def test_triage_endpoint_returns_the_use_case_result(monkeypatch) -> None:
-    def _fake_run_triage(claim_text: str, *, provider=None) -> TriageResult:
+    def _fake_run_triage(claim_text: str, *, registry, provider=None) -> TriageResult:
         assert claim_text == "My flight was cancelled."
         return TriageResult(
             claim_id="CLM-1", answer="Please provide your flight details.", decision=None, tool_results=()
@@ -43,7 +45,7 @@ def test_triage_endpoint_returns_the_use_case_result(monkeypatch) -> None:
 
 
 def test_triage_endpoint_surfaces_an_escalated_result(monkeypatch) -> None:
-    def _fake_run_triage(claim_text: str, *, provider=None) -> TriageResult:
+    def _fake_run_triage(claim_text: str, *, registry, provider=None) -> TriageResult:
         return TriageResult(
             claim_id="CLM-1",
             answer="This claim could not be resolved automatically and needs human review.",
@@ -82,7 +84,7 @@ def test_triage_endpoint_rejects_a_missing_claim_text_field() -> None:
 
 
 def test_triage_endpoint_serializes_tool_results(monkeypatch) -> None:
-    def _fake_run_triage(claim_text: str, *, provider=None) -> TriageResult:
+    def _fake_run_triage(claim_text: str, *, registry, provider=None) -> TriageResult:
         return TriageResult(
             claim_id="CLM-1",
             answer='{"eligible": true, "explanation": "You are eligible for EUR 250."}',
@@ -101,7 +103,7 @@ def test_triage_endpoint_serializes_tool_results(monkeypatch) -> None:
 
 
 def test_triage_endpoint_propagates_use_case_errors_as_a_server_error(monkeypatch) -> None:
-    def _fake_run_triage(claim_text: str, *, provider=None) -> TriageResult:
+    def _fake_run_triage(claim_text: str, *, registry, provider=None) -> TriageResult:
         raise RuntimeError("triage did not converge within 8 tool-use turns")
 
     monkeypatch.setattr(routes, "run_triage", _fake_run_triage)
@@ -116,7 +118,7 @@ def test_triage_stream_endpoint_emits_progress_frames_then_one_final_frame(monke
         claim_id="CLM-1", answer="Please provide your flight details.", decision=None, tool_results=()
     )
 
-    def _fake_stream_triage(claim_text: str, *, provider=None) -> Iterator[TriageStreamEvent]:
+    def _fake_stream_triage(claim_text: str, *, registry, provider=None) -> Iterator[TriageStreamEvent]:
         assert claim_text == "My flight was cancelled."
         yield ToolCallDelta(call=call)
         yield ToolResultEvent(result=ToolResult(call_id="call-1", name="check_eligibility", content="{}"))
@@ -144,7 +146,7 @@ def test_triage_stream_endpoint_emits_progress_frames_then_one_final_frame(monke
 def test_triage_stream_endpoint_ends_with_an_error_frame_when_the_provider_is_unavailable(monkeypatch) -> None:
     call = ToolCall(id="call-1", name="check_eligibility", arguments={})
 
-    def _fake_stream_triage(claim_text: str, *, provider=None) -> Iterator[TriageStreamEvent]:
+    def _fake_stream_triage(claim_text: str, *, registry, provider=None) -> Iterator[TriageStreamEvent]:
         yield ToolCallDelta(call=call)
         raise ProviderUnavailableError("overloaded")
 

@@ -1,8 +1,8 @@
 """Logging: a handler-level filter that keeps PII out of every log line.
 
 Nothing in the codebase should log a claim's text, but exception messages and third-party loggers can still
-carry user-supplied strings, so the filter redacts the message template, its string arguments, the traceback text and any stack
-info with `pii_filter.redact` — the same one-way redaction used on requests (ADR-0013). It is attached to
+carry user-supplied strings, so the filter redacts the message template, its string arguments, the traceback text and
+any stack info with `pii_filter.redact` — the same one-way redaction used on requests (ADR-0013). It is attached to
 handlers, not loggers, because a logger's filters don't apply to records propagated from its children.
 """
 

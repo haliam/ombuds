@@ -30,7 +30,7 @@ services:
       db:
         condition: service_healthy
 
-  # Keep to a single replica: the approval gate is in-memory per process (ADR-0008/0009).
+  # Approvals are in Postgres (ADR-0009), so the API keeps no per-process approval state.
   # MCP tool dispatch spawns its stdio server as a subprocess of this container (ADR-0003).
   api:
     build: .

@@ -13,12 +13,11 @@ from fastapi.testclient import TestClient
 
 from ombuds.api_app import create_app
 from ombuds.features.claims_triage.application import triage_use_case
+from ombuds.features.claims_triage.application.runtime import build_runtime
 from ombuds.features.claims_triage.rag.ingest import KB_SEED_DIR, ingest_directory
 from ombuds.features.claims_triage.rag.retriever import Retriever
-from ombuds.features.claims_triage.tools import build_tool_registry
 from ombuds.platform.ai.providers.base import ProviderTurn
 from ombuds.platform.ai.schemas.tool_calls import ToolCall
-from ombuds.platform.guardrails import approval_gate
 from ombuds.platform.infrastructure.postgres import Pool
 from ombuds.platform.infrastructure.vector_store import PgVectorStore
 from tests.fakes import FakeEmbedder, ScriptedProvider
@@ -61,13 +60,8 @@ def app_client(pool: Pool, monkeypatch: pytest.MonkeyPatch) -> Iterator[TestClie
     embedder, store = FakeEmbedder(), PgVectorStore(pool)
     ingest_directory(KB_SEED_DIR, embedder, store)
     # min_score=0: FakeEmbedder similarities are low in absolute terms; the real KB is what is under test.
-    monkeypatch.setattr(
-        triage_use_case,
-        "build_tool_registry",
-        lambda: build_tool_registry(lambda: Retriever(embedder, store, min_score=0.0)),
-    )
-    monkeypatch.setattr(approval_gate, "_GATE", approval_gate.ApprovalGate())
-    yield TestClient(create_app())
+    runtime = build_runtime(pool, lambda: Retriever(embedder, store, min_score=0.0))
+    yield TestClient(create_app(runtime.approvals, runtime.registry))
 
 
 def _script(monkeypatch: pytest.MonkeyPatch, *turns: ProviderTurn) -> ScriptedProvider:

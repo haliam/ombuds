@@ -14,7 +14,7 @@ from pydantic import BaseModel
 from ombuds.features.claims_triage.rag.retriever import Retriever, default_retriever
 from ombuds.features.claims_triage.tools.check_eligibility import CHECK_ELIGIBILITY_TOOL
 from ombuds.features.claims_triage.tools.check_eligibility import check_eligibility as _check_eligibility_impl
-from ombuds.features.claims_triage.tools.issue_payment import ISSUE_PAYMENT_TOOL, IssuePaymentArgs
+from ombuds.features.claims_triage.tools.issue_payment import ISSUE_PAYMENT_TOOL, ClaimLookup, IssuePaymentArgs
 from ombuds.features.claims_triage.tools.issue_payment import issue_payment as _issue_payment_impl
 from ombuds.features.claims_triage.tools.log_claim import LOG_CLAIM_TOOL, LogClaimArgs
 from ombuds.features.claims_triage.tools.log_claim import log_claim as _log_claim_impl
@@ -23,6 +23,7 @@ from ombuds.features.claims_triage.tools.search_kb import search_kb as _search_k
 from ombuds.features.claims_triage.verticals.airline.evidence_schema import FlightDisruption
 from ombuds.platform.ai.schemas.tool_calls import ToolCall, ToolDefinition, ToolResult
 from ombuds.platform.ai.tool_loop import ToolDispatcher, ToolRegistry
+from ombuds.platform.guardrails.approval_gate import ApprovalStore
 
 # Imported with a distinct name (`as _..._impl`) rather than the tool's own name, deliberately: binding
 # a name identical to the submodule (`check_eligibility`/`log_claim`) here in this package's namespace
@@ -35,18 +36,6 @@ def _check_eligibility(args: BaseModel) -> BaseModel:
     if not isinstance(args, FlightDisruption):
         raise TypeError(f"check_eligibility expected FlightDisruption, got {type(args).__name__}")
     return _check_eligibility_impl(args)
-
-
-def _log_claim(args: BaseModel) -> BaseModel:
-    if not isinstance(args, LogClaimArgs):
-        raise TypeError(f"log_claim expected LogClaimArgs, got {type(args).__name__}")
-    return _log_claim_impl(args)
-
-
-def _issue_payment(args: BaseModel) -> BaseModel:
-    if not isinstance(args, IssuePaymentArgs):
-        raise TypeError(f"issue_payment expected IssuePaymentArgs, got {type(args).__name__}")
-    return _issue_payment_impl(args)
 
 
 AGENT_TOOL_NAMES = frozenset({SEARCH_KB_TOOL.name, CHECK_ELIGIBILITY_TOOL.name, LOG_CLAIM_TOOL.name})
@@ -92,9 +81,15 @@ def scope_for_agent(dispatcher: ToolDispatcher, claim_id: str) -> ToolDispatcher
     return _AgentScopedDispatcher(dispatcher, claim_id)
 
 
-def build_tool_registry(retriever_factory: Callable[[], Retriever] = default_retriever) -> ToolRegistry:
+def build_tool_registry(
+    approvals: ApprovalStore, claims: ClaimLookup, retriever_factory: Callable[[], Retriever] = default_retriever
+) -> ToolRegistry:
     """Build a `ToolRegistry` with every claims-triage tool: `search_kb`, `check_eligibility`, `log_claim`
     and `issue_payment`.
+
+    `approvals` is the store the state-changing tools submit to and `claims` the logged claims
+    `issue_payment` checks against; the composition root (`api_app.py`, the MCP server) chooses both, so no
+    tool reaches for a global.
 
     `retriever_factory` is only called when `search_kb` actually runs, so building the registry needs no
     database or API key; tests pass a factory returning a retriever over fakes.
@@ -104,6 +99,16 @@ def build_tool_registry(retriever_factory: Callable[[], Retriever] = default_ret
         if not isinstance(args, SearchKbArgs):
             raise TypeError(f"search_kb expected SearchKbArgs, got {type(args).__name__}")
         return _search_kb_impl(args, retriever_factory())
+
+    def _log_claim(args: BaseModel) -> BaseModel:
+        if not isinstance(args, LogClaimArgs):
+            raise TypeError(f"log_claim expected LogClaimArgs, got {type(args).__name__}")
+        return _log_claim_impl(args, approvals)
+
+    def _issue_payment(args: BaseModel) -> BaseModel:
+        if not isinstance(args, IssuePaymentArgs):
+            raise TypeError(f"issue_payment expected IssuePaymentArgs, got {type(args).__name__}")
+        return _issue_payment_impl(args, approvals, claims)
 
     registry = ToolRegistry()
     registry.register(SEARCH_KB_TOOL, _search_kb)
