@@ -34,6 +34,13 @@ Extracted from the "🤖 AI Build" view of the AI Interview Notion database (sna
 - [x] Add prompt-injection test cases — [summary](task_summaries.md#add-prompt-injection-test-cases)
 - [x] Write integration test for `/triage` end-to-end — [summary](task_summaries.md#write-integration-test-for-triage-end-to-end)
 
+## Pre-W4 refactor (W3 review) — [plan](../reviews/w3_review_pre_w4_plan.md)
+
+- [x] P-1 — Composition-root wiring: approval store, pool and registry injected, `_GATE` removed — [summary](task_summaries.md#pre-w4-refactor-w3-review)
+- [x] P-2 — Executors, durable `claims`, `payments` migration, ADR-0009 addendum — [summary](task_summaries.md#pre-w4-refactor-w3-review)
+- [x] P-3 — Shared triage-run preamble, consistent escalation `answer` — [summary](task_summaries.md#pre-w4-refactor-w3-review)
+- [x] P-4 — Docs reconciliation (AGENTS.md, README, tasks, summaries) — [summary](task_summaries.md#pre-w4-refactor-w3-review)
+
 ## Week 4 — Observability, Governance, Polish
 
 - [ ] Add OpenTelemetry tracing (span per LLM/tool call)

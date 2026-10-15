@@ -9,13 +9,13 @@ Ombuds is a support/claims-triage capstone project built as a 4-week hands-on pr
 
 A claim comes in — for example, a flight cancellation compensation claim. Ombuds:
 
-1. **Classifies** it (category, urgency, confidence) using structured, schema-validated LLM output — never free-text parsing.
-2. **Retrieves precedent** via RAG — similar past claims and relevant policy documents, cited, not invented.
+1. **Reads** it with an LLM that either asks the passenger a clarifying question or returns a structured, schema-validated verdict — never free-text parsing.
+2. **Retrieves policy** via RAG (`search_kb`) — relevant policy documents from pgvector, cited, not invented.
 3. **Checks eligibility** against a deterministic rules engine (e.g. EU261 compensation tiers) — the LLM can *ask* for this fact, it can never *decide* it.
-4. **Decides** what to recommend: log the claim, and/or propose a payout or escalation.
-5. **Gates risky actions behind a human.** Low-risk actions (logging) auto-execute. Any state-changing, money-moving, or access-granting action is hard-blocked by policy and requires human approval — regardless of how confident the model is.
-6. **Executes only after approval.** A state-changing tool call (made directly or over MCP, the Model Context Protocol) only *submits* the exact rules-derived action; once a human approves it, that action executes exactly once against a deterministic Postgres backend that the LLM never owns ([ADR-0009](docs/decisions/0009-approval-request-is-the-pending-action.md)).
-7. **Logs everything** — every LLM call, every tool call, every human decision — as a trace and an audit record.
+4. **Decides** what to recommend: the verdict is re-checked against the rules engine, repaired or escalated to a human if it disagrees, and the claim is submitted for logging.
+5. **Gates risky actions behind a human.** Every state-changing action (`log_claim` today; `issue_payment`, which the agent is never offered) only *submits* an approval request and waits for a human, regardless of how confident the model is. The W4 OPA/Rego policy will let low-risk logging auto-execute and always require a human for money.
+6. **Executes only after approval.** A state-changing tool call (made directly or over MCP, the Model Context Protocol) only *submits* the exact rules-derived action; once a human approves it, that action executes exactly once against Postgres, which the LLM never owns ([ADR-0009](docs/decisions/0009-approval-request-is-the-pending-action.md)): `log_claim` writes the `claims` row, and `issue_payment` writes a *simulated* payout record to `payments` (there is no real payment rail) and requires a logged claim with a matching amount.
+7. **Guards its inputs.** Claim text is screened for prompt injection and redacted for PII before the model sees it. *Planned for W4:* a trace and audit record of every LLM call, tool call and human decision.
 
 ## The core architectural claim
 
@@ -36,13 +36,12 @@ The architecture is deliberately domain-agnostic underneath: `features/claims_tr
 ## Architecture at a glance
 
 ```
-Ticket in → classify (LLM, structured output)
-         → retrieve similar past claims + policy docs (RAG, cited)
-         → check_eligibility (deterministic tool, via MCP)
-         → decide: propose action(s)
-         → guardrail: low-risk auto-runs / high-risk requires human approval
-         → [approved] → execute the approved action exactly once (writes to Postgres)
-         → every step traced + audited
+Claim in → injection screen + PII redaction
+         → LangGraph tool loop: search_kb (RAG, cited) / check_eligibility (deterministic rules) / log_claim
+         → verify the verdict against the rules engine (repair, else escalate to a human)
+         → state-changing tool calls only submit an approval request (Postgres)
+         → [human approves] → execute the approved action exactly once (writes to Postgres)
+         → W4: every step traced + audited, OPA/Rego payout policy
 ```
 
 Full breakdown in [`docs/architecture.md`](docs/architecture.md) and the design decisions behind it in [`docs/decisions/`](docs/decisions/).
@@ -54,9 +53,9 @@ Full breakdown in [`docs/architecture.md`](docs/architecture.md) and the design 
 - Not integrated with a real airline/claims vendor — tools are mocked against a local Postgres, proving the *pattern* (agent → MCP → deterministic backend), not a vendor integration.
 - Not multi-agent — one LangGraph agent, one tool set.
 
-## Status: Week scaffold
+## Status: Weeks 1–3 built, pre-W4 refactor done
 
-Project structure is in place; implementation follows the 4-week build plan below.
+The agent, RAG, Postgres-backed approvals and execution, MCP server, Docker Compose stack and PII/injection guardrails work; observability, the OPA policy and the audit trail (Week 4) are not built yet. Run it with `make up` (needs `OPENAI_API_KEY` and `ANTHROPIC_API_KEY` in `.env`).
 
 | Week | Focus |
 |---|---|

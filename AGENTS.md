@@ -10,15 +10,15 @@ Python ≥3.11 · FastAPI · LangGraph · MCP · PostgreSQL + pgvector (or Chrom
 
 ## Commands
 Keep this section accurate or delete a stale line — a wrong command here is worse than no command.
-**Status (2026-10-08):** `make test`, `make lint`, `make format`, `make db-up`/`db-down`, `make test-integration`, `make ingest`, `make eval`, `make up` and `make down` are wired. Add a command here only once it actually works.
+**Status (2026-10-15):** `make test`, `make lint`, `make format`, `make db-up`/`db-down`, `make test-integration`, `make ingest`, `make eval`, `make up` and `make down` are wired. Add a command here only once it actually works.
 - `make test` → `make lint` then `uv run pytest tests/unit` (uv creates `.venv` and installs deps on first run)
 - `make lint` → `ruff check` + `ruff format --check` + `mypy`; `make format` → ruff auto-fix. Config in `pyproject.toml`
 - `make db-up` → `docker compose up -d --wait db` (Postgres + pgvector on host port 5433); `make test-integration` starts it and runs `tests/integration`
 - `make ingest` → starts the db, then chunks + embeds `verticals/airline/kb_seed/*.md` into pgvector (needs `OPENAI_API_KEY`); safe to re-run
 - `uv run pre-commit install` → one-time, runs the same checks on every commit
 - `make eval` → `make ingest`, then `python -m evals.run_evals`: retrieval hit@k/MRR per relevance floor over `evals/datasets/airline_retrieval.jsonl` (needs `OPENAI_API_KEY`; prints a report, never fails)
-- `make up` → `docker compose up --build -d --wait`: db, a one-shot `migrate-ingest` (migrations + KB ingest, needs `OPENAI_API_KEY` in `.env`), then the API on `localhost:8000` (needs `ANTHROPIC_API_KEY` too); `make down` stops it. Single API replica only — the approval gate is in-memory
-- Planned: MCP standalone → `python -m ombuds.platform.mcp.server`; API app factory lives in `src/ombuds/api_app.py`
+- `make up` → `docker compose up --build -d --wait`: db, a one-shot `migrate-ingest` (migrations + KB ingest, needs `OPENAI_API_KEY` in `.env`), then the API on `localhost:8000` (needs `ANTHROPIC_API_KEY` too); `make down` stops it.. Approvals live in Postgres, so the API holds no per-process approval state
+- `python -m ombuds.platform.mcp.server` → the standalone MCP server over stdio (same Postgres-backed approvals as the API; needs the db up). API app factory: `create_app()` in `src/ombuds/api_app.py`
 
 ## Layout (feature-sliced — see ADR-0002)
 `src/ombuds/` has three areas. Import direction is `features → platform → domain`; never the reverse. The only modules allowed to wire a feature into platform are the composition roots: `api_app.py` and the MCP server entrypoint.
@@ -26,14 +26,14 @@ Keep this section accurate or delete a stale line — a wrong command here is wo
 - `domain/` — shared business models (`models/claim.py`, `enums.py`) and `errors.py`. No LLM, agent, HTTP or DB concerns.
 - `features/claims_triage/` — everything specific to the one feature:
   - `verticals/airline/` — `rules.py` (EU261 tiers, exemptions), `evidence_schema.py`, `kb_seed/`. Only `airline/` exists; no vertical registry/ABC until a second one does.
-  - `application/` — `triage_use_case.py` (orchestrates a triage) and `policies.py` (feature-specific approval rules).
-  - `agent/` — LangGraph `graph.py`, `state.py`, `nodes/` (classify, retrieve, decide, escalate_retry), `memory/`.
+  - `application/` — `triage_use_case.py` (orchestrates a triage), `runtime.py` (builds the Postgres-backed approval store + tool registry for a composition root), `executors.py` (what runs once a request is approved) and `policies.py` (empty scaffold for feature-specific approval rules).
+  - `agent/` — LangGraph `graph.py`, `state.py`, `nodes/` (`escalate_retry` only — classify/retrieve/decide happen inside the model's tool loop and `finalize`), `memory/`.
   - `rag/` — chunking, embeddings, ingest, retrieval, citation.
   - `tools/` — `search_kb`, `check_eligibility`, `log_claim`, `issue_payment`. Dispatch into `verticals/` and `domain/`; never contain business rules themselves.
   - `api/` — FastAPI routes and schemas. Thin — delegate to `application/`.
 - `platform/` — feature-agnostic. Must not import from `features/` or contain airline/triage knowledge.
   - `ai/` — provider-agnostic LLM layer: `providers/` (anthropic, openai, fallback), structured-output schemas, `tool_loop.py`, streaming.
-  - `guardrails/` — the one governance layer: `pii_filter` (+ `guarded_dispatcher`, which applies it to tool-call arguments; ADR-0013), `injection_detection`, `approval_gate`, `policy_engine` + `policies/*.rego`.
+  - `guardrails/` — the one governance layer: `pii_filter` (+ `guarded_dispatcher`, which applies it to tool-call arguments; ADR-0013), `injection_detection`, `approval_gate` (+ `executing_store`, which runs an approved request's executor exactly once), `policy_engine` + `policies/*.rego`.
   - `mcp/` — `tool_bindings.py` wraps a `ToolRegistry` for MCP exposure without importing `features/`; `server.py` (a composition root) builds the registry from a feature (e.g. `claims_triage.tools.build_tool_registry()`) and hands it to `tool_bindings.py`. A subpackage, not a service (ADR-0003).
   - `infrastructure/` — Postgres, vector store, repositories, audit log.
   - `observability/` — logging, tracing, metrics.
@@ -43,7 +43,7 @@ Keep this section accurate or delete a stale line — a wrong command here is wo
 Read `docs/code-style.md` before writing code — it holds the judgement-call rules (structure, types, where business rules live, docstrings, errors, tests). Formatting, lint and types are enforced by `make lint` (ruff + mypy strict); don't hand-argue what a tool already checks.
 
 ## Guardrails (non-negotiable)
-Any tool that changes state (`log_claim`, `issue_payment`, an escalation) must pass through `platform/guardrails/approval_gate.py` and be checked against `platform/guardrails/policy_engine.py`. A tool being registered and callable is not the same as having permission to execute — this boundary is the one thing not to relax for build-speed during the sprint. Per ADR-0009, a state-changing tool call only *submits* a payload-bound approval request (server-issued `claim_id`, rules-derived values — never model-authored ones); execution happens exactly once, after a human approves, never inline in the tool.
+Any tool that changes state (`log_claim`, `issue_payment`, an escalation) must pass through `platform/guardrails/approval_gate.py` and be checked against `platform/guardrails/policy_engine.py`. A tool being registered and callable is not the same as having permission to execute — this boundary is the one thing not to relax for build-speed during the sprint. Per ADR-0009, a state-changing tool call only *submits* a payload-bound approval request (server-issued `claim_id`, rules-derived values — never model-authored ones); execution happens exactly once, after a human approves (`ExecutingApprovalStore.approve` runs the executor, then wins `APPROVED → EXECUTED`), never inline in the tool. The store and tool registry are chosen by the composition roots and injected; there is no module-level gate.
 
 ## Prompt versioning
 Prompts are versioned files under `src/ombuds/platform/prompts/<feature>/vN.txt` (currently `claims_triage/v4.txt` is live, with `v1`–`v3` kept as history), never inline strings. Bump the version rather than overwriting when wording changes meaningfully. A new version must run clean against `evals/datasets/` before it becomes the active version referenced in `config.py`. Record which version is live per environment in `.env.example`.

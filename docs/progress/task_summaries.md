@@ -504,6 +504,26 @@ Template — copy this block per finished task, filling in the fields (omit **De
 **Verified:** clean `down -v` → `make up`: db healthy → ingest 12 chunks, exit 0 → api healthy; real triage returned a decision with `log_claim` parked for approval; injection claim escalated; a second `make up` is idempotent.
 **Follow-up:** no `/health` endpoint (healthcheck uses `/openapi.json`); the approval gate is still in-memory so keep one replica; `use_mcp=True` isn't reachable over HTTP, only checked via `McpToolClient`.
 
+### Pre-W4 refactor (W3 review)
+
+**Week:** W3 → W4 boundary
+**Goal:** Finish the approval path W3 left open, so W4's tracing, audit trail and Rego policy attach to a real, durable, executing path.
+**Source:** [`w3_review_pre_w4_plan.md`](../reviews/w3_review_pre_w4_plan.md) (P-1 to P-4; F-01, F-02, F-04, F-06); ADR-0009 addendum
+
+**Files & responsibilities:**
+- `approval_gate.py` — the module-level `_GATE` and its wrapper functions are gone; `ApprovalGate` stays as the in-memory fake for tests.
+- `api_app.py` — `create_app()` is the composition root: a lifespan opens the Postgres pool, builds the runtime, and closes the pool on shutdown; tests inject an in-memory store/registry instead. Routes reach them through `Depends` (`get_approval_store`, `get_registry`).
+- `application/runtime.py`, `platform/mcp/server.py` — `build_runtime(pool)` builds the Postgres-backed approval store and the tool registry once; the API and the MCP subprocess both use it, so they share approvals.
+- `platform/guardrails/executing_store.py` — `ExecutingApprovalStore`: `approve` wins `PENDING → APPROVED`, runs the action's executor, then wins `APPROVED → EXECUTED`; `execute_approved` is the recovery path for a request left `APPROVED`.
+- `application/executors.py`, `migrations/0002_payments.sql`, `repositories.py` — `log_claim` writes `claims`; `issue_payment` needs a logged claim with a matching amount (at request time and again at execution) and writes a simulated `payments` row. Both writes are idempotent on `claim_id`.
+- `triage_use_case.py` — `_prepare_run` and `_agent_tools` are the single preamble for `run_triage` and `stream_triage`; the injection escalation now returns `ESCALATION_ANSWER`; `_to_result`/`_consolidate` take `AgentState`.
+
+**Notable libraries:** FastAPI `lifespan` and `Depends` (new glossary entries).
+
+**Decisions/trade-offs:** Idempotent-write-then-claim rather than one transaction (ADR-0009 addendum): simpler store protocol, but a failed executor leaves the request `APPROVED` until `execute_approved` is called. `run_triage`/`stream_triage` now take the `registry` instead of building it, which also removed the tests' `monkeypatch` of `build_tool_registry`.
+**Verified:** unit + integration suites; against `make up`: a real triage parked a `log_claim` request, it survived an API restart, approving it wrote exactly one `claims` row, and a second approve returned 409.
+**Follow-up:** nothing calls `execute_approved` automatically; `default_retriever()` still owns a separate pool; the `/approvals` endpoints are still unauthenticated (F-03, W4 audit task).
+
 ---
 
 Library/framework/stdlib-concept entries live in [`glossary.md`](glossary.md) — append there, not here, whenever a summary's **Notable libraries** introduces something not already listed.
