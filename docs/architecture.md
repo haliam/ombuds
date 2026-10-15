@@ -27,6 +27,12 @@ node ~/.claude/skills/archify/bin/archify.mjs finalize architecture docs/diagram
 | Approvals API | Lists, approves and denies pending requests | `platform/guardrails/api.py` |
 | PostgreSQL + pgvector | One database for claims, payments, approvals and KB embeddings (ADR-0010) | `platform/infrastructure/` |
 
+## Triage and approval flow
+
+![Triage and approval sequence](diagrams/triage-approval-flow.png)
+
+Source: [`diagrams/triage-approval-flow.json`](diagrams/triage-approval-flow.json), regenerated the same way with `sequence` in place of `architecture`. The agent only ever *submits* `log_claim`; the human approval later is a separate request, and only then does the executor write to Postgres. A suspected injection, a verdict that still disagrees with the rules engine after two repairs, or more than eight tool turns all end in an escalation to a human instead of a verdict.
+
 ## Layering
 
 Imports run `features → platform → domain`, never the reverse. `platform/` has no airline or triage knowledge. Only the composition roots (`api_app.py`, the MCP server entrypoint) wire a feature into the platform (ADR-0002).
