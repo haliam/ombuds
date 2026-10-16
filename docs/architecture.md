@@ -33,6 +33,12 @@ node ~/.claude/skills/archify/bin/archify.mjs finalize architecture docs/diagram
 
 Source: [`diagrams/archify/triage-approval-flow.json`](diagrams/archify/triage-approval-flow.json) (interactive page: `diagrams/archify/triage-approval-flow.html`), regenerated the same way with `sequence` in place of `architecture`. The agent only ever *submits* `log_claim`; the human approval later is a separate request, and only then does the executor write to Postgres. A suspected injection, a verdict that still disagrees with the rules engine after two repairs, or more than eight tool turns all end in an escalation to a human instead of a verdict.
 
+## Guardrails and tool scoping
+
+![Guardrails and tool scoping pipeline](diagrams/archify/guardrails-pipeline.png)
+
+Where untrusted text is screened and redacted, and where the model's authority ends: it never chooses the `claim_id`, is never offered `issue_payment`, and `log_claim` only submits a rules-derived approval request. Source: [`diagrams/archify/guardrails-pipeline.json`](diagrams/archify/guardrails-pipeline.json) (interactive page: `diagrams/archify/guardrails-pipeline.html`), regenerated the same way with `dataflow` in place of `architecture`. Decisions: [ADR-0013](decisions/0013-regex-pii-redaction-at-the-trust-boundaries.md), [ADR-0014](decisions/0014-heuristic-injection-detection-escalates.md).
+
 ## Layering
 
 Imports run `features → platform → domain`, never the reverse. `platform/` has no airline or triage knowledge. Only the composition roots (`api_app.py`, the MCP server entrypoint) wire a feature into the platform (ADR-0002).

@@ -34,3 +34,5 @@ Detection is regex plus a checksum where one exists (Luhn for cards, mod-97 for 
 - **Reversible tokenisation (a vault mapping placeholders back):** would let answers restore real details, but it keeps raw PII in a store that then needs its own protection.
 - **Pydantic validators on the request model:** they validate known fields but can't find an email inside a sentence. Pydantic is used only for the result types.
 - **Reject claims that contain PII:** passengers routinely include contact details, so rejecting would block ordinary claims.
+
+See the pipeline diagram in [architecture.md](../architecture.md#guardrails-and-tool-scoping).

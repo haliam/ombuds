@@ -23,3 +23,5 @@ The passenger's `claim_text` is the only untrusted free text that reaches the mo
 - **Reject the request (4xx):** punishes real passengers whose wording trips a pattern.
 - **Log only:** no protection, and the model still sees the attack.
 - **Strip the matched text and continue:** the attacker learns what gets stripped, and the remainder can still steer the model.
+
+See the pipeline diagram in [architecture.md](../architecture.md#guardrails-and-tool-scoping).
