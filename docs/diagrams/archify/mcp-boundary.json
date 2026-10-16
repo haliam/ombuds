@@ -1,0 +1,282 @@
+{
+ "schema_version": 1,
+ "diagram_type": "architecture",
+ "meta": {
+  "title": "MCP Process Boundary",
+  "output": "docs/diagrams/archify/mcp-boundary.html",
+  "quality_profile": "showcase",
+  "repository": {
+   "url": "https://github.com/haliam/ombuds.git",
+   "provider": "github",
+   "link_mode": "web",
+   "revision": "a2cbe51f453b5beb9621c2ccedb0d76f5597c8ca"
+  }
+ },
+ "components": [
+  {
+   "id": "run",
+   "type": "backend",
+   "label": "run_triage",
+   "sublabel": "use_mcp=True",
+   "pos": [
+    40,
+    40
+   ],
+   "size": [
+    130,
+    64
+   ],
+   "tag": "library path",
+   "sources": [
+    {
+     "path": "src/ombuds/features/claims_triage/application/triage_use_case.py",
+     "line": 131,
+     "end_line": 133
+    }
+   ]
+  },
+  {
+   "id": "client",
+   "type": "backend",
+   "label": "McpToolClient",
+   "sublabel": "portal thread + session",
+   "pos": [
+    250,
+    40
+   ],
+   "size": [
+    130,
+    64
+   ],
+   "tag": "sync to async",
+   "sources": [
+    {
+     "path": "src/ombuds/platform/mcp/client.py",
+     "line": 53,
+     "end_line": 114
+    }
+   ]
+  },
+  {
+   "id": "server",
+   "type": "backend",
+   "label": "MCP server",
+   "sublabel": "list_tools, call_tool",
+   "pos": [
+    460,
+    40
+   ],
+   "size": [
+    130,
+    64
+   ],
+   "tag": "stdio",
+   "sources": [
+    {
+     "path": "src/ombuds/platform/mcp/tool_bindings.py",
+     "line": 16,
+     "end_line": 47
+    }
+   ]
+  },
+  {
+   "id": "guarded",
+   "type": "security",
+   "label": "GuardedDispatcher",
+   "sublabel": "redacts arguments",
+   "pos": [
+    670,
+    40
+   ],
+   "size": [
+    130,
+    64
+   ],
+   "tag": "ADR-0013",
+   "sources": [
+    {
+     "path": "src/ombuds/platform/guardrails/guarded_dispatcher.py",
+     "line": 15,
+     "end_line": 31
+    }
+   ]
+  },
+  {
+   "id": "registry",
+   "type": "backend",
+   "label": "ToolRegistry",
+   "sublabel": "4 tools incl. issue_payment",
+   "pos": [
+    880,
+    40
+   ],
+   "size": [
+    130,
+    64
+   ],
+   "tag": "build_runtime",
+   "sources": [
+    {
+     "path": "src/ombuds/features/claims_triage/application/runtime.py",
+     "line": 32,
+     "end_line": 41
+    }
+   ]
+  },
+  {
+   "id": "ext",
+   "type": "external",
+   "label": "External MCP client",
+   "sublabel": "Claude Desktop, etc.",
+   "pos": [
+    460,
+    200
+   ],
+   "size": [
+    130,
+    64
+   ],
+   "tag": "operator"
+  },
+  {
+   "id": "pg",
+   "type": "database",
+   "label": "PostgreSQL",
+   "sublabel": "approvals, claims, kb",
+   "pos": [
+    880,
+    200
+   ],
+   "size": [
+    130,
+    64
+   ],
+   "tag": "shared",
+   "sources": [
+    {
+     "path": "src/ombuds/platform/mcp/server.py",
+     "line": 28,
+     "end_line": 36
+    }
+   ]
+  },
+  {
+   "id": "api",
+   "type": "backend",
+   "label": "FastAPI app",
+   "sublabel": "own runtime, no MCP",
+   "pos": [
+    880,
+    350
+   ],
+   "size": [
+    130,
+    64
+   ],
+   "tag": "HTTP",
+   "sources": [
+    {
+     "path": "src/ombuds/api_app.py",
+     "line": 35,
+     "end_line": 65
+    }
+   ]
+  }
+ ],
+ "boundaries": [
+  {
+   "kind": "region",
+   "label": "Library process (use_mcp=True)",
+   "wraps": [
+    "run",
+    "client"
+   ]
+  },
+  {
+   "kind": "security-group",
+   "label": "MCP server subprocess",
+   "wraps": [
+    "server",
+    "guarded",
+    "registry"
+   ]
+  }
+ ],
+ "connections": [
+  {
+   "id": "c1",
+   "from": "run",
+   "to": "client",
+   "label": "tool calls",
+   "variant": "default"
+  },
+  {
+   "id": "c2",
+   "from": "client",
+   "to": "server",
+   "label": "stdio JSON-RPC",
+   "variant": "emphasis"
+  },
+  {
+   "id": "c3",
+   "from": "server",
+   "to": "guarded",
+   "label": "call",
+   "variant": "default"
+  },
+  {
+   "id": "c4",
+   "from": "guarded",
+   "to": "registry",
+   "label": "scrubbed",
+   "variant": "security"
+  },
+  {
+   "id": "c5",
+   "from": "registry",
+   "to": "pg",
+   "label": "submit / read",
+   "variant": "default"
+  },
+  {
+   "id": "c6",
+   "from": "ext",
+   "to": "server",
+   "label": "stdio",
+   "variant": "emphasis"
+  },
+  {
+   "id": "c7",
+   "from": "api",
+   "to": "pg",
+   "label": "same rows",
+   "variant": "default"
+  }
+ ],
+ "cards": [
+  {
+   "dot": "cyan",
+   "title": "Process boundary",
+   "items": [
+    "With use_mcp=True, run_triage spawns python -m ombuds.platform.mcp.server and talks MCP over stdio; the graph can't tell, because both dispatchers satisfy ToolDispatcher",
+    "The HTTP routes do not use it: /claims/triage runs tools in-process"
+   ]
+  },
+  {
+   "dot": "emerald",
+   "title": "Sync to async bridge",
+   "items": [
+    "Graph nodes are synchronous; McpToolClient runs an async ClientSession on a background thread through an anyio blocking portal",
+    "A tool error comes back as an MCP isError result; the server uses the tool name as the call id"
+   ]
+  },
+  {
+   "dot": "rose",
+   "title": "Shared state, one wiring",
+   "items": [
+    "The server builds the same Postgres-backed runtime as the API, so an approval submitted over MCP shows up in /approvals",
+    "External clients bypass the agent and its scope: they can reach issue_payment, still behind a human approval, with arguments redacted"
+   ]
+  }
+ ]
+}

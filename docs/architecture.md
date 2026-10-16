@@ -33,6 +33,12 @@ node ~/.claude/skills/archify/bin/archify.mjs finalize architecture docs/diagram
 
 Source: [`diagrams/archify/triage-approval-flow.json`](diagrams/archify/triage-approval-flow.json) (interactive page: `diagrams/archify/triage-approval-flow.html`), regenerated the same way with `sequence` in place of `architecture`. The agent only ever *submits* `log_claim`; the human approval later is a separate request, and only then does the executor write to Postgres. A suspected injection, a verdict that still disagrees with the rules engine after two repairs, or more than eight tool turns all end in an escalation to a human instead of a verdict.
 
+## MCP process boundary
+
+![MCP process boundary](diagrams/archify/mcp-boundary.png)
+
+With `use_mcp=True` the library path spawns the MCP server as a subprocess and bridges its synchronous graph to an async MCP session; the HTTP API does not use MCP. The server builds the same Postgres-backed runtime as the API, so approvals are shared. Source: [`diagrams/archify/mcp-boundary.json`](diagrams/archify/mcp-boundary.json) (interactive page: `diagrams/archify/mcp-boundary.html`), regenerated the same way. Decision: [ADR-0003](decisions/0003-mcp-as-subpackage-not-service.md).
+
 ## Guardrails and tool scoping
 
 ![Guardrails and tool scoping pipeline](diagrams/archify/guardrails-pipeline.png)
