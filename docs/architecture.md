@@ -4,12 +4,12 @@ Ombuds triages airline EU261 claims with an LLM agent, but the LLM never owns th
 
 ## Component view
 
-![Ombuds component architecture](diagrams/architecture.png)
+![Ombuds component architecture](diagrams/archify/architecture.png)
 
-The diagram is generated with archify from [`diagrams/architecture.json`](diagrams/architecture.json), which pins the commit it was traced from and cites source lines per component. The interactive HTML is committed next to it as `diagrams/architecture.html` (about 820 KB, so the repo's `check-added-large-files` limit is 1000 KB). To regenerate it, run from the repo root:
+The diagram is generated with archify from [`diagrams/archify/architecture.json`](diagrams/archify/architecture.json), which pins the commit it was traced from and cites source lines per component. The interactive HTML is committed next to it as `diagrams/archify/architecture.html` (about 820 KB, so the repo's `check-added-large-files` limit is 1000 KB). To regenerate it, run from the repo root:
 
 ```bash
-node ~/.claude/skills/archify/bin/archify.mjs finalize architecture docs/diagrams/architecture.json /tmp/ombuds-architecture.html --repo-root . --quality showcase
+node ~/.claude/skills/archify/bin/archify.mjs finalize architecture docs/diagrams/archify/architecture.json /tmp/ombuds-architecture.html --repo-root . --quality showcase
 ```
 
 | Component | What it does | Code |
@@ -29,9 +29,9 @@ node ~/.claude/skills/archify/bin/archify.mjs finalize architecture docs/diagram
 
 ## Triage and approval flow
 
-![Triage and approval sequence](diagrams/triage-approval-flow.png)
+![Triage and approval sequence](diagrams/archify/triage-approval-flow.png)
 
-Source: [`diagrams/triage-approval-flow.json`](diagrams/triage-approval-flow.json) (interactive page: `diagrams/triage-approval-flow.html`), regenerated the same way with `sequence` in place of `architecture`. The agent only ever *submits* `log_claim`; the human approval later is a separate request, and only then does the executor write to Postgres. A suspected injection, a verdict that still disagrees with the rules engine after two repairs, or more than eight tool turns all end in an escalation to a human instead of a verdict.
+Source: [`diagrams/archify/triage-approval-flow.json`](diagrams/archify/triage-approval-flow.json) (interactive page: `diagrams/archify/triage-approval-flow.html`), regenerated the same way with `sequence` in place of `architecture`. The agent only ever *submits* `log_claim`; the human approval later is a separate request, and only then does the executor write to Postgres. A suspected injection, a verdict that still disagrees with the rules engine after two repairs, or more than eight tool turns all end in an escalation to a human instead of a verdict.
 
 ## Layering
 
@@ -43,7 +43,7 @@ Imports run `features → platform → domain`, never the reverse. `platform/` h
 
 ## Development history
 
-Two diagrams show how the project was built, week by week: [`diagrams/development-overview.html`](diagrams/development-overview.html) (v1: steps and key decisions) and [`diagrams/development-overview-v2.html`](diagrams/development-overview-v2.html) (v2: steps only, each linked to its code at a fixed commit). Each has a `.json` source and a `.png` next to it.
+Two diagrams show how the project was built, week by week: [`diagrams/archify/development-overview.html`](diagrams/archify/development-overview.html) (v1: steps and key decisions) and [`diagrams/archify/development-overview-v2.html`](diagrams/archify/development-overview-v2.html) (v2: steps only, each linked to its code at a fixed commit). Each has a `.json` source and a `.png` next to it.
 
 ## Not built yet
 

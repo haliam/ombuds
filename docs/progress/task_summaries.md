@@ -532,9 +532,9 @@ Template — copy this block per finished task, filling in the fields (omit **De
 **Goal:** Give the project a readable front door: two diagrams traced from the code (plus a development-overview board, added afterwards), and a README that states the problem, the design and the trade-offs without claiming anything unbuilt.
 
 **Files & responsibilities:**
-- `docs/diagrams/architecture.json`, `architecture.png` — component view (archify `architecture`), pinned to commit `7342b6c` with source lines per component.
-- `docs/diagrams/triage-approval-flow.json`, `triage-approval-flow.png` — sequence view (archify `sequence`) of one triage and the later human approval.
-- `docs/diagrams/development-overview.*` and `development-overview-v2.*` — build timeline boards (archify `architecture`): v1 shows steps and ADR decisions; v2 shows steps only, each linked to its code at a pinned commit. Every diagram now has `.json`, `.html` and `.png`.
+- `docs/diagrams/archify/architecture.json`, `architecture.png` — component view (archify `architecture`), pinned to commit `7342b6c` with source lines per component.
+- `docs/diagrams/archify/triage-approval-flow.json`, `triage-approval-flow.png` — sequence view (archify `sequence`) of one triage and the later human approval.
+- `docs/diagrams/archify/development-overview.*` and `development-overview-v2.*` — build timeline boards (archify `architecture`): v1 shows steps and ADR decisions; v2 shows steps only, each linked to its code at a pinned commit. Every diagram now has `.json`, `.html` and `.png`.
 - `docs/architecture.md` — was an empty stub; now embeds both diagrams, a component table, layering, deployment and what is not built.
 - `README.md` — restructured into Problem, Design, Trade-offs (table linking each ADR) and Known limitations; Week 4 items are marked as not built.
 
