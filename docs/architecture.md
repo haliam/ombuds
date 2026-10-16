@@ -94,6 +94,44 @@ Only `payments` has foreign keys: one payment per claim, and only for a logged c
 
 Imports run `features → platform → domain`, never the reverse. `platform/` has no airline or triage knowledge. Only the composition roots (`api_app.py`, the MCP server entrypoint) wire a feature into the platform (ADR-0002).
 
+```mermaid
+flowchart TB
+    subgraph roots["Composition roots (only place a feature is wired into platform)"]
+        api["api_app.py<br/>create_app, lifespan"]
+        mcp_server["platform/mcp/server.py<br/>python -m ombuds.platform.mcp.server"]
+    end
+    subgraph features["features/claims_triage"]
+        runtime["application/runtime.py<br/>build_runtime(pool)"]
+        usecase["application: triage_use_case, executors"]
+        agent["agent, rag, tools, api"]
+        airline["verticals/airline: rules, kb_seed"]
+    end
+    subgraph platform["platform (feature-agnostic)"]
+        guardrails["guardrails: pii, injection,<br/>approval gate, executing store"]
+        ai["ai: providers, tool loop, streaming"]
+        mcp["mcp: tool_bindings, client"]
+        infra["infrastructure: postgres, repositories, vector store"]
+    end
+    domain["domain: models, enums, errors"]
+
+    api -->|"build_runtime(pool)"| runtime
+    mcp_server -->|"build_runtime(pool)"| runtime
+    api --> guardrails
+    runtime --> usecase
+    runtime --> agent
+    usecase --> airline
+    agent --> airline
+    usecase --> mcp
+    runtime --> guardrails
+    runtime --> infra
+    agent --> ai
+    features --> platform
+    platform --> domain
+    features --> domain
+```
+
+`build_runtime` assembles the Postgres-backed approval store, the executors and the tool registry once, and both roots call it, so the API and the MCP subprocess share one wiring and the same Postgres rows. `create_app` also accepts an injected store and registry so tests can pass in-memory fakes. The rule is convention only: nothing in `make lint` or the tests checks import direction. At this commit the only `platform` file that imports from `features` is `platform/mcp/server.py`, which is a composition root by design. Sources: `api_app.py` (35-65), `features/claims_triage/application/runtime.py` (25-32), `platform/mcp/server.py` (13).
+
 ## Deployment
 
 `docker compose up` (via `make up`) runs three services: `db` (pgvector/pgvector:pg16), a one-shot `migrate-ingest` (migrations plus KB ingest), and `api` on port 8000. The API keeps no approval state in process, because approvals live in Postgres.
