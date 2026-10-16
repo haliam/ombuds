@@ -15,6 +15,8 @@ Use LangGraph as the orchestration layer for the agent.
 - Gives up some of the "batteries included" convenience CrewAI/AutoGen offer for quick multi-agent demos — not needed here, since this is one agent making tool calls, not a crew of agents with independent goals.
 - Revisit if the system grows a genuine need for multiple cooperating agents rather than one agent routing through sequential steps.
 
+The resulting graph (nodes, counters and escalation paths) is drawn in [ADR-0005](0005-prompted-json-with-repair-over-native-structured-output.md#the-triage-graph-end-to-end).
+
 ## Alternatives considered
 - **CrewAI / AutoGen** — role-based/conversable agent abstractions fit multi-agent collaboration better than a single agent with a strict approval gate; state and control flow are less explicit than a state graph.
 - **Semantic Kernel** — strong enterprise/.NET integration story, worth knowing conceptually for the interview, but the Python-first LangGraph ecosystem matched the rest of this stack better.
