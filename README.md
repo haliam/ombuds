@@ -40,6 +40,8 @@ A claim comes in — for example, a flight cancellation compensation claim. Ombu
 
 *One triage, then the later human approval. Note that nothing changes state until the second half.*
 
+More diagrams: [guardrails pipeline](docs/architecture.md#guardrails-and-tool-scoping), [RAG and evals](docs/architecture.md#rag-and-evals), [MCP process boundary](docs/architecture.md#mcp-process-boundary), [data model](docs/architecture.md#data-model), [layering](docs/architecture.md#layering), [approval lifecycle](docs/decisions/0009-approval-request-is-the-pending-action.md#lifecycle-of-an-approval-request) and [triage graph](docs/decisions/0005-prompted-json-with-repair-over-native-structured-output.md#the-triage-graph-end-to-end). The full index is in [`docs/diagrams/`](docs/diagrams/README.md).
+
 ### How it is built
 
 - **Feature-sliced layout** ([ADR-0002](docs/decisions/0002-feature-sliced-over-clean-layers.md)). `features/claims_triage/` holds everything specific to claims; `platform/` is feature-agnostic (LLM providers, guardrails, MCP, persistence); `domain/` holds shared models. Imports run `features → platform → domain`, never back.
