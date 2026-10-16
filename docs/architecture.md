@@ -39,6 +39,12 @@ Source: [`diagrams/archify/triage-approval-flow.json`](diagrams/archify/triage-a
 
 Where untrusted text is screened and redacted, and where the model's authority ends: it never chooses the `claim_id`, is never offered `issue_payment`, and `log_claim` only submits a rules-derived approval request. Source: [`diagrams/archify/guardrails-pipeline.json`](diagrams/archify/guardrails-pipeline.json) (interactive page: `diagrams/archify/guardrails-pipeline.html`), regenerated the same way with `dataflow` in place of `architecture`. Decisions: [ADR-0013](decisions/0013-regex-pii-redaction-at-the-trust-boundaries.md), [ADR-0014](decisions/0014-heuristic-injection-detection-escalates.md).
 
+## RAG and evals
+
+![RAG ingest, retrieval and evals](diagrams/archify/rag-evals-pipeline.png)
+
+Offline ingest and online retrieval meet at the `kb_chunks` table; the eval harness reads the same table and sweeps the relevance floor over saved scores. Source: [`diagrams/archify/rag-evals-pipeline.json`](diagrams/archify/rag-evals-pipeline.json) (interactive page: `diagrams/archify/rag-evals-pipeline.html`), regenerated with `dataflow`. Decisions: [ADR-0010](decisions/0010-pgvector-in-postgres-over-chroma.md), [ADR-0011](decisions/0011-heading-aware-chunking-and-openai-embeddings.md), [ADR-0012](decisions/0012-retrieval-relevance-floor.md). The end-to-end agent eval dataset is still empty.
+
 ## Data model
 
 ```mermaid
