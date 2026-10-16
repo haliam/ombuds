@@ -1,5 +1,20 @@
 # Plan: archify diagrams for the hard-to-grasp parts of ombuds
 
+**Status: done (2026-10-16).** Step 0 and all eight diagrams shipped, one commit each.
+
+| # | Diagram | Tool | Where it lives |
+|---|---|---|---|
+| 1 | Approval lifecycle | Mermaid | [ADR-0009](../decisions/0009-approval-request-is-the-pending-action.md#lifecycle-of-an-approval-request) |
+| 2 | LangGraph triage loop | Mermaid | [ADR-0005](../decisions/0005-prompted-json-with-repair-over-native-structured-output.md#the-triage-graph-end-to-end) |
+| 3 | Guardrails and tool scoping | archify | [architecture.md](../architecture.md#guardrails-and-tool-scoping) |
+| 4 | Postgres data model | Mermaid | [architecture.md](../architecture.md#data-model) |
+| 5 | RAG ingest, retrieval and evals | archify | [architecture.md](../architecture.md#rag-and-evals) |
+| 6 | Layering and composition roots | Mermaid | [architecture.md](../architecture.md#layering) |
+| 7 | Provider fallback and SSE order | Mermaid | [ADR-0006](../decisions/0006-two-layer-resilience-over-a-retry-library.md#how-a-failure-travels), [ADR-0007](../decisions/0007-sse-over-websockets-for-triage-streaming.md#event-order-of-one-streamed-triage) |
+| 8 | MCP process boundary | archify | [architecture.md](../architecture.md#mcp-process-boundary) |
+
+Not drawn yet (needs the code first): Week 4 tracing, Rego payout policy and audit trail; a Docker Compose startup diagram; an end-to-end agent eval flow. The original plan follows for reference.
+
 ## Context
 `docs/diagrams/` already has `architecture` (components), `triage-approval-flow` (sequence) and two `development-overview` timelines (each as .json/.html/.png, built with the archify skill). The dynamic mechanisms that the glossary and ADRs explain only in prose are not drawn: loops, turns, state machines, RAG, evals, memory. Goal: add a small, prioritized set of diagrams, wire them into the docs, and draw unbuilt Week-4 parts (policy engine/Rego, tracing, audit) as dashed "planned" boxes.
 
