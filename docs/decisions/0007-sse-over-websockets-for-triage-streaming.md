@@ -19,6 +19,35 @@ Stream `/claims/triage/stream` as Server-Sent Events (`StreamingResponse` over `
 ## Amendment (2026-09-28, pre-W3 T-6)
 The transport decision stands; what the frames carry changed. `/claims/triage/stream` now runs the same LangGraph graph as `/claims/triage` (W2 review F-07), and streams only `tool_call` and `tool_result` progress frames, then exactly one `final` frame with the same fields as the `/triage` response, or an `error` frame if the LLM provider is unavailable. Raw model text (`text_delta`/`turn_done`) is no longer streamed: a final reply is an unverified verdict until the graph's `finalize` step has checked it against `check_eligibility`, so streaming its tokens would leak exactly what verification exists to stop. Token-level streaming of *verified* passenger-facing text is a possible later addition, not a regression to restore.
 
+## Event order of one streamed triage
+
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant R as POST /claims/triage/stream
+    participant G as LangGraph (stream mode)
+    participant P as Provider
+    participant T as Tools
+    C->>R: claim text
+    R->>G: stream_triage (screen, redact, build graph)
+    loop each model turn, up to 8
+        G->>P: stream_turn
+        P-->>G: tool-input JSON fragments (JSONBuffer)
+        G-->>R: ToolCallDelta (arguments redacted)
+        R-->>C: SSE tool_call
+        G->>T: dispatch_all
+        T-->>G: results
+        G-->>R: ToolResultEvent
+        R-->>C: SSE tool_result
+    end
+    G->>G: finalize (parse + verify, repair or escalate)
+    G-->>R: TriageCompleted (verified result)
+    R-->>C: SSE final
+    Note over R,C: model text is never streamed on its own,<br/>and a provider outage after the first frame becomes an SSE error frame
+```
+
+An injection hit skips the graph: the stream yields only the `final` frame with the escalated result. Sources: `features/claims_triage/api/routes.py` (`triage_stream`, `_to_sse`, `_event_payload`), `application/triage_use_case.py` (`stream_triage`), `platform/ai/streaming.py`.
+
 ## Alternatives considered
 - **WebSockets.** Gives a bidirectional channel this endpoint doesn't use yet, at the cost of a connection-lifecycle protocol (open/ping-pong/close) and a client that must speak it, for no round-trip this flow currently needs.
 - **Long polling.** Would mean the client re-requesting per chunk, reconstructing turn boundaries across requests that the current single-request tool-use loop doesn't need to expose.
