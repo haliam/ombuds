@@ -39,6 +39,23 @@ Along with this:
 - **(b) LangGraph `interrupt()` plus a checkpointer.** Idiomatic for LangGraph, but the interrupt has to happen in a graph node rather than in the tool, so it doesn't cover external MCP clients, and approvals would be tied to graph checkpoints rather than to a domain record. Rejected for now, and kept as the revisit path above.
 - **ADR-0008's retry-the-tool-call model.** It had no path to execution, and approvals weren't single-use (see Context).
 
+## Lifecycle of an approval request
+
+```mermaid
+stateDiagram-v2
+    direction LR
+    [*] --> PENDING: submit(action, payload)<br/>INSERT ON CONFLICT (action, payload_key)
+    PENDING --> PENDING: same payload again<br/>(deduped onto this request)
+    PENDING --> APPROVED: approve()<br/>compare-and-set, one winner
+    PENDING --> DENIED: deny()
+    APPROVED --> APPROVED: executor fails or crash<br/>execute_approved() retries
+    APPROVED --> EXECUTED: claim_for_execution()<br/>after the idempotent executor write
+    DENIED --> [*]
+    EXECUTED --> [*]
+```
+
+Every arrow other than the dedupe and retry loops is a compare-and-set `UPDATE ... WHERE status = <expected>`. A second `approve`, a `deny` after approval, or a second claim finds the status already moved and raises `ApprovalStateError` (HTTP 409), writing nothing. Sources: `platform/guardrails/approval_gate.py` (`ApprovalStatus`), `executing_store.py` (`approve`, `execute_approved`), `platform/infrastructure/repositories.py` (`PostgresApprovalStore._transition`).
+
 ## Addendum (2026-10-15): executors and the transaction model
 
 W3 left the approval path unfinished (W3 review F-01): the Postgres store existed but nothing executed an approved request. The pre-W4 refactor (P-1, P-2) completes it.
