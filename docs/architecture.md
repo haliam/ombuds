@@ -39,6 +39,51 @@ Source: [`diagrams/archify/triage-approval-flow.json`](diagrams/archify/triage-a
 
 Where untrusted text is screened and redacted, and where the model's authority ends: it never chooses the `claim_id`, is never offered `issue_payment`, and `log_claim` only submits a rules-derived approval request. Source: [`diagrams/archify/guardrails-pipeline.json`](diagrams/archify/guardrails-pipeline.json) (interactive page: `diagrams/archify/guardrails-pipeline.html`), regenerated the same way with `dataflow` in place of `architecture`. Decisions: [ADR-0013](decisions/0013-regex-pii-redaction-at-the-trust-boundaries.md), [ADR-0014](decisions/0014-heuristic-injection-detection-escalates.md).
 
+## Data model
+
+```mermaid
+erDiagram
+    approval_requests ||--o| payments : "approval_request_id (FK)"
+    claims ||--o| payments : "claim_id (PK, FK)"
+    approval_requests {
+        text id PK "uuid default"
+        text action "log_claim | issue_payment"
+        jsonb payload "rules-derived, no claim_text"
+        text payload_key "UNIQUE with action"
+        text status "pending | approved | denied | executed"
+        text approver
+        text note
+        timestamptz created_at
+        timestamptz updated_at
+    }
+    claims {
+        text claim_id PK "server-issued"
+        jsonb facts
+        jsonb decision "rules engine output"
+        timestamptz created_at
+    }
+    payments {
+        text claim_id PK "FK claims"
+        int amount_eur "CHECK > 0"
+        text approval_request_id FK
+        timestamptz created_at
+    }
+    long_term_memory {
+        text claimant_id PK
+        jsonb facts
+        timestamptz updated_at
+    }
+    kb_chunks {
+        bigserial id PK
+        text source "UNIQUE with chunk_index"
+        int chunk_index
+        text content
+        vector_1536 embedding "HNSW cosine index"
+    }
+```
+
+Only `payments` has foreign keys: one payment per claim, and only for a logged claim. The `claim_id` inside an `approval_requests.payload` is a logical link, not a foreign key. `long_term_memory` and `kb_chunks` stand alone, and `schema_migrations` (applied versions, under an advisory lock) is omitted. Sources: `platform/infrastructure/migrations/0001_init.sql`, `0002_payments.sql`; decisions [ADR-0009](decisions/0009-approval-request-is-the-pending-action.md) and [ADR-0010](decisions/0010-pgvector-in-postgres-over-chroma.md). `long_term_memory` has no caller in the HTTP API yet.
+
 ## Layering
 
 Imports run `features → platform → domain`, never the reverse. `platform/` has no airline or triage knowledge. Only the composition roots (`api_app.py`, the MCP server entrypoint) wire a feature into the platform (ADR-0002).
