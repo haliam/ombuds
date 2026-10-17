@@ -17,3 +17,7 @@ Expose tools over MCP from `platform/mcp/server.py`, runnable standalone (`pytho
 
 ## Alternatives considered
 - **Standalone MCP microservice** — closer to a real enterprise deployment shape, but the added container/networking/CI surface wasn't worth it for a solo capstone on this timeline. The reasoning for when it *would* be worth it transfers even without building it.
+
+See the layering and composition-root diagram in [architecture.md](../architecture.md#layering).
+
+See the process-boundary diagram in [architecture.md](../architecture.md#mcp-process-boundary).

@@ -1,0 +1,271 @@
+{
+ "schema_version": 1,
+ "diagram_type": "dataflow",
+ "meta": {
+  "title": "Guardrails and Tool Scoping Pipeline",
+  "output": "docs/diagrams/archify/guardrails-pipeline.html",
+  "quality_profile": "showcase",
+  "repository": {
+   "url": "https://github.com/haliam/ombuds.git",
+   "provider": "github",
+   "link_mode": "web",
+   "revision": "cbc2790f564b387d8ed9f4b51c6f862344b2c94c"
+  }
+ },
+ "stages": [
+  {
+   "label": "Input"
+  },
+  {
+   "label": "Screen"
+  },
+  {
+   "label": "Agent"
+  },
+  {
+   "label": "Tool boundary"
+  },
+  {
+   "label": "Outcome"
+  }
+ ],
+ "nodes": [
+  {
+   "id": "claim",
+   "type": "frontend",
+   "label": "Claim text",
+   "sublabel": "untrusted input",
+   "stage": 0,
+   "row": 1,
+   "tag": "raw",
+   "sources": [
+    {
+     "path": "src/ombuds/features/claims_triage/application/triage_use_case.py",
+     "line": 152,
+     "end_line": 158
+    }
+   ]
+  },
+  {
+   "id": "injection",
+   "type": "security",
+   "label": "Injection check",
+   "sublabel": "NFKC, base64, 6 kinds",
+   "stage": 1,
+   "row": 0,
+   "tag": "detect()",
+   "sources": [
+    {
+     "path": "src/ombuds/platform/guardrails/injection_detection.py",
+     "line": 146,
+     "end_line": 157
+    }
+   ]
+  },
+  {
+   "id": "pii_in",
+   "type": "security",
+   "label": "PII redaction",
+   "sublabel": "email, IBAN, card...",
+   "stage": 1,
+   "row": 1,
+   "tag": "redact()",
+   "sources": [
+    {
+     "path": "src/ombuds/platform/guardrails/pii_filter.py",
+     "line": 154,
+     "end_line": 175
+    }
+   ]
+  },
+  {
+   "id": "agent",
+   "type": "backend",
+   "label": "Agent (LLM)",
+   "sublabel": "sees redacted text only",
+   "stage": 2,
+   "row": 1,
+   "tag": "LangGraph",
+   "sources": [
+    {
+     "path": "src/ombuds/features/claims_triage/application/triage_use_case.py",
+     "line": 160,
+     "end_line": 167
+    }
+   ]
+  },
+  {
+   "id": "guarded",
+   "type": "security",
+   "label": "Guarded dispatcher",
+   "sublabel": "scrubs tool arguments",
+   "stage": 3,
+   "row": 1,
+   "tag": "redact_value",
+   "sources": [
+    {
+     "path": "src/ombuds/platform/guardrails/guarded_dispatcher.py",
+     "line": 15,
+     "end_line": 31
+    }
+   ]
+  },
+  {
+   "id": "scope",
+   "type": "security",
+   "label": "Tool scope",
+   "sublabel": "3 tools, server claim_id",
+   "stage": 3,
+   "row": 2,
+   "tag": "no issue_payment",
+   "sources": [
+    {
+     "path": "src/ombuds/features/claims_triage/tools/__init__.py",
+     "line": 41,
+     "end_line": 81
+    }
+   ]
+  },
+  {
+   "id": "rules",
+   "type": "backend",
+   "label": "Rules engine",
+   "sublabel": "evaluate() recomputes",
+   "stage": 4,
+   "row": 2,
+   "tag": "not the model",
+   "sources": [
+    {
+     "path": "src/ombuds/features/claims_triage/tools/log_claim.py",
+     "line": 55,
+     "end_line": 65
+    }
+   ]
+  },
+  {
+   "id": "approval",
+   "type": "security",
+   "label": "Approval request",
+   "sublabel": "PENDING, human decides",
+   "stage": 4,
+   "row": 3,
+   "tag": "ADR-0009",
+   "sources": [
+    {
+     "path": "src/ombuds/features/claims_triage/tools/log_claim.py",
+     "line": 55,
+     "end_line": 75
+    }
+   ]
+  },
+  {
+   "id": "result",
+   "type": "backend",
+   "label": "TriageResult",
+   "sublabel": "answer redacted again",
+   "stage": 4,
+   "row": 0,
+   "tag": "output",
+   "sources": [
+    {
+     "path": "src/ombuds/features/claims_triage/application/triage_use_case.py",
+     "line": 220,
+     "end_line": 233
+    }
+   ]
+  }
+ ],
+ "flows": [
+  {
+   "id": "claim-injection",
+   "from": "claim",
+   "to": "injection",
+   "label": "claim text",
+   "variant": "default"
+  },
+  {
+   "id": "injection-pii_in",
+   "from": "injection",
+   "to": "pii_in",
+   "label": "clean text",
+   "variant": "default"
+  },
+  {
+   "id": "injection-result",
+   "from": "injection",
+   "to": "result",
+   "label": "hit: escalate, no model call",
+   "variant": "security"
+  },
+  {
+   "id": "pii_in-agent",
+   "from": "pii_in",
+   "to": "agent",
+   "label": "redacted claim",
+   "variant": "emphasis"
+  },
+  {
+   "id": "agent-guarded",
+   "from": "agent",
+   "to": "guarded",
+   "label": "tool calls",
+   "variant": "default"
+  },
+  {
+   "id": "guarded-scope",
+   "from": "guarded",
+   "to": "scope",
+   "label": "redacted args",
+   "variant": "security"
+  },
+  {
+   "id": "scope-rules",
+   "from": "scope",
+   "to": "rules",
+   "label": "allowed calls",
+   "variant": "default"
+  },
+  {
+   "id": "rules-approval",
+   "from": "rules",
+   "to": "approval",
+   "label": "rules-derived payload",
+   "variant": "emphasis"
+  },
+  {
+   "id": "agent-result",
+   "from": "agent",
+   "to": "result",
+   "label": "answer + decision",
+   "variant": "default"
+  }
+ ],
+ "cards": [
+  {
+   "dot": "rose",
+   "title": "Trust boundaries",
+   "items": [
+    "Input: injection is screened first; a hit returns an escalated result and the model, provider and tools are never touched (ADR-0014)",
+    "PII is redacted before the model sees the claim, again in tool-call arguments, and again in the answer, explanation and escalation reason (ADR-0013)",
+    "Tool results are not filtered"
+   ]
+  },
+  {
+   "dot": "emerald",
+   "title": "Where the model's authority ends",
+   "items": [
+    "The agent is offered search_kb, check_eligibility and log_claim only; issue_payment stays operator-only over MCP",
+    "Any claim_id the model passes is overwritten with the server-issued one",
+    "log_claim recomputes eligibility with the rules engine and only submits a payload-bound approval request; nothing executes until a human approves"
+   ]
+  },
+  {
+   "dot": "orange",
+   "title": "Not built yet",
+   "items": [
+    "No OPA/Rego policy check sits before the approval request (policy_engine.py is a stub, Week 4)",
+    "Streamed tool-call arguments are redacted per event (_redact_event)"
+   ]
+  }
+ ]
+}

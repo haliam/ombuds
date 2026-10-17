@@ -40,6 +40,8 @@ markers = ["integration: needs real Postgres (docker compose up -d --wait db)"]
 [tool.ruff]
 line-length = 120
 target-version = "py311"
+extend-exclude = ["docs/diagrams/src"]
+force-exclude = true
 
 [tool.ruff.lint]
 # pycodestyle, pyflakes, isort, pep8-naming, pyupgrade, bugbear, simplify

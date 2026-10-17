@@ -1,0 +1,286 @@
+{
+ "schema_version": 1,
+ "diagram_type": "dataflow",
+ "meta": {
+  "title": "RAG Ingest, Retrieval and Evals",
+  "output": "docs/diagrams/archify/rag-evals-pipeline.html",
+  "quality_profile": "showcase",
+  "repository": {
+   "url": "https://github.com/haliam/ombuds.git",
+   "provider": "github",
+   "link_mode": "web",
+   "revision": "b78ae9fac441804e076ed96c6b239128a19226be"
+  }
+ },
+ "stages": [
+  {
+   "label": "Inputs"
+  },
+  {
+   "label": "Chunk / query"
+  },
+  {
+   "label": "Embed"
+  },
+  {
+   "label": "Store"
+  },
+  {
+   "label": "Outcome"
+  }
+ ],
+ "nodes": [
+  {
+   "id": "seed",
+   "type": "database",
+   "label": "KB seed docs",
+   "sublabel": "3 markdown files",
+   "stage": 0,
+   "row": 0,
+   "tag": "airline",
+   "sources": [
+    {
+     "path": "src/ombuds/features/claims_triage/rag/ingest.py",
+     "line": 12,
+     "end_line": 33
+    }
+   ]
+  },
+  {
+   "id": "question",
+   "type": "frontend",
+   "label": "search_kb call",
+   "sublabel": "top_k 1-20, default 5",
+   "stage": 0,
+   "row": 2,
+   "tag": "online",
+   "sources": [
+    {
+     "path": "src/ombuds/features/claims_triage/tools/search_kb.py",
+     "line": 16,
+     "end_line": 65
+    }
+   ]
+  },
+  {
+   "id": "dataset",
+   "type": "database",
+   "label": "Eval dataset",
+   "sublabel": "30 gold questions",
+   "stage": 0,
+   "row": 4,
+   "tag": "jsonl",
+   "sources": [
+    {
+     "path": "evals/dataset.py",
+     "line": 13,
+     "end_line": 64
+    }
+   ]
+  },
+  {
+   "id": "chunker",
+   "type": "backend",
+   "label": "Chunker",
+   "sublabel": "by heading, 1000 chars",
+   "stage": 1,
+   "row": 0,
+   "tag": "ingest",
+   "sources": [
+    {
+     "path": "src/ombuds/features/claims_triage/rag/chunking.py",
+     "line": 23,
+     "end_line": 96
+    }
+   ]
+  },
+  {
+   "id": "retriever",
+   "type": "backend",
+   "label": "Retriever",
+   "sublabel": "drops score < 0.35",
+   "stage": 1,
+   "row": 2,
+   "tag": "floor",
+   "sources": [
+    {
+     "path": "src/ombuds/features/claims_triage/rag/retriever.py",
+     "line": 14,
+     "end_line": 31
+    }
+   ]
+  },
+  {
+   "id": "harness",
+   "type": "backend",
+   "label": "Eval harness",
+   "sublabel": "floor 0, top 5 each",
+   "stage": 1,
+   "row": 4,
+   "tag": "make eval",
+   "sources": [
+    {
+     "path": "evals/run_evals.py",
+     "line": 28,
+     "end_line": 38
+    }
+   ]
+  },
+  {
+   "id": "embedder",
+   "type": "cloud",
+   "label": "OpenAI embedder",
+   "sublabel": "batches of 256, 1536-d",
+   "stage": 2,
+   "row": 0,
+   "tag": "ingest",
+   "sources": [
+    {
+     "path": "src/ombuds/platform/ai/embeddings.py",
+     "line": 13,
+     "end_line": 62
+    }
+   ]
+  },
+  {
+   "id": "store",
+   "type": "database",
+   "label": "kb_chunks",
+   "sublabel": "pgvector, HNSW cosine",
+   "stage": 3,
+   "row": 1,
+   "tag": "Postgres",
+   "sources": [
+    {
+     "path": "src/ombuds/platform/infrastructure/vector_store.py",
+     "line": 64,
+     "end_line": 99
+    }
+   ]
+  },
+  {
+   "id": "citations",
+   "type": "backend",
+   "label": "Citations",
+   "sublabel": "source, chunk, snippet, score",
+   "stage": 4,
+   "row": 1,
+   "tag": "to agent",
+   "sources": [
+    {
+     "path": "src/ombuds/features/claims_triage/rag/citation.py",
+     "line": 8,
+     "end_line": 21
+    }
+   ]
+  },
+  {
+   "id": "report",
+   "type": "backend",
+   "label": "Floor sweep report",
+   "sublabel": "hit@1/3/5, MRR, rejection",
+   "stage": 4,
+   "row": 3,
+   "tag": "no re-embed",
+   "sources": [
+    {
+     "path": "evals/run_evals.py",
+     "line": 39,
+     "end_line": 72
+    }
+   ]
+  }
+ ],
+ "flows": [
+  {
+   "id": "seed-chunker",
+   "from": "seed",
+   "to": "chunker",
+   "label": "documents",
+   "variant": "default"
+  },
+  {
+   "id": "chunker-embedder",
+   "from": "chunker",
+   "to": "embedder",
+   "label": "chunks",
+   "variant": "default"
+  },
+  {
+   "id": "embedder-store",
+   "from": "embedder",
+   "to": "store",
+   "label": "vectors (replace_source)",
+   "variant": "emphasis"
+  },
+  {
+   "id": "question-retriever",
+   "from": "question",
+   "to": "retriever",
+   "label": "query text",
+   "variant": "default"
+  },
+  {
+   "id": "retriever-store",
+   "from": "retriever",
+   "to": "store",
+   "label": "query embedding",
+   "variant": "default"
+  },
+  {
+   "id": "store-citations",
+   "from": "store",
+   "to": "citations",
+   "label": "top_k by cosine",
+   "variant": "emphasis"
+  },
+  {
+   "id": "dataset-harness",
+   "from": "dataset",
+   "to": "harness",
+   "label": "questions + gold",
+   "variant": "default"
+  },
+  {
+   "id": "harness-store",
+   "from": "harness",
+   "to": "store",
+   "label": "query embedding",
+   "variant": "dashed"
+  },
+  {
+   "id": "store-report",
+   "from": "store",
+   "to": "report",
+   "label": "scored hits",
+   "variant": "dashed"
+  }
+ ],
+ "cards": [
+  {
+   "dot": "emerald",
+   "title": "Two lanes, one table",
+   "items": [
+    "Offline: seed docs are chunked by heading, embedded and written per source in one transaction (delete then insert), so re-running ingest is safe",
+    "Online: the retriever embeds the query, the store orders by cosine and scores 1 - distance, and hits under 0.35 are dropped, so an off-topic query returns nothing"
+   ]
+  },
+  {
+   "dot": "orange",
+   "title": "Evals measure the floor",
+   "items": [
+    "The harness retrieves once per question with no floor, then sweeps 11 floors (0.00 to 0.50) over the saved scores",
+    "It reports hit@k, MRR and off-topic rejection per floor; this is what justifies 0.35 (ADR-0012)",
+    "The report prints and never fails CI"
+   ]
+  },
+  {
+   "dot": "rose",
+   "title": "Not built yet",
+   "items": [
+    "No end-to-end agent or prompt eval: evals/datasets/airline_claims.jsonl is empty, though prompt versioning depends on one",
+    "Embedding-provider outages surface to the agent as a tool error result"
+   ]
+  }
+ ]
+}
