@@ -28,6 +28,7 @@ Mermaid diagrams are not stored here. They live inline in the doc they explain (
 | Docker Compose startup | Mermaid | [`architecture.md`](../architecture.md#deployment) |
 | Memory flow | Mermaid | [`architecture.md`](../architecture.md#memory) |
 | Prompt versioning | Mermaid | [`architecture.md`](../architecture.md#prompt-versioning) |
+| Injection detection internals | Mermaid | [ADR-0014](../decisions/0014-heuristic-injection-detection-escalates.md#inside-detect) |
 
 ## Which tool
 
