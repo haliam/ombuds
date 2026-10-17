@@ -25,6 +25,9 @@ Mermaid diagrams are not stored here. They live inline in the doc they explain (
 | LangGraph triage loop | Mermaid | [ADR-0005](../decisions/0005-prompted-json-with-repair-over-native-structured-output.md#the-triage-graph-end-to-end) |
 | Provider fallback | Mermaid | [ADR-0006](../decisions/0006-two-layer-resilience-over-a-retry-library.md#how-a-failure-travels) |
 | SSE event order | Mermaid | [ADR-0007](../decisions/0007-sse-over-websockets-for-triage-streaming.md#event-order-of-one-streamed-triage) |
+| Docker Compose startup | Mermaid | [`architecture.md`](../architecture.md#deployment) |
+| Memory flow | Mermaid | [`architecture.md`](../architecture.md#memory) |
+| Prompt versioning | Mermaid | [`architecture.md`](../architecture.md#prompt-versioning) |
 
 ## Which tool
 
