@@ -24,4 +24,28 @@ The passenger's `claim_text` is the only untrusted free text that reaches the mo
 - **Log only:** no protection, and the model still sees the attack.
 - **Strip the matched text and continue:** the attacker learns what gets stripped, and the remainder can still steer the model.
 
+## Inside `detect()`
+
+```mermaid
+flowchart TD
+    text["claim text"] --> norm["_normalise<br/>NFKC, drop zero-width chars,<br/>control chars become spaces"]
+    norm --> collapse["_collapse_whitespace"]
+    norm --> join["join letter-by-letter spacing<br/>('i g n o r e'), then collapse"]
+    collapse --> scan1["_count_by_kind(normalised)"]
+    join --> scan2["_count_by_kind(joined)"]
+    collapse --> b64["find base64-looking blobs (24+ chars)"]
+    b64 --> dec{"decodes as UTF-8?"}
+    dec -->|"no"| skip["ignore blob"]
+    dec -->|"yes"| rescan["normalise + rescan decoded text"]
+    rescan -->|"trips any other kind"| enc["ENCODED_PAYLOAD += 1"]
+    scan1 --> merge["merge per kind: max of the two scans"]
+    scan2 --> merge
+    enc --> merge
+    merge --> result["InjectionResult(findings: kind + count, never the text)"]
+    result -->|"suspicious"| esc["_prepare_run returns an escalated TriageResult<br/>no model call, no tools"]
+    result -->|"clean"| ok["continue: PII redaction, then the agent"]
+```
+
+The five regex kinds are `INSTRUCTION_OVERRIDE` (English plus German, French and Spanish phrasings), `ROLE_HIJACK`, `PROMPT_EXFIL`, `TOOL_COMMAND` (a tool name or "skip the approval gate") and `DELIMITER_SPOOF` (chat-template tokens); `ENCODED_PAYLOAD` is the sixth, from the base64 rescan. It is a heuristic layer: paraphrases and other languages get through, and the approval gate and tool scoping hold regardless. Source: `platform/guardrails/injection_detection.py` (`detect`, `_normalise`, `_encoded_payloads`), `application/triage_use_case.py` (`_prepare_run`).
+
 See the pipeline diagram in [architecture.md](../architecture.md#guardrails-and-tool-scoping).

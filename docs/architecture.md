@@ -142,6 +142,58 @@ flowchart TB
 
 `docker compose up` (via `make up`) runs three services: `db` (pgvector/pgvector:pg16), a one-shot `migrate-ingest` (migrations plus KB ingest), and `api` on port 8000. The API keeps no approval state in process, because approvals live in Postgres.
 
+```mermaid
+sequenceDiagram
+    participant U as make up
+    participant D as db (pgvector pg16)
+    participant M as migrate-ingest (one-shot)
+    participant A as api (:8000)
+    U->>D: start
+    loop every 2s, up to 20 tries
+        D-->>D: pg_isready healthcheck
+    end
+    D-->>M: service_healthy
+    M->>D: apply migrations (advisory lock)
+    M->>D: chunk + embed KB seed, replace per source (needs OPENAI_API_KEY)
+    M-->>A: service_completed_successfully, then exits (restart: no)
+    A->>D: create pool, build_runtime (needs ANTHROPIC_API_KEY for triage)
+    loop every 3s, up to 20 tries
+        A-->>A: GET /openapi.json healthcheck
+    end
+    Note over A: the API never migrates on its own, and keeps no approval state in process
+```
+
+`api` waits on both `db` (healthy) and `migrate-ingest` (completed successfully), so a failed migration or ingest keeps the API from starting. Both steps are idempotent, so running `make up` again is safe. Source: `docker-compose.yml`.
+
+## Memory
+
+```mermaid
+flowchart LR
+    subgraph run["One triage run"]
+        tools["dispatch_tools<br/>latest successful check_eligibility"] -->|"eligible, compensation_eur, reasons<br/>(rendered by our code)"| st["ShortTermMemory<br/>in AgentState, never put in a prompt"]
+    end
+    st -->|"only if a verified decision exists"| cons["_consolidate<br/>keys become last_*"]
+    cons -->|"save(claimant_id)"| store[("LongTermMemoryStore<br/>Postgres long_term_memory<br/>or in-memory")]
+    store -->|"load(claimant_id)"| ctx["as_context()<br/>separate text block in the FIRST user message"]
+    ctx --> first["first user turn of the next run<br/>(not the system prompt)"]
+```
+
+Both kinds hold only rules-derived facts, never model-written text, and memory is never promoted to system-prompt trust (W2 review F-06). Cross-run memory is opt-in: `run_triage` needs both a `claimant_id` and a `long_term_store`. The HTTP routes pass neither, so today only the library path uses it, and `PostgresLongTermMemoryStore` has no production caller. Sources: `agent/graph.py` (`_remember_eligibility`), `agent/memory/*`, `application/triage_use_case.py` (`run_triage`, `_consolidate`, `_first_user_message`).
+
+## Prompt versioning
+
+```mermaid
+flowchart LR
+    v1["v1<br/>stub"] --> v2["v2<br/>system prompt: always call check_eligibility, cite reason codes"] --> v3["v3<br/>adds final-answer JSON format and repair instruction"] --> v4["v4 (live)<br/>log_claim takes flight facts, reply must match check_eligibility"]
+    env[".env / CLAIMS_TRIAGE_PROMPT_VERSION<br/>default v4"] -->|"selects"| cfg["config.ACTIVE_PROMPT_VERSIONS"]
+    cfg --> load["load_prompt('claims_triage')<br/>read per run in _prepare_run"]
+    v4 -.-> load
+    gate{"new version?"} -->|"bump, never edit old files"| vn["vN.txt"]
+    vn -->|"must run clean against evals/datasets"| cfg
+```
+
+Old versions stay as history. The gate is a policy, not code: the end-to-end eval dataset (`evals/datasets/airline_claims.jsonl`) is still empty, so only retrieval is measured today. Sources: `src/ombuds/config.py` (`ACTIVE_PROMPT_VERSIONS`, `load_prompt`), `platform/prompts/claims_triage/v1.txt` to `v4.txt`, `.env.example`.
+
 ## Development history
 
 Two diagrams show how the project was built, week by week: [`diagrams/archify/development-overview.html`](diagrams/archify/development-overview.html) (v1: steps and key decisions) and [`diagrams/archify/development-overview-v2.html`](diagrams/archify/development-overview-v2.html) (v2: steps only, each linked to its code at a fixed commit). Each has a `.json` source and a `.png` next to it.
