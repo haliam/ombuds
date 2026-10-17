@@ -142,6 +142,29 @@ flowchart TB
 
 `docker compose up` (via `make up`) runs three services: `db` (pgvector/pgvector:pg16), a one-shot `migrate-ingest` (migrations plus KB ingest), and `api` on port 8000. The API keeps no approval state in process, because approvals live in Postgres.
 
+```mermaid
+sequenceDiagram
+    participant U as make up
+    participant D as db (pgvector pg16)
+    participant M as migrate-ingest (one-shot)
+    participant A as api (:8000)
+    U->>D: start
+    loop every 2s, up to 20 tries
+        D-->>D: pg_isready healthcheck
+    end
+    D-->>M: service_healthy
+    M->>D: apply migrations (advisory lock)
+    M->>D: chunk + embed KB seed, replace per source (needs OPENAI_API_KEY)
+    M-->>A: service_completed_successfully, then exits (restart: no)
+    A->>D: create pool, build_runtime (needs ANTHROPIC_API_KEY for triage)
+    loop every 3s, up to 20 tries
+        A-->>A: GET /openapi.json healthcheck
+    end
+    Note over A: the API never migrates on its own, and keeps no approval state in process
+```
+
+`api` waits on both `db` (healthy) and `migrate-ingest` (completed successfully), so a failed migration or ingest keeps the API from starting. Both steps are idempotent, so running `make up` again is safe. Source: `docker-compose.yml`.
+
 ## Development history
 
 Two diagrams show how the project was built, week by week: [`diagrams/archify/development-overview.html`](diagrams/archify/development-overview.html) (v1: steps and key decisions) and [`diagrams/archify/development-overview-v2.html`](diagrams/archify/development-overview-v2.html) (v2: steps only, each linked to its code at a fixed commit). Each has a `.json` source and a `.png` next to it.
