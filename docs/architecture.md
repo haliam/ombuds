@@ -165,6 +165,21 @@ sequenceDiagram
 
 `api` waits on both `db` (healthy) and `migrate-ingest` (completed successfully), so a failed migration or ingest keeps the API from starting. Both steps are idempotent, so running `make up` again is safe. Source: `docker-compose.yml`.
 
+## Memory
+
+```mermaid
+flowchart LR
+    subgraph run["One triage run"]
+        tools["dispatch_tools<br/>latest successful check_eligibility"] -->|"eligible, compensation_eur, reasons<br/>(rendered by our code)"| st["ShortTermMemory<br/>in AgentState, never put in a prompt"]
+    end
+    st -->|"only if a verified decision exists"| cons["_consolidate<br/>keys become last_*"]
+    cons -->|"save(claimant_id)"| store[("LongTermMemoryStore<br/>Postgres long_term_memory<br/>or in-memory")]
+    store -->|"load(claimant_id)"| ctx["as_context()<br/>separate text block in the FIRST user message"]
+    ctx --> first["first user turn of the next run<br/>(not the system prompt)"]
+```
+
+Both kinds hold only rules-derived facts, never model-written text, and memory is never promoted to system-prompt trust (W2 review F-06). Cross-run memory is opt-in: `run_triage` needs both a `claimant_id` and a `long_term_store`. The HTTP routes pass neither, so today only the library path uses it, and `PostgresLongTermMemoryStore` has no production caller. Sources: `agent/graph.py` (`_remember_eligibility`), `agent/memory/*`, `application/triage_use_case.py` (`run_triage`, `_consolidate`, `_first_user_message`).
+
 ## Prompt versioning
 
 ```mermaid
