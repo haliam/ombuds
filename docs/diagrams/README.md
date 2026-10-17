@@ -9,6 +9,8 @@ This folder is the one home for diagram sources and outputs.
 
 Mermaid diagrams are not stored here. They live inline in the doc they explain (ADRs, `docs/architecture.md`).
 
+Plain-language explanations (one for a child, one for an interviewer) of every diagram below are in [explained.md](explained.md).
+
 ## Diagram index
 
 | Diagram | Tool | Where |

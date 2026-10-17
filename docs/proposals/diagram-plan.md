@@ -13,7 +13,7 @@
 | 7 | Provider fallback and SSE order | Mermaid | [ADR-0006](../decisions/0006-two-layer-resilience-over-a-retry-library.md#how-a-failure-travels), [ADR-0007](../decisions/0007-sse-over-websockets-for-triage-streaming.md#event-order-of-one-streamed-triage) |
 | 8 | MCP process boundary | archify | [architecture.md](../architecture.md#mcp-process-boundary) |
 
-Added later (2026-10-17): Docker Compose startup, memory flow, prompt versioning and injection-detection internals (ADR-0014). Not drawn yet (needs the code first): Week 4 tracing, Rego payout policy and audit trail; an end-to-end agent eval flow. The original plan follows for reference.
+Added later (2026-10-17): Docker Compose startup, memory flow, prompt versioning and injection-detection internals (ADR-0014). Not drawn yet (needs the code first): Week 4 tracing, Rego payout policy and audit trail; an end-to-end agent eval flow. Plain-language explanations of each diagram: [explained.md](../diagrams/explained.md) (plan: [diagram-explanations-plan.md](diagram-explanations-plan.md)). The original plan follows for reference.
 
 ## Context
 `docs/diagrams/` already has `architecture` (components), `triage-approval-flow` (sequence) and two `development-overview` timelines (each as .json/.html/.png, built with the archify skill). The dynamic mechanisms that the glossary and ADRs explain only in prose are not drawn: loops, turns, state machines, RAG, evals, memory. Goal: add a small, prioritized set of diagrams, wire them into the docs, and draw unbuilt Week-4 parts (policy engine/Rego, tracing, audit) as dashed "planned" boxes.
