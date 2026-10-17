@@ -165,6 +165,20 @@ sequenceDiagram
 
 `api` waits on both `db` (healthy) and `migrate-ingest` (completed successfully), so a failed migration or ingest keeps the API from starting. Both steps are idempotent, so running `make up` again is safe. Source: `docker-compose.yml`.
 
+## Prompt versioning
+
+```mermaid
+flowchart LR
+    v1["v1<br/>stub"] --> v2["v2<br/>system prompt: always call check_eligibility, cite reason codes"] --> v3["v3<br/>adds final-answer JSON format and repair instruction"] --> v4["v4 (live)<br/>log_claim takes flight facts, reply must match check_eligibility"]
+    env[".env / CLAIMS_TRIAGE_PROMPT_VERSION<br/>default v4"] -->|"selects"| cfg["config.ACTIVE_PROMPT_VERSIONS"]
+    cfg --> load["load_prompt('claims_triage')<br/>read per run in _prepare_run"]
+    v4 -.-> load
+    gate{"new version?"} -->|"bump, never edit old files"| vn["vN.txt"]
+    vn -->|"must run clean against evals/datasets"| cfg
+```
+
+Old versions stay as history. The gate is a policy, not code: the end-to-end eval dataset (`evals/datasets/airline_claims.jsonl`) is still empty, so only retrieval is measured today. Sources: `src/ombuds/config.py` (`ACTIVE_PROMPT_VERSIONS`, `load_prompt`), `platform/prompts/claims_triage/v1.txt` to `v4.txt`, `.env.example`.
+
 ## Development history
 
 Two diagrams show how the project was built, week by week: [`diagrams/archify/development-overview.html`](diagrams/archify/development-overview.html) (v1: steps and key decisions) and [`diagrams/archify/development-overview-v2.html`](diagrams/archify/development-overview-v2.html) (v2: steps only, each linked to its code at a fixed commit). Each has a `.json` source and a `.png` next to it.
