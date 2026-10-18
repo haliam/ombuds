@@ -90,3 +90,18 @@ def test_every_verdict_is_audited_with_its_reasons_and_policy_version() -> None:
             {"reasons": ["payout_above_limit"], "policy_version": "v1"},
         ),
     ]
+
+
+def test_policy_check_is_a_span_carrying_the_verdict(spans) -> None:
+    store, _, _ = _store(PolicyDecision(allow=False, reasons=("over_limit",), policy_version="v1"))
+
+    with pytest.raises(PolicyDeniedError):
+        store.submit(GuardedAction.ISSUE_PAYMENT, _PAYMENT)
+
+    (span,) = spans.get_finished_spans()
+    assert span.name == "policy.check"
+    assert dict(span.attributes or {}) == {
+        "action": GuardedAction.ISSUE_PAYMENT.value,
+        "policy.decision": "deny",
+        "policy.version": "v1",
+    }

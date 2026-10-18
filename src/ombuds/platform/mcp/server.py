@@ -17,6 +17,7 @@ from ombuds.platform.guardrails.policy_engine import OpaHttpPolicyEngine
 from ombuds.platform.infrastructure.postgres import create_pool
 from ombuds.platform.mcp.tool_bindings import build_mcp_server
 from ombuds.platform.observability.logging import configure_logging
+from ombuds.platform.observability.tracing import configure_tracing
 
 
 def build_server(registry: ToolDispatcher) -> Server:
@@ -40,6 +41,7 @@ async def _run() -> None:
 
 def main() -> None:
     configure_logging()
+    configure_tracing(config.OTEL_TRACES_EXPORTER)
     anyio.run(_run)
 
 

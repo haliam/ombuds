@@ -24,6 +24,7 @@ from ombuds.platform.infrastructure.repositories import (
     PostgresClaimRepository,
     PostgresPaymentRepository,
 )
+from ombuds.platform.observability.traced_dispatcher import TracedDispatcher
 
 
 @dataclass(frozen=True)
@@ -44,7 +45,7 @@ def build_runtime(
 
     Submissions are checked by `policy_engine` first (ADR-0015); a payout above `payout_limit_eur` is denied.
     Required, with no default, so a composition root can't forget the guardrail. Every tool call, policy
-    verdict and approval transition is written to the audit log (ADR-0016).
+    verdict and approval transition is written to the audit log (ADR-0016), and every tool call is a span (ADR-0017).
 
     `retriever_factory` is for tests that search over fakes; see `build_tool_registry`.
     """
@@ -55,5 +56,5 @@ def build_runtime(
         build_executors(claims, PostgresPaymentRepository(pool)),
     )
     approvals = PolicyCheckedApprovalStore(executing, policy_engine, {"max_payout_eur": payout_limit_eur}, audit)
-    registry = AuditedDispatcher(build_tool_registry(approvals, claims, retriever_factory), audit)
+    registry = TracedDispatcher(AuditedDispatcher(build_tool_registry(approvals, claims, retriever_factory), audit))
     return ClaimsTriageRuntime(approvals=approvals, registry=registry)

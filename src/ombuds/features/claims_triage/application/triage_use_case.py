@@ -33,6 +33,7 @@ from ombuds.platform.guardrails.guarded_dispatcher import GuardedDispatcher
 from ombuds.platform.guardrails.injection_detection import detect
 from ombuds.platform.guardrails.pii_filter import redact, redact_value
 from ombuds.platform.mcp.client import McpToolClient
+from ombuds.platform.observability.tracing import start_span, trace_stream
 
 __all__ = [
     "MAX_REPAIR_ATTEMPTS",
@@ -45,6 +46,7 @@ __all__ = [
 ]
 
 _RECURSION_LIMIT = 4 * MAX_TOOL_TURNS + 2 * MAX_REPAIR_ATTEMPTS + 10
+TRIAGE_SPAN = "triage.run"
 
 INJECTION_ESCALATION_REASON = "Possible prompt injection in the claim text; needs human review."
 
@@ -192,10 +194,11 @@ def _invoke_graph(
     run: _PreparedRun, tools: ToolDispatcher, long_term: LongTermMemory
 ) -> tuple[TriageResult, LongTermMemory]:
     app = build_triage_graph(run.provider, tools, run.system)
-    final_state = cast(
-        AgentState,
-        app.invoke(_initial_state(run.claim_text, long_term), config={"recursion_limit": _RECURSION_LIMIT}),
-    )
+    with start_span(TRIAGE_SPAN, claim_id=run.claim_id):
+        final_state = cast(
+            AgentState,
+            app.invoke(_initial_state(run.claim_text, long_term), config={"recursion_limit": _RECURSION_LIMIT}),
+        )
     return _to_result(run.claim_id, final_state), _consolidate(long_term, final_state)
 
 
@@ -274,11 +277,12 @@ def stream_triage(
     app = build_triage_graph(run.provider, _agent_tools(registry, run.claim_id), run.system, stream=True)
 
     final_state: AgentState | None = None
-    for mode, chunk in app.stream(
+    graph_stream = app.stream(
         _initial_state(run.claim_text, LongTermMemory()),
         config={"recursion_limit": _RECURSION_LIMIT},
         stream_mode=["custom", "values"],
-    ):
+    )
+    for mode, chunk in trace_stream(TRIAGE_SPAN, iter(graph_stream), claim_id=run.claim_id):
         if mode == "custom" and isinstance(chunk, ToolCallDelta | ToolResultEvent):
             yield _redact_event(chunk)
         elif mode == "values" and isinstance(chunk, Mapping):

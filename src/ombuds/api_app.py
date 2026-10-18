@@ -15,6 +15,7 @@ from ombuds.platform.guardrails.approval_gate import ApprovalStore
 from ombuds.platform.guardrails.policy_engine import OpaHttpPolicyEngine
 from ombuds.platform.infrastructure.postgres import create_pool
 from ombuds.platform.observability.logging import configure_logging
+from ombuds.platform.observability.tracing import configure_tracing
 
 _SCALAR_HTML = """<!doctype html>
 <html>
@@ -55,6 +56,7 @@ def create_app(approvals: ApprovalStore | None = None, registry: ToolDispatcher 
     database; a route whose dependency was not passed fails if called.
     """
     configure_logging()
+    configure_tracing(config.OTEL_TRACES_EXPORTER)
     if approvals is None and registry is None:
         app = FastAPI(title="ombuds", lifespan=_postgres_lifespan)
     else:
