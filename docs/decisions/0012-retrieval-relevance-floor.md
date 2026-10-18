@@ -21,4 +21,4 @@ Set `DEFAULT_MIN_SCORE` to 0.35: the highest floor that costs no recall on the e
 - **0.40:** rejects every off-topic question but drops one answerable question out of the top 5 for a 0.005 score margin, on a set too small to trust that trade. Preferred recall: a missing citation is worse than a weak one the model can ignore.
 - **Keep 0.2:** rejects almost nothing, so the floor was decorative.
 
-See the RAG and evals diagram in [architecture.md](../architecture.md#rag-and-evals).
+See the RAG and evals diagram in [architecture.md](../diagrams/rag-evals-pipeline.md).

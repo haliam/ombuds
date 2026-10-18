@@ -23,27 +23,20 @@ Each diagram is `MAJOR.MINOR` with a date, shown in the page header and in the d
 | [MCP Process Boundary](mcp-boundary.md) | 1.0 | 2026-10-18 | archify | ADR-0003 |
 | [Ombuds Development Board](development-overview.md) | 1.0 | 2026-10-18 | archify | all |
 | [Ombuds Development Board v2](development-overview-v2.md) | 1.0 | 2026-10-18 | archify | all |
-
-Mermaid diagrams, still inline in the doc they explain until they get their own pages:
-
-| Diagram | Tool | Where |
-|---|---|---|
-| Postgres data model | Mermaid | [`architecture.md`](../architecture.md#data-model) |
-| Layering and composition roots | Mermaid | [`architecture.md`](../architecture.md#layering) |
-| Approval lifecycle | Mermaid | [ADR-0009](../decisions/0009-approval-request-is-the-pending-action.md#lifecycle-of-an-approval-request) |
-| LangGraph triage loop | Mermaid | [ADR-0005](../decisions/0005-prompted-json-with-repair-over-native-structured-output.md#the-triage-graph-end-to-end) |
-| Provider fallback | Mermaid | [ADR-0006](../decisions/0006-two-layer-resilience-over-a-retry-library.md#how-a-failure-travels) |
-| SSE event order | Mermaid | [ADR-0007](../decisions/0007-sse-over-websockets-for-triage-streaming.md#event-order-of-one-streamed-triage) |
-| Docker Compose startup | Mermaid | [`architecture.md`](../architecture.md#deployment) |
-| Memory flow | Mermaid | [`architecture.md`](../architecture.md#memory) |
-| Prompt versioning | Mermaid | [`architecture.md`](../architecture.md#prompt-versioning) |
-| Injection detection internals | Mermaid | [ADR-0014](../decisions/0014-heuristic-injection-detection-escalates.md#inside-detect) |
-
-Their plain-language explanations are in [explained.md](explained.md).
+| [Postgres Data Model](data-model.md) | 1.0 | 2026-10-18 | Mermaid | ADR-0009, 0010 |
+| [Layering and Composition Roots](layering.md) | 1.0 | 2026-10-18 | Mermaid | ADR-0002, 0003 |
+| [Approval Request Lifecycle](approval-lifecycle.md) | 1.0 | 2026-10-18 | Mermaid | ADR-0009 |
+| [LangGraph Triage Loop](triage-graph.md) | 1.0 | 2026-10-18 | Mermaid | ADR-0001, 0005 |
+| [Provider Retry and Fallback](provider-fallback.md) | 1.0 | 2026-10-18 | Mermaid | ADR-0006, 0007 |
+| [SSE Event Order](sse-event-order.md) | 1.0 | 2026-10-18 | Mermaid | ADR-0007 |
+| [Docker Compose Startup](compose-startup.md) | 1.0 | 2026-10-18 | Mermaid | none |
+| [Memory Flow](memory-flow.md) | 1.0 | 2026-10-18 | Mermaid | ADR-0009 |
+| [Prompt Versioning](prompt-versioning.md) | 1.0 | 2026-10-18 | Mermaid | none |
+| [Injection Detection Internals](injection-detection.md) | 1.0 | 2026-10-18 | Mermaid | ADR-0014 |
 
 ## Which tool
 
-- **Mermaid**: small diagrams that sit beside prose (state machines, flowcharts, ER). GitHub renders them, no binaries.
+- **Mermaid**: small diagrams (state machines, flowcharts, ER, short sequences). The diagram lives in its page's ```mermaid block, with front-matter `title:`; GitHub renders it, no binaries.
 - **archify**: large multi-actor diagrams that need layout control.
 
 ## Regenerate an archify diagram

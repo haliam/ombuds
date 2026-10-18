@@ -20,4 +20,4 @@ Organise `src/ombuds/` into three areas: `domain/` (shared business models), `fe
 - **Horizontal clean layers** (the original sketch): layer boundaries are crisp, but feature cohesion is poor, and a lone vertical gets smeared across the whole tree.
 - **One flat package**: fine for a week, but it doesn't make the governance boundary (`platform/guardrails`) or the feature boundary visible, and both are central to the story this project tells.
 
-See the layering and composition-root diagram in [architecture.md](../architecture.md#layering).
+See the layering and composition-root diagram in [architecture.md](../diagrams/layering.md).

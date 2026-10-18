@@ -41,20 +41,7 @@ Along with this:
 
 ## Lifecycle of an approval request
 
-```mermaid
-stateDiagram-v2
-    direction LR
-    [*] --> PENDING: submit(action, payload)<br/>INSERT ON CONFLICT (action, payload_key)
-    PENDING --> PENDING: same payload again<br/>(deduped onto this request)
-    PENDING --> APPROVED: approve()<br/>compare-and-set, one winner
-    PENDING --> DENIED: deny()
-    APPROVED --> APPROVED: executor fails or crash<br/>execute_approved() retries
-    APPROVED --> EXECUTED: claim_for_execution()<br/>after the idempotent executor write
-    DENIED --> [*]
-    EXECUTED --> [*]
-```
-
-Every arrow other than the dedupe and retry loops is a compare-and-set `UPDATE ... WHERE status = <expected>`. A second `approve`, a `deny` after approval, or a second claim finds the status already moved and raises `ApprovalStateError` (HTTP 409), writing nothing. Sources: `platform/guardrails/approval_gate.py` (`ApprovalStatus`), `executing_store.py` (`approve`, `execute_approved`), `platform/infrastructure/repositories.py` (`PostgresApprovalStore._transition`).
+Diagram: [Approval Request Lifecycle v1.0](../diagrams/approval-lifecycle.md)
 
 ## Addendum (2026-10-15): executors and the transaction model
 
