@@ -16,6 +16,15 @@ services:
       timeout: 3s
       retries: 20
 
+  # OPA policy server (ADR-0015): evaluates policies/*.rego for the approval gate. The gate fails closed if it is down.
+  opa:
+    image: openpolicyagent/opa:1.4.2
+    command: ["run", "--server", "--addr=0.0.0.0:8181", "--ignore=*_test.rego", "/policies"]
+    ports:
+      - "8181:8181"
+    volumes:
+      - ./src/ombuds/platform/guardrails/policies:/policies:ro
+
   # One-shot: apply migrations, then chunk + embed the KB seed docs. Idempotent, so safe on every `up`.
   # The API never migrates on its own, so it waits for this to finish.
   migrate-ingest:
@@ -40,9 +49,12 @@ services:
     env_file: .env
     environment:
       DATABASE_URL: postgresql://ombuds:ombuds@db:5432/ombuds
+      OPA_URL: http://opa:8181
     depends_on:
       db:
         condition: service_healthy
+      opa:
+        condition: service_started
       migrate-ingest:
         condition: service_completed_successfully
     healthcheck:

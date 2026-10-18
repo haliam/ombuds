@@ -12,9 +12,9 @@ from ombuds.features.claims_triage.application.runtime import build_runtime
 from ombuds.platform.ai.tool_loop import ToolDispatcher
 from ombuds.platform.guardrails.api import router as approvals_router
 from ombuds.platform.guardrails.approval_gate import ApprovalStore
+from ombuds.platform.guardrails.policy_engine import OpaHttpPolicyEngine
 from ombuds.platform.infrastructure.postgres import create_pool
 from ombuds.platform.observability.logging import configure_logging
-
 
 _SCALAR_HTML = """<!doctype html>
 <html>
@@ -35,7 +35,9 @@ _SCALAR_HTML = """<!doctype html>
 async def _postgres_lifespan(app: FastAPI) -> AsyncIterator[None]:
     """Own the Postgres pool for the life of the app: open it, build the runtime over it, close it on shutdown."""
     pool = create_pool(config.DATABASE_URL, config.DATABASE_POOL_MAX_SIZE)
-    runtime = build_runtime(pool)
+    runtime = build_runtime(
+        pool, OpaHttpPolicyEngine(config.OPA_URL, config.OPA_TIMEOUT_SECONDS), config.PAYOUT_LIMIT_EUR
+    )
     app.state.approvals = runtime.approvals
     app.state.registry = runtime.registry
     try:

@@ -21,6 +21,12 @@ EMBEDDING_MODEL = os.environ.get("EMBEDDING_MODEL", "text-embedding-3-small")
 DATABASE_URL = os.environ.get("DATABASE_URL") or "postgresql://ombuds:ombuds@localhost:5433/ombuds"
 DATABASE_POOL_MAX_SIZE = int(os.environ.get("DATABASE_POOL_MAX_SIZE", "10"))
 
+# OPA policy server (ADR-0015) and the payout ceiling it enforces. Payments above the limit are denied at submit.
+# The default limit blocks EU261's EUR 600 tier and allows 250/400; the right value is a business call.
+OPA_URL = os.environ.get("OPA_URL", "http://localhost:8181")
+OPA_TIMEOUT_SECONDS = float(os.environ.get("OPA_TIMEOUT_SECONDS", "2"))
+PAYOUT_LIMIT_EUR = int(os.environ.get("PAYOUT_LIMIT_EUR", "400"))
+
 # Which prompt version is live per feature. Bump here (and in .env.example) after a new version
 # passes evals/datasets/ — never edit an old version's file in place.
 ACTIVE_PROMPT_VERSIONS = {"claims_triage": os.environ.get("CLAIMS_TRIAGE_PROMPT_VERSION", "v4")}

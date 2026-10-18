@@ -1,4 +1,4 @@
-.PHONY: help up down logs ps run lint format test db-up db-down db-reset test-integration ingest eval
+.PHONY: help up down logs ps run lint format test db-up db-down db-reset test-integration test-policy opa-up ingest eval
 
 help: # list the targets and what they do
 	@grep -E '^[a-z-]+:.*# ' $(MAKEFILE_LIST) | sed -E 's/^([a-z-]+):[^#]*# (.*)/\1\t\2/' | column -t -s "$$(printf '\t')"
@@ -39,8 +39,15 @@ db-down: # stop the stack; the Postgres volume is kept
 db-reset: # DESTRUCTIVE: stop the stack and delete the Postgres volume
 	docker compose down -v
 
-test-integration: db-up # integration tests against real Postgres
+test-integration: db-up opa-up # integration tests against real Postgres and OPA
 	uv run pytest tests/integration -m integration
+
+opa-up: # OPA policy server on :8181 for dev and integration tests
+	docker compose up -d opa
+
+test-policy: # opa check + the Rego unit tests, run in the OPA container
+	docker compose run --rm --no-deps -v $(CURDIR)/src/ombuds/platform/guardrails/policies:/p:ro --entrypoint opa opa check --strict /p
+	docker compose run --rm --no-deps -v $(CURDIR)/src/ombuds/platform/guardrails/policies:/p:ro --entrypoint opa opa test /p
 
 ingest: db-up # chunk + embed the KB seed documents into pgvector (needs OPENAI_API_KEY)
 	uv run python -m ombuds.features.claims_triage.rag.ingest

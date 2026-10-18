@@ -546,4 +546,24 @@ Template — copy this block per finished task, filling in the fields (omit **De
 
 ---
 
+### Write one OPA/Rego policy (block auto-payout above €X)
+
+**Week:** W4
+**Goal:** A real policy-as-code check in front of state-changing actions: a payout above the configured ceiling is refused before any approval request exists.
+
+**Files & responsibilities:**
+- `platform/guardrails/policies/payout_approval.rego` (+ `payout_approval_test.rego`) — package `ombuds.payout`; denies `issue_payment` above `input.limits.max_payout_eur` or with a missing/non-numeric amount; exposes `decision` = `{allow, reasons, policy_version}`.
+- `platform/guardrails/policy_engine.py` — `PolicyEngine` protocol, `PolicyDecision`, `OpaHttpPolicyEngine` (stdlib HTTP, fails closed with `policy_unavailable`).
+- `platform/guardrails/policy_checked_store.py` — `ApprovalStore` decorator that evaluates on `submit` and raises `PolicyDeniedError` (`domain/errors.py`).
+- `application/runtime.py`, `api_app.py`, `platform/mcp/server.py` — `build_runtime` now requires the engine and limit; roots inject them from `config.OPA_URL` / `PAYOUT_LIMIT_EUR`.
+- `docker-compose.yml` (`opa` service), `Makefile` (`opa-up`, `test-policy`), `.env.example`, ADR-0015.
+
+**Notable libraries:** OPA / Rego (new glossary entry); `urllib.request` from the standard library.
+
+**Decisions/trade-offs:** OPA server sidecar rather than an embedded engine (none installable in Python); the limit is passed in as input from config so the Rego holds no number; denial happens at submit, so nothing over the limit reaches the human queue. See ADR-0015.
+**Verified:** `make test` (lint + 326 unit tests), `make test-policy` (8/8 Rego tests, `opa check --strict`), `make test-integration` (42 passed, including the real policy against a live OPA).
+**Follow-up:** policy runs at submit only (not again at approve); `log_claim` is allowed but still needs a human; the decision (`reasons`, `policy_version`) is not yet persisted: that is the audit-trail task. Redraw the architecture and guardrails diagrams when W4 lands.
+
+---
+
 Library/framework/stdlib-concept entries live in [`glossary.md`](glossary.md) — append there, not here, whenever a summary's **Notable libraries** introduces something not already listed.

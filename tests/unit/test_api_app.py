@@ -20,7 +20,7 @@ def test_the_default_app_builds_its_runtime_at_startup_and_closes_its_pool_at_sh
 ) -> None:
     pool = _FakePool()
     monkeypatch.setattr(api_app, "create_pool", lambda *_: pool)
-    monkeypatch.setattr(api_app, "build_runtime", lambda _pool: ClaimsTriageRuntime(ApprovalGate(), ToolRegistry()))
+    monkeypatch.setattr(api_app, "build_runtime", lambda *_: ClaimsTriageRuntime(ApprovalGate(), ToolRegistry()))
     app = api_app.create_app()
 
     with TestClient(app):

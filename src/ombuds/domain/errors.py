@@ -11,3 +11,16 @@ class ToolExecutionError(Exception):
     An exception that isn't `ToolExecutionError` (a bug, an unhandled case) is not caught by `dispatch`
     and propagates as-is, so it stays loud instead of being silently reported as "the tool failed".
     """
+
+
+class PolicyDeniedError(ToolExecutionError):
+    """Raised when the policy engine refuses a guarded action (ADR-0015); no approval request is created.
+
+    A `ToolExecutionError` so it reaches the model or the MCP client as a tool error, with `reasons` as the
+    machine-readable codes from the policy.
+    """
+
+    def __init__(self, action: str, reasons: tuple[str, ...]) -> None:
+        super().__init__(f"policy denied {action}: {', '.join(reasons) or 'no reason given'}")
+        self.action = action
+        self.reasons = reasons
