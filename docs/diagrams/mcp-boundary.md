@@ -4,9 +4,9 @@
 **Decisions** [ADR-0003](../decisions/0003-mcp-as-subpackage-not-service.md)
 **Source** `platform/mcp/server.py`, `platform/mcp/tool_bindings.py`, the MCP client in `platform/ai/`
 
-![mcp-boundary](archify/mcp-boundary.png)
+![mcp-boundary](mcp-boundary/mcp-boundary.png)
 
-Interactive version: [`archify/mcp-boundary.html`](archify/mcp-boundary.html) · Source: [`archify/mcp-boundary.json`](archify/mcp-boundary.json)
+Interactive version: [`mcp-boundary/mcp-boundary.html`](mcp-boundary/mcp-boundary.html) · Source: [`mcp-boundary/mcp-boundary.json`](mcp-boundary/mcp-boundary.json)
 
 ## What it shows
 
@@ -26,10 +26,10 @@ Why not run MCP as its own microservice? It would add a deployment and network h
 
 ## Regenerate
 
-Edit [`archify/mcp-boundary.json`](archify/mcp-boundary.json) (bump the version and date in `meta.title`), then from the repo root:
+Edit [`mcp-boundary/mcp-boundary.json`](mcp-boundary/mcp-boundary.json) (bump the version and date in `meta.title`), then from the repo root:
 
 ```bash
-python docs/diagrams/src/render_archify.py mcp-boundary
+python docs/diagrams/render_archify.py mcp-boundary
 ```
 
 This runs `archify finalize architecture` and rewrites the `.html` and `.png` next to the JSON. The HTML stays under the repo's 1000 KB `check-added-large-files` limit.

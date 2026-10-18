@@ -1,6 +1,6 @@
 """Rebuild an archify diagram's .html and .png from its .json source.
 
-Usage (from the repo root): python docs/diagrams/src/render_archify.py <name> [<name> ...]
+Usage (from the repo root): python docs/diagrams/render_archify.py <name> [<name> ...]
 Needs node, the archify skill (~/.claude/skills/archify), google-chrome and Pillow.
 The PNG is a 2x headless-Chrome screenshot cropped to the title bar plus the diagram card.
 """
@@ -12,7 +12,7 @@ from pathlib import Path
 
 from PIL import Image
 
-OUT = Path("docs/diagrams/archify")
+OUT = Path("docs/diagrams")
 ARCHIFY = Path.home() / ".claude/skills/archify/bin/archify.mjs"
 TYPES = {"guardrails-pipeline": "dataflow", "rag-evals-pipeline": "dataflow", "triage-approval-flow": "sequence"}
 
@@ -32,16 +32,38 @@ def render(name: str) -> None:
     with tempfile.TemporaryDirectory() as tmp:
         html, shot = Path(tmp) / f"{name}.html", Path(tmp) / "full.png"
         subprocess.run(
-            ["node", str(ARCHIFY), "finalize", kind, str(OUT / f"{name}.json"), str(html), "--repo-root", ".", "--quality", "showcase"],
+            [
+                "node",
+                str(ARCHIFY),
+                "finalize",
+                kind,
+                str(OUT / name / f"{name}.json"),
+                str(html),
+                "--repo-root",
+                ".",
+                "--quality",
+                "showcase",
+            ],
             check=True,
         )
         subprocess.run(
-            ["google-chrome", "--headless", "--disable-gpu", "--no-sandbox", "--hide-scrollbars", "--force-device-scale-factor=2",
-             "--window-size=1400,4200", f"--screenshot={shot}", html.as_uri()],
-            check=True, capture_output=True, timeout=120,
+            [
+                "google-chrome",
+                "--headless",
+                "--disable-gpu",
+                "--no-sandbox",
+                "--hide-scrollbars",
+                "--force-device-scale-factor=2",
+                "--window-size=1400,4200",
+                f"--screenshot={shot}",
+                html.as_uri(),
+            ],
+            check=True,
+            capture_output=True,
+            timeout=120,
         )
-        (OUT / f"{name}.html").write_bytes(html.read_bytes())
-        crop_to_card(shot, OUT / f"{name}.png")
+        (OUT / name / f"{name}.html").write_bytes(html.read_bytes())
+        crop_to_card(shot, OUT / name / f"{name}.png")
 
 
 if __name__ == "__main__":

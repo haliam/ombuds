@@ -4,9 +4,9 @@
 **Decisions** [ADR-0001](../decisions/0001-langgraph-over-crewai.md), [ADR-0002](../decisions/0002-feature-sliced-over-clean-layers.md), [ADR-0009](../decisions/0009-approval-request-is-the-pending-action.md)
 **Source** `src/ombuds/api_app.py`, `features/claims_triage/`, `platform/` (source lines are cited per component in the JSON)
 
-![architecture](archify/architecture.png)
+![architecture](architecture/architecture.png)
 
-Interactive version: [`archify/architecture.html`](archify/architecture.html) · Source: [`archify/architecture.json`](archify/architecture.json)
+Interactive version: [`architecture/architecture.html`](architecture/architecture.html) · Source: [`architecture/architecture.json`](architecture/architecture.json)
 
 ## What it shows
 
@@ -26,10 +26,10 @@ Why not let the LLM decide eligibility? Because it is a legal calculation with e
 
 ## Regenerate
 
-Edit [`archify/architecture.json`](archify/architecture.json) (bump the version and date in `meta.title`), then from the repo root:
+Edit [`architecture/architecture.json`](architecture/architecture.json) (bump the version and date in `meta.title`), then from the repo root:
 
 ```bash
-python docs/diagrams/src/render_archify.py architecture
+python docs/diagrams/render_archify.py architecture
 ```
 
 This runs `archify finalize architecture` and rewrites the `.html` and `.png` next to the JSON. The HTML stays under the repo's 1000 KB `check-added-large-files` limit.

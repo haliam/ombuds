@@ -4,9 +4,9 @@
 **Decisions** [ADR-0009](../decisions/0009-approval-request-is-the-pending-action.md), [ADR-0014](../decisions/0014-heuristic-injection-detection-escalates.md)
 **Source** `triage_use_case.py`, `agent/graph.py`, `platform/guardrails/approval_gate.py`, `executing_store.py`
 
-![triage-approval-flow](archify/triage-approval-flow.png)
+![triage-approval-flow](triage-approval-flow/triage-approval-flow.png)
 
-Interactive version: [`archify/triage-approval-flow.html`](archify/triage-approval-flow.html) · Source: [`archify/triage-approval-flow.json`](archify/triage-approval-flow.json)
+Interactive version: [`triage-approval-flow/triage-approval-flow.html`](triage-approval-flow/triage-approval-flow.html) · Source: [`triage-approval-flow/triage-approval-flow.json`](triage-approval-flow/triage-approval-flow.json)
 
 ## What it shows
 
@@ -26,10 +26,10 @@ What if the executor fails after approval? The request stays approved, the write
 
 ## Regenerate
 
-Edit [`archify/triage-approval-flow.json`](archify/triage-approval-flow.json) (bump the version and date in `meta.title`), then from the repo root:
+Edit [`triage-approval-flow/triage-approval-flow.json`](triage-approval-flow/triage-approval-flow.json) (bump the version and date in `meta.title`), then from the repo root:
 
 ```bash
-python docs/diagrams/src/render_archify.py triage-approval-flow
+python docs/diagrams/render_archify.py triage-approval-flow
 ```
 
 This runs `archify finalize sequence` and rewrites the `.html` and `.png` next to the JSON. The HTML stays under the repo's 1000 KB `check-added-large-files` limit.

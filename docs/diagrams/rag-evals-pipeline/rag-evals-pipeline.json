@@ -3,7 +3,7 @@
  "diagram_type": "dataflow",
  "meta": {
   "title": "RAG Ingest, Retrieval and Evals · v1.0 · 2026-10-18",
-  "output": "docs/diagrams/archify/rag-evals-pipeline.html",
+  "output": "docs/diagrams/rag-evals-pipeline/rag-evals-pipeline.html",
   "quality_profile": "showcase",
   "repository": {
    "url": "https://github.com/haliam/ombuds.git",

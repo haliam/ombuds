@@ -4,7 +4,7 @@ Ombuds triages airline EU261 claims with an LLM agent, but the LLM never owns th
 
 ## Component view
 
-![Ombuds component architecture](diagrams/archify/architecture.png)
+![Ombuds component architecture](diagrams/architecture/architecture.png)
 
 Diagram: [Ombuds Claims Triage v1.0](diagrams/architecture.md) (interactive HTML, source and regeneration steps are on that page). Each component's source lines are cited in its JSON.
 
@@ -25,7 +25,7 @@ Diagram: [Ombuds Claims Triage v1.0](diagrams/architecture.md) (interactive HTML
 
 ## Triage and approval flow
 
-![Triage and approval sequence](diagrams/archify/triage-approval-flow.png)
+![Triage and approval sequence](diagrams/triage-approval-flow/triage-approval-flow.png)
 
 One triage and the later human approval are two separate moments: the agent only submits `log_claim`, and only after a human approves does the executor write to Postgres.
 
@@ -33,7 +33,7 @@ Diagram: [Triage and Approval Flow v1.0](diagrams/triage-approval-flow.md)
 
 ## MCP process boundary
 
-![MCP process boundary](diagrams/archify/mcp-boundary.png)
+![MCP process boundary](diagrams/mcp-boundary/mcp-boundary.png)
 
 With `use_mcp=True` the library path spawns the MCP server as a subprocess; the HTTP API does not use MCP. Decision: [ADR-0003](decisions/0003-mcp-as-subpackage-not-service.md).
 
@@ -41,7 +41,7 @@ Diagram: [MCP Process Boundary v1.0](diagrams/mcp-boundary.md)
 
 ## Guardrails and tool scoping
 
-![Guardrails and tool scoping pipeline](diagrams/archify/guardrails-pipeline.png)
+![Guardrails and tool scoping pipeline](diagrams/guardrails-pipeline/guardrails-pipeline.png)
 
 Where untrusted text is screened and redacted, and where the model's authority ends. Decisions: [ADR-0013](decisions/0013-regex-pii-redaction-at-the-trust-boundaries.md), [ADR-0014](decisions/0014-heuristic-injection-detection-escalates.md).
 
@@ -49,7 +49,7 @@ Diagram: [Guardrails and Tool Scoping Pipeline v1.0](diagrams/guardrails-pipelin
 
 ## RAG and evals
 
-![RAG ingest, retrieval and evals](diagrams/archify/rag-evals-pipeline.png)
+![RAG ingest, retrieval and evals](diagrams/rag-evals-pipeline/rag-evals-pipeline.png)
 
 Offline ingest and online retrieval meet at the `kb_chunks` table, and the eval harness sweeps the relevance floor over saved scores. Decisions: [ADR-0010](decisions/0010-pgvector-in-postgres-over-chroma.md), [ADR-0011](decisions/0011-heading-aware-chunking-and-openai-embeddings.md), [ADR-0012](decisions/0012-retrieval-relevance-floor.md).
 

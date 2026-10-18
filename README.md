@@ -22,7 +22,7 @@ A tool being *callable* by the agent must never imply automatic *permission* to 
 
 ## Design
 
-![Ombuds component architecture](docs/diagrams/archify/architecture.png)
+![Ombuds component architecture](docs/diagrams/architecture/architecture.png)
 
 *Component view. Full table, deployment and layering notes in [`docs/architecture.md`](docs/architecture.md). Diagram sources are in [`docs/diagrams/`](docs/diagrams/README.md).*
 
@@ -36,7 +36,7 @@ A claim comes in — for example, a flight cancellation compensation claim. Ombu
 6. **Gates risky actions behind a human.** A state-changing tool call (`log_claim` today; `issue_payment`, which the agent is never offered) only *submits* a payload-bound approval request, made of server-issued and rules-derived values, never model-authored ones. It does this whatever the model's confidence. The W4 OPA/Rego policy is meant to let low-risk logging auto-execute and always require a human for money.
 7. **Executes only after approval.** Once a human approves, the action runs exactly once against Postgres, which the LLM never owns ([ADR-0009](docs/decisions/0009-approval-request-is-the-pending-action.md)): `log_claim` writes the `claims` row, and `issue_payment` writes a *simulated* payout record to `payments` (there is no real payment rail) and requires a logged claim with a matching amount.
 
-![Triage and approval sequence](docs/diagrams/archify/triage-approval-flow.png)
+![Triage and approval sequence](docs/diagrams/triage-approval-flow/triage-approval-flow.png)
 
 *One triage, then the later human approval. Note that nothing changes state until the second half.*
 

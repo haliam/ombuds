@@ -4,9 +4,9 @@
 **Decisions** [ADR-0013](../decisions/0013-regex-pii-redaction-at-the-trust-boundaries.md), [ADR-0014](../decisions/0014-heuristic-injection-detection-escalates.md)
 **Source** `platform/guardrails/` (`injection_detection.py`, `pii_filter.py`, `guarded_dispatcher.py`, `approval_gate.py`), `features/claims_triage/tools/`
 
-![guardrails-pipeline](archify/guardrails-pipeline.png)
+![guardrails-pipeline](guardrails-pipeline/guardrails-pipeline.png)
 
-Interactive version: [`archify/guardrails-pipeline.html`](archify/guardrails-pipeline.html) · Source: [`archify/guardrails-pipeline.json`](archify/guardrails-pipeline.json)
+Interactive version: [`guardrails-pipeline/guardrails-pipeline.html`](guardrails-pipeline/guardrails-pipeline.html) · Source: [`guardrails-pipeline/guardrails-pipeline.json`](guardrails-pipeline/guardrails-pipeline.json)
 
 ## What it shows
 
@@ -26,10 +26,10 @@ If injection detection is bypassed, what is the blast radius? Small, because the
 
 ## Regenerate
 
-Edit [`archify/guardrails-pipeline.json`](archify/guardrails-pipeline.json) (bump the version and date in `meta.title`), then from the repo root:
+Edit [`guardrails-pipeline/guardrails-pipeline.json`](guardrails-pipeline/guardrails-pipeline.json) (bump the version and date in `meta.title`), then from the repo root:
 
 ```bash
-python docs/diagrams/src/render_archify.py guardrails-pipeline
+python docs/diagrams/render_archify.py guardrails-pipeline
 ```
 
 This runs `archify finalize dataflow` and rewrites the `.html` and `.png` next to the JSON. The HTML stays under the repo's 1000 KB `check-added-large-files` limit.

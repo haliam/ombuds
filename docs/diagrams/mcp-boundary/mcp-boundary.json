@@ -3,7 +3,7 @@
  "diagram_type": "architecture",
  "meta": {
   "title": "MCP Process Boundary · v1.0 · 2026-10-18",
-  "output": "docs/diagrams/archify/mcp-boundary.html",
+  "output": "docs/diagrams/mcp-boundary/mcp-boundary.html",
   "quality_profile": "showcase",
   "repository": {
    "url": "https://github.com/haliam/ombuds.git",

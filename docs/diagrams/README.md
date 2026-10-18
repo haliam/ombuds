@@ -4,9 +4,10 @@ This folder is the one home for diagrams. **Every diagram has one page, `<slug>.
 
 | Path | What it holds |
 |---|---|
-| `<slug>.md` | The diagram page (the thing to read and link to). |
-| `archify/` | For archify diagrams: `<slug>.json` (source, pinned to a commit), `<slug>.html` (interactive) and `<slug>.png` (embedded in the page). |
-| `src/` | Scripts: `render_archify.py` rebuilds an archify `.html` and `.png`; `development_board_gen.py` generates board v1's JSON. |
+| `<slug>.md` | The diagram page (the thing to read and link to). Every diagram has one. |
+| `<slug>/` | Only for archify diagrams: `<slug>.json` (source, pinned to a commit), `<slug>.html` (interactive) and `<slug>.png` (embedded in the page). Mermaid diagrams have no folder, because the diagram is in the page. |
+| `render_archify.py` | Rebuilds an archify diagram's `.html` and `.png` from its JSON. |
+| `development_board_gen.py` | Generates development board v1's JSON. |
 
 ## Versioning
 
@@ -41,4 +42,4 @@ Each diagram is `MAJOR.MINOR` with a date, shown in the page header and in the d
 
 ## Regenerate an archify diagram
 
-From the repo root: `python docs/diagrams/src/render_archify.py <slug>` (needs node, the archify skill, google-chrome and Pillow). It runs `archify finalize` and rewrites the `.html` and `.png`. archify writes scratch runs to `.archify/` at the repo root. It is gitignored; delete it freely.
+From the repo root: `python docs/diagrams/render_archify.py <slug>` (needs node, the archify skill, google-chrome and Pillow). It runs `archify finalize` and rewrites the `.html` and `.png`. archify writes scratch runs to `.archify/` at the repo root. It is gitignored; delete it freely.

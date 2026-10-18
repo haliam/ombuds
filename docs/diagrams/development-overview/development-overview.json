@@ -3,7 +3,7 @@
  "diagram_type": "architecture",
  "meta": {
   "title": "Ombuds Development Board · v1.0 · 2026-10-18",
-  "output": "docs/diagrams/archify/development-overview.html",
+  "output": "docs/diagrams/development-overview/development-overview.html",
   "quality_profile": "showcase",
   "legend": {
    "mode": "auto",

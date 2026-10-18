@@ -4,7 +4,7 @@
 **Decisions** [ADR-00NN](../decisions/00NN-slug.md)
 **Source** code paths the diagram was checked against
 
-<!-- archify: ![slug](archify/slug.png) + links to archify/slug.html and archify/slug.json -->
+<!-- archify: ![slug](slug/slug.png) + links to slug/slug.html and slug/slug.json -->
 <!-- Mermaid: a ```mermaid block that starts with front matter:
 ---
 title: <Title> · v1.0 · YYYY-MM-DD
@@ -29,7 +29,7 @@ A question and a one-line answer.
 
 ## Regenerate
 
-archify: `python docs/diagrams/src/render_archify.py <slug>` after editing the JSON. Mermaid: edit this file.
+archify: `python docs/diagrams/render_archify.py <slug>` after editing the JSON. Mermaid: edit this file.
 
 ## Change log
 

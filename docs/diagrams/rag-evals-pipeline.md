@@ -4,9 +4,9 @@
 **Decisions** [ADR-0010](../decisions/0010-pgvector-in-postgres-over-chroma.md), [ADR-0011](../decisions/0011-heading-aware-chunking-and-openai-embeddings.md), [ADR-0012](../decisions/0012-retrieval-relevance-floor.md)
 **Source** `features/claims_triage/rag/`, `evals/run_evals.py`, `evals/datasets/airline_retrieval.jsonl`
 
-![rag-evals-pipeline](archify/rag-evals-pipeline.png)
+![rag-evals-pipeline](rag-evals-pipeline/rag-evals-pipeline.png)
 
-Interactive version: [`archify/rag-evals-pipeline.html`](archify/rag-evals-pipeline.html) · Source: [`archify/rag-evals-pipeline.json`](archify/rag-evals-pipeline.json)
+Interactive version: [`rag-evals-pipeline/rag-evals-pipeline.html`](rag-evals-pipeline/rag-evals-pipeline.html) · Source: [`rag-evals-pipeline/rag-evals-pipeline.json`](rag-evals-pipeline/rag-evals-pipeline.json)
 
 ## What it shows
 
@@ -26,10 +26,10 @@ Why not Chroma? pgvector keeps claims, approvals and embeddings in one transacti
 
 ## Regenerate
 
-Edit [`archify/rag-evals-pipeline.json`](archify/rag-evals-pipeline.json) (bump the version and date in `meta.title`), then from the repo root:
+Edit [`rag-evals-pipeline/rag-evals-pipeline.json`](rag-evals-pipeline/rag-evals-pipeline.json) (bump the version and date in `meta.title`), then from the repo root:
 
 ```bash
-python docs/diagrams/src/render_archify.py rag-evals-pipeline
+python docs/diagrams/render_archify.py rag-evals-pipeline
 ```
 
 This runs `archify finalize dataflow` and rewrites the `.html` and `.png` next to the JSON. The HTML stays under the repo's 1000 KB `check-added-large-files` limit.
