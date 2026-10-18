@@ -1,6 +1,6 @@
 # W1 Notion Task Audit — Template + Update Record
 
-Audit of the 11 `🔨 Build`-category W1 pages in the Notion "All task" database against what W1 actually shipped, per `docs/progress/task_summaries.md` (goal/files ground truth) and `docs/reviews/w1_review_pre_w2_plan.md` (the F-01…F-14 findings and T-1…T-6 fixes from the pre-W2 hardening pass, PR #13). Scope is the Build pages only — the separate "W1 Q: …" interview-prep pages are a different kind of content and are not covered here.
+Audit of the 11 `🔨 Build`-category W1 pages in the Notion "All task" database against what W1 actually shipped, per `docs/progress/task_summaries.md` (goal/files ground truth) and `w1_review_pre_w2_plan.md` (removed; see git history) (the F-01…F-14 findings and T-1…T-6 fixes from the pre-W2 hardening pass, PR #13). Scope is the Build pages only — the separate "W1 Q: …" interview-prep pages are a different kind of content and are not covered here.
 
 Before this audit, 7 of the 11 pages were completely blank despite being marked "Done," and the 4 with content used three different ad-hoc formats with no explicit Goal line. Two tasks (structured-output validation, retries/idempotency) had a documented post-hoc defect from the W1 review that wasn't reflected in Notion at all.
 

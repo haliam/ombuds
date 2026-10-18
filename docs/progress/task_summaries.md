@@ -340,7 +340,7 @@ Template — copy this block per finished task, filling in the fields (omit **De
 
 **Week:** W2 → W3 boundary
 **Goal:** Fix the W2 governance-path gaps found in the pre-W3 review before W3 builds persistence, RAG and guardrails on top of them.
-**Source:** [`w2_review_pre_w3_plan.md`](w2_review_pre_w3_plan.md) (T-1 to T-6, O-7); ADR-0009 (supersedes ADR-0008); ADR-0007 amendment
+**Source:** `w2_review_pre_w3_plan.md` (removed; see git history) (T-1 to T-6, O-7); ADR-0009 (supersedes ADR-0008); ADR-0007 amendment
 
 **Files & responsibilities:**
 - `escalate_retry.py` — escalated runs return a fixed `ESCALATION_ANSWER`, never the model's last text, which on every escalation path was a rejected verdict, a stale preamble or a truncated reply (T-1, F-01).
@@ -508,7 +508,7 @@ Template — copy this block per finished task, filling in the fields (omit **De
 
 **Week:** W3 → W4 boundary
 **Goal:** Finish the approval path W3 left open, so W4's tracing, audit trail and Rego policy attach to a real, durable, executing path.
-**Source:** [`w3_review_pre_w4_plan.md`](w3_review_pre_w4_plan.md) (P-1 to P-4; F-01, F-02, F-04, F-06); ADR-0009 addendum
+**Source:** `w3_review_pre_w4_plan.md` (removed; see git history) (P-1 to P-4; F-01, F-02, F-04, F-06); ADR-0009 addendum
 
 **Files & responsibilities:**
 - `approval_gate.py` — the module-level `_GATE` and its wrapper functions are gone; `ApprovalGate` stays as the in-memory fake for tests.
