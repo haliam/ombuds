@@ -1,5 +1,7 @@
 # Plan: plain-text explanations for every diagram (child + interviewer)
 
+**Status: done, then superseded (2026-10-18).** `explained.md` was split so each explanation sits on its diagram's own page (`docs/diagrams/<slug>.md`) and the file was deleted. The text below is the original plan.
+
 ## Context
 The repo now has 16 content diagrams (the earlier diagram plan is done and pushed on `add_diagrams`). They show how the system works but need a plain-language layer: one version a child could follow and one a candidate could say out loud in an interview for the AI/Agentic Engineer role this capstone prepares for. Decisions from the user: one new doc, all 16 content diagrams (not the two development-history boards), about 150-250 words per text, English, and each interviewer text ends with a likely follow-up question and honest gaps.
 

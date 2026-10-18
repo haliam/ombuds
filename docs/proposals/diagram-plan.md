@@ -1,19 +1,19 @@
 # Plan: archify diagrams for the hard-to-grasp parts of ombuds
 
-**Status: done (2026-10-16).** Step 0 and all eight diagrams shipped, one commit each.
+**Status: done (2026-10-16).** Step 0 and all eight diagrams shipped, one commit each. Since 2026-10-18 every diagram has its own page in `docs/diagrams/` (see its README); the "Where it lives" links below point there.
 
 | # | Diagram | Tool | Where it lives |
 |---|---|---|---|
-| 1 | Approval lifecycle | Mermaid | [ADR-0009](../decisions/0009-approval-request-is-the-pending-action.md#lifecycle-of-an-approval-request) |
-| 2 | LangGraph triage loop | Mermaid | [ADR-0005](../decisions/0005-prompted-json-with-repair-over-native-structured-output.md#the-triage-graph-end-to-end) |
-| 3 | Guardrails and tool scoping | archify | [architecture.md](../architecture.md#guardrails-and-tool-scoping) |
-| 4 | Postgres data model | Mermaid | [architecture.md](../architecture.md#data-model) |
-| 5 | RAG ingest, retrieval and evals | archify | [architecture.md](../architecture.md#rag-and-evals) |
-| 6 | Layering and composition roots | Mermaid | [architecture.md](../architecture.md#layering) |
-| 7 | Provider fallback and SSE order | Mermaid | [ADR-0006](../decisions/0006-two-layer-resilience-over-a-retry-library.md#how-a-failure-travels), [ADR-0007](../decisions/0007-sse-over-websockets-for-triage-streaming.md#event-order-of-one-streamed-triage) |
-| 8 | MCP process boundary | archify | [architecture.md](../architecture.md#mcp-process-boundary) |
+| 1 | Approval lifecycle | Mermaid | [page](../diagrams/approval-lifecycle.md) |
+| 2 | LangGraph triage loop | Mermaid | [page](../diagrams/triage-graph.md) |
+| 3 | Guardrails and tool scoping | archify | [page](../diagrams/guardrails-pipeline.md) |
+| 4 | Postgres data model | Mermaid | [page](../diagrams/data-model.md) |
+| 5 | RAG ingest, retrieval and evals | archify | [page](../diagrams/rag-evals-pipeline.md) |
+| 6 | Layering and composition roots | Mermaid | [page](../diagrams/layering.md) |
+| 7 | Provider fallback and SSE order | Mermaid | [provider-fallback](../diagrams/provider-fallback.md), [sse-event-order](../diagrams/sse-event-order.md) |
+| 8 | MCP process boundary | archify | [page](../diagrams/mcp-boundary.md) |
 
-Added later (2026-10-17): Docker Compose startup, memory flow, prompt versioning and injection-detection internals (ADR-0014). Not drawn yet (needs the code first): Week 4 tracing, Rego payout policy and audit trail; an end-to-end agent eval flow. Plain-language explanations of each diagram: [explained.md](../diagrams/explained.md) (plan: [diagram-explanations-plan.md](diagram-explanations-plan.md)). The original plan follows for reference.
+Added later (2026-10-17): Docker Compose startup, memory flow, prompt versioning and injection-detection internals (ADR-0014). Not drawn yet (needs the code first): Week 4 tracing, Rego payout policy and audit trail; an end-to-end agent eval flow. Plain-language explanations of each diagram: each diagram's own page in [`docs/diagrams/`](../diagrams/README.md) (plan: [diagram-explanations-plan.md](diagram-explanations-plan.md)). The original plan follows for reference.
 
 ## Context
 `docs/diagrams/` already has `architecture` (components), `triage-approval-flow` (sequence) and two `development-overview` timelines (each as .json/.html/.png, built with the archify skill). The dynamic mechanisms that the glossary and ADRs explain only in prose are not drawn: loops, turns, state machines, RAG, evals, memory. Goal: add a small, prioritized set of diagrams, wire them into the docs, and draw unbuilt Week-4 parts (policy engine/Rego, tracing, audit) as dashed "planned" boxes.
@@ -23,14 +23,14 @@ Tool rule: **Mermaid** (text, renders natively on GitHub, no binaries) for diagr
 
 | # | Diagram | Tool | Mermaid type / archify type | Covers (glossary / ADR) | Source of truth |
 |---|---|---|---|---|---|
-| 1 | Approval lifecycle | **Mermaid** | `stateDiagram-v2` | exactly-once, compare-and-set, executor, ADR-0008/0009 | `platform/guardrails/approval_gate.py`, `executing_store.py`, `infrastructure/repositories.py` |
-| 2 | LangGraph triage loop | **Mermaid** (hand-drawn with caps and escalation reasons) + `graph.get_graph().draw_mermaid()` as a drift cross-check | `flowchart` | LangGraph, repair loop, escalation, ADR-0001/0005 | `agent/graph.py`, `state.py`, `nodes/escalate_retry.py` |
-| 3 | Guardrails + tool scoping pipeline | **archify** | data-flow with trust boundaries | PII, injection, NFKC, ADR-0013/0014 | `triage_use_case.py`, `injection_detection.py`, `pii_filter.py`, `guarded_dispatcher.py`, `tools/__init__.py` |
-| 4 | Postgres data model | **Mermaid** (tables checked against the migrations, optionally generated from the live schema) | `erDiagram` | ADR-0009 | `infrastructure/migrations/0001_init.sql`, `0002_payments.sql` |
-| 5 | RAG ingest + retrieval with eval floor sweep | **archify** | two-lane data-flow | chunking, embedding, cosine, relevance floor, evals, ADR-0010/11/12 | `rag/*`, `vector_store.py`, `evals/run_evals.py`, `retrieval_metrics.py` |
-| 6 | Layering + composition roots | **Mermaid** (optionally cross-checked by an `import-linter` graph) | `flowchart` with subgraphs | ADR-0002/0003, lifespan, ExitStack | `api_app.py`, `runtime.py`, `platform/mcp/server.py` |
-| 7 | Provider retry/fallback + streaming | **Mermaid** | `flowchart` (retry layers) + `sequenceDiagram` (stream events) | ADR-0006/0007, JSON buffering, SSE | `providers/fallback.py`, `tool_loop.py`, `streaming.py` |
-| 8 | MCP process boundary | **archify** | architecture with process boundaries | MCP, BlockingPortal, stdio | `mcp/server.py`, `tool_bindings.py`, `mcp/client.py` |
+| 1 | Approval lifecycle | **Mermaid** | `stateDiagram-v2` | exactly-once, compare-and-set, executor, ADR-0008/0009 | [page](../diagrams/approval-lifecycle.md) |
+| 2 | LangGraph triage loop | **Mermaid** (hand-drawn with caps and escalation reasons) + `graph.get_graph().draw_mermaid()` as a drift cross-check | `flowchart` | LangGraph, repair loop, escalation, ADR-0001/0005 | [page](../diagrams/triage-graph.md) |
+| 3 | Guardrails + tool scoping pipeline | **archify** | data-flow with trust boundaries | PII, injection, NFKC, ADR-0013/0014 | [page](../diagrams/guardrails-pipeline.md) |
+| 4 | Postgres data model | **Mermaid** (tables checked against the migrations, optionally generated from the live schema) | `erDiagram` | ADR-0009 | [page](../diagrams/data-model.md) |
+| 5 | RAG ingest + retrieval with eval floor sweep | **archify** | two-lane data-flow | chunking, embedding, cosine, relevance floor, evals, ADR-0010/11/12 | [page](../diagrams/rag-evals-pipeline.md) |
+| 6 | Layering + composition roots | **Mermaid** (optionally cross-checked by an `import-linter` graph) | `flowchart` with subgraphs | ADR-0002/0003, lifespan, ExitStack | [page](../diagrams/layering.md) |
+| 7 | Provider retry/fallback + streaming | **Mermaid** | `flowchart` (retry layers) + `sequenceDiagram` (stream events) | ADR-0006/0007, JSON buffering, SSE | [provider-fallback](../diagrams/provider-fallback.md), [sse-event-order](../diagrams/sse-event-order.md) |
+| 8 | MCP process boundary | **archify** | architecture with process boundaries | MCP, BlockingPortal, stdio | [page](../diagrams/mcp-boundary.md) |
 
 Result: 5 Mermaid (#1, #2, #4, #6, #7), 3 archify (#3, #5, #8). Mermaid blocks go inline in the ADR/glossary/architecture doc they explain; archify outputs go in `docs/diagrams/` as before.
 
