@@ -10,6 +10,7 @@ import json
 from pydantic import BaseModel, ConfigDict
 
 from ombuds.platform.ai.schemas.tool_calls import ToolCall, ToolResult
+from ombuds.platform.ai.usage import TokenUsage
 
 
 class TextDelta(BaseModel):
@@ -45,6 +46,7 @@ class TurnDone(BaseModel):
     tool_calls: tuple[ToolCall, ...]
     stop_reason: str
     content: object
+    usage: TokenUsage = TokenUsage()
 
 
 StreamEvent = TextDelta | ToolCallDelta | ToolResultEvent | TurnDone

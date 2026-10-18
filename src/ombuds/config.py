@@ -14,6 +14,17 @@ ANTHROPIC_FALLBACK_MODEL = os.environ.get("ANTHROPIC_FALLBACK_MODEL", "claude-ha
 ANTHROPIC_TIMEOUT_SECONDS = float(os.environ.get("ANTHROPIC_TIMEOUT_SECONDS", "30"))
 ANTHROPIC_MAX_RETRIES = int(os.environ.get("ANTHROPIC_MAX_RETRIES", "2"))
 
+ANTHROPIC_MAX_TOKENS = int(os.environ.get("ANTHROPIC_MAX_TOKENS", "1024"))
+
+# LLM spend limits (ADR-0018). Per-process caps on estimated USD and on tokens; a turn is refused once either is
+# reached. The USD figure comes from the price table below, so keep that table current; models missing from it are
+# charged at the conservative LLM_UNKNOWN_PRICE. Set the provider-side spend limit too: this ledger is an estimate.
+LLM_BUDGET_MAX_USD = float(os.environ.get("LLM_BUDGET_MAX_USD", "1.00"))
+LLM_BUDGET_MAX_TOKENS = int(os.environ.get("LLM_BUDGET_MAX_TOKENS", "500000"))
+# (input, output) USD per million tokens. Verify against the provider's pricing page when changing models.
+LLM_PRICES_USD_PER_MTOK = {"claude-sonnet-5": (3.0, 15.0), "claude-haiku-4-5": (1.0, 5.0)}
+LLM_UNKNOWN_PRICE_USD_PER_MTOK = (15.0, 75.0)
+
 # Embeddings for RAG. text-embedding-3-small emits 1536 dims, matching `kb_chunks.embedding vector(1536)`.
 EMBEDDING_MODEL = os.environ.get("EMBEDDING_MODEL", "text-embedding-3-small")
 

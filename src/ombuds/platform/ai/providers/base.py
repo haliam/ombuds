@@ -7,6 +7,7 @@ from pydantic import BaseModel, ConfigDict
 
 from ombuds.platform.ai.schemas.tool_calls import ToolCall, ToolDefinition
 from ombuds.platform.ai.streaming import StreamEvent
+from ombuds.platform.ai.usage import TokenUsage
 
 
 class ProviderTurn(BaseModel):
@@ -22,6 +23,7 @@ class ProviderTurn(BaseModel):
     tool_calls: tuple[ToolCall, ...]
     stop_reason: str
     content: object
+    usage: TokenUsage = TokenUsage()
 
 
 class ProviderUnavailableError(Exception):

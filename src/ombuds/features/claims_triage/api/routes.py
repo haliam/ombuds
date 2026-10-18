@@ -19,6 +19,7 @@ from ombuds.features.claims_triage.application.triage_use_case import (
     run_triage,
     stream_triage,
 )
+from ombuds.platform.ai.budget import BudgetExceededError
 from ombuds.platform.ai.providers.base import ProviderUnavailableError
 from ombuds.platform.ai.streaming import ToolCallDelta, ToolResultEvent
 from ombuds.platform.ai.tool_loop import ToolDispatcher
@@ -72,7 +73,7 @@ def _to_response(result: TriageResult) -> TriageResponse:
 def _to_sse(events: Iterator[TriageStreamEvent]) -> Iterator[str]:
     """Format each event as one `data: <json>\\n\\n` SSE frame, ending in an `error` frame if the provider fails.
 
-    Only `ProviderUnavailableError` becomes an error frame: once streaming has started the HTTP status is
+    Only `ProviderUnavailableError` and `BudgetExceededError` become error frames: once streaming has started the HTTP status is
     already 200, so this is the only way to tell the client. Anything else is a bug and propagates.
     """
     try:
@@ -81,6 +82,9 @@ def _to_sse(events: Iterator[TriageStreamEvent]) -> Iterator[str]:
     except ProviderUnavailableError:
         logger.exception("triage stream aborted: LLM provider unavailable")
         yield _frame({"type": "error", "detail": "the LLM provider is unavailable; please retry later"})
+    except BudgetExceededError as exc:
+        logger.warning("triage stream refused: %s", exc)
+        yield _frame({"type": "error", "detail": str(exc)})
 
 
 def _frame(payload: dict[str, object]) -> str:
