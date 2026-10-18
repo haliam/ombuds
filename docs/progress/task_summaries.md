@@ -566,4 +566,24 @@ Template — copy this block per finished task, filling in the fields (omit **De
 
 ---
 
+### Build audit trail — log every tool call + decision
+
+**Week:** W4
+**Goal:** A durable, tamper-resistant record of what the system did for a claim: every tool call, every policy verdict, every approval transition.
+
+**Files & responsibilities:**
+- `platform/infrastructure/migrations/0003_audit_log.sql` — `audit_log` table; triggers reject UPDATE/DELETE/TRUNCATE; nullable `trace_id` for tracing.
+- `platform/guardrails/audit_log.py` — `AuditEvent`, `AuditKind`, `AuditLog` protocol.
+- `platform/guardrails/audited_dispatcher.py` — records each tool call (redacted arguments, truncated redacted result, ok/error).
+- `platform/guardrails/audited_store.py` — records submit/approve/deny/execute transitions (ids and approver only).
+- `platform/guardrails/policy_checked_store.py` — now also records each policy verdict with reasons and `policy_version`.
+- `platform/infrastructure/audit_repository.py` — `PostgresAuditLog` (`record`, `for_claim`).
+- `application/runtime.py` — wires all three; `platform/mcp/server.py` takes a `ToolDispatcher`. ADR-0016.
+
+**Decisions/trade-offs:** decorators at existing seams rather than calls inside tools; immutability enforced by DB triggers; audit insert is a separate transaction from the state change (documented gap); fail closed on audit write errors. See ADR-0016.
+**Verified:** `make test` (lint + 334 unit tests), `make test-integration` (46 passed, including the full lifecycle trail, a policy denial with no request, and immutability).
+**Follow-up:** record the pre-model injection escalation; add a read endpoint; make the audit write atomic with the state change if needed; tracing fills `trace_id`; redraw diagrams when W4 lands.
+
+---
+
 Library/framework/stdlib-concept entries live in [`glossary.md`](glossary.md) — append there, not here, whenever a summary's **Notable libraries** introduces something not already listed.

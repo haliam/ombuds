@@ -45,7 +45,7 @@ Extracted from the "🤖 AI Build" view of the AI Interview Notion database (sna
 
 - [ ] Add OpenTelemetry tracing (span per LLM/tool call)
 - [x] Write one OPA/Rego policy (block auto-payout above €X) — [ADR-0015](../decisions/0015-opa-sidecar-over-embedded-evaluation.md), [summary](task_summaries.md#write-one-oparego-policy-block-auto-payout-above-x)
-- [ ] Build audit trail — log every tool call + decision
+- [x] Build audit trail — log every tool call + decision — [ADR-0016](../decisions/0016-append-only-postgres-audit-log-at-the-governance-seams.md), [summary](task_summaries.md#build-audit-trail--log-every-tool-call--decision)
 - [x] Write architecture diagram + README (problem, design, trade-offs) — [summary](task_summaries.md#write-architecture-diagram--readme-problem-design-trade-offs)
 
 ---

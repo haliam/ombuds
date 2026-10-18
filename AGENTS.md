@@ -35,9 +35,9 @@ Keep this section accurate or delete a stale line — a wrong command here is wo
   - `api/` — FastAPI routes and schemas. Thin — delegate to `application/`.
 - `platform/` — feature-agnostic. Must not import from `features/` or contain airline/triage knowledge.
   - `ai/` — provider-agnostic LLM layer: `providers/` (anthropic, openai, fallback), structured-output schemas, `tool_loop.py`, streaming.
-  - `guardrails/` — the one governance layer: `pii_filter` (+ `guarded_dispatcher`, which applies it to tool-call arguments; ADR-0013), `injection_detection`, `approval_gate` (+ `executing_store`, which runs an approved request's executor exactly once), `policy_engine` (OPA server client, fails closed) + `policy_checked_store` (checks `submit` against `policies/*.rego`; ADR-0015).
+  - `guardrails/` — the one governance layer: `pii_filter` (+ `guarded_dispatcher`, which applies it to tool-call arguments; ADR-0013), `injection_detection`, `approval_gate` (+ `executing_store`, which runs an approved request's executor exactly once), `policy_engine` (OPA server client, fails closed) + `policy_checked_store` (checks `submit` against `policies/*.rego`; ADR-0015), `audit_log` (event model + sink protocol) with `audited_dispatcher` / `audited_store` (ADR-0016).
   - `mcp/` — `tool_bindings.py` wraps a `ToolRegistry` for MCP exposure without importing `features/`; `server.py` (a composition root) builds the registry from a feature (e.g. `claims_triage.tools.build_tool_registry()`) and hands it to `tool_bindings.py`. A subpackage, not a service (ADR-0003).
-  - `infrastructure/` — Postgres, vector store, repositories, audit log.
+  - `infrastructure/` — Postgres, vector store, repositories, `audit_repository.py` (the append-only `audit_log` table).
   - `observability/` — logging, tracing, metrics.
   - `prompts/<feature>/vN.txt` — versioned prompts, see "Prompt versioning" below.
 
