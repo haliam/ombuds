@@ -1,8 +1,8 @@
 """An `ApprovalStore` that asks the policy engine before it accepts a submission (ADR-0015).
 
 A denied action never becomes an approval request, so no human can approve it from the queue. Policy runs on
-`submit` only: every state-changing tool, in-process or over MCP, reaches the store through it. Everything
-else delegates unchanged.
+`submit` only: every state-changing tool, in-process or over MCP, reaches the store through it. Every verdict,
+allow or deny, is written to the audit log (ADR-0016). Everything else delegates unchanged.
 """
 
 from collections.abc import Mapping
@@ -11,19 +11,33 @@ from pydantic import JsonValue
 
 from ombuds.domain.errors import PolicyDeniedError
 from ombuds.platform.guardrails.approval_gate import ApprovalRequest, ApprovalStore, GuardedAction
+from ombuds.platform.guardrails.audit_log import AuditEvent, AuditKind, AuditLog
 from ombuds.platform.guardrails.policy_engine import PolicyEngine
 
 
 class PolicyCheckedApprovalStore:
     """Decorates an `ApprovalStore`; `submit` raises `PolicyDeniedError` when the policy denies the action."""
 
-    def __init__(self, inner: ApprovalStore, engine: PolicyEngine, limits: Mapping[str, JsonValue]) -> None:
+    def __init__(
+        self, inner: ApprovalStore, engine: PolicyEngine, limits: Mapping[str, JsonValue], audit: AuditLog
+    ) -> None:
         self._inner = inner
         self._engine = engine
         self._limits = dict(limits)
+        self._audit = audit
 
     def submit(self, action: GuardedAction, payload: Mapping[str, JsonValue]) -> ApprovalRequest:
         decision = self._engine.evaluate({"action": action, "payload": dict(payload), "limits": self._limits})
+        claim_id = payload.get("claim_id")
+        self._audit.record(
+            AuditEvent(
+                kind=AuditKind.POLICY_DECISION,
+                subject=action,
+                outcome="allow" if decision.allow else "deny",
+                claim_id=claim_id if isinstance(claim_id, str) else None,
+                detail={"reasons": list(decision.reasons), "policy_version": decision.policy_version},
+            )
+        )
         if not decision.allow:
             raise PolicyDeniedError(action, decision.reasons)
         return self._inner.submit(action, payload)

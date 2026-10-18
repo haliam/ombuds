@@ -91,4 +91,4 @@ Two boards show how the project was built, week by week: [Ombuds Development Boa
 
 ## Not built yet
 
-OpenTelemetry tracing and the audit trail are Week 4 work and exist as stubs. The OPA/Rego payout policy is built ([ADR-0015](decisions/0015-opa-sidecar-over-embedded-evaluation.md)): an `opa` service the approval store consults on submit. The diagram does not draw any of the three yet.
+OpenTelemetry tracing is Week 4 work and exists as a stub. The audit trail is built ([ADR-0016](decisions/0016-append-only-postgres-audit-log-at-the-governance-seams.md)): an append-only `audit_log` table fed by decorators on tool dispatch, the policy check and the approval store. The OPA/Rego payout policy is built ([ADR-0015](decisions/0015-opa-sidecar-over-embedded-evaluation.md)): an `opa` service the approval store consults on submit. The diagram does not draw any of the three yet.

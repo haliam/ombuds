@@ -5,8 +5,10 @@ from pydantic import JsonValue
 
 from ombuds.domain.errors import PolicyDeniedError, ToolExecutionError
 from ombuds.platform.guardrails.approval_gate import ApprovalGate, ApprovalStatus, GuardedAction
+from ombuds.platform.guardrails.audit_log import AuditKind
 from ombuds.platform.guardrails.policy_checked_store import PolicyCheckedApprovalStore
 from ombuds.platform.guardrails.policy_engine import PolicyDecision
+from tests.unit.platform.guardrails.audit_fakes import RecordingAuditLog
 
 _PAYMENT: dict[str, JsonValue] = {"claim_id": "c-1", "amount_eur": 250}
 
@@ -21,9 +23,11 @@ class _FakeEngine:
         return self.decision
 
 
-def _store(decision: PolicyDecision) -> tuple[PolicyCheckedApprovalStore, ApprovalGate, _FakeEngine]:
+def _store(
+    decision: PolicyDecision, audit: RecordingAuditLog | None = None
+) -> tuple[PolicyCheckedApprovalStore, ApprovalGate, _FakeEngine]:
     gate, engine = ApprovalGate(), _FakeEngine(decision)
-    return PolicyCheckedApprovalStore(gate, engine, {"max_payout_eur": 400}), gate, engine
+    return PolicyCheckedApprovalStore(gate, engine, {"max_payout_eur": 400}, audit or RecordingAuditLog()), gate, engine
 
 
 def test_an_allowed_submission_becomes_a_pending_request() -> None:
@@ -66,3 +70,23 @@ def test_approving_and_denying_do_not_consult_the_policy() -> None:
     assert store.approve(first.id, "alice").status is ApprovalStatus.APPROVED
     assert store.deny(second.id, "alice").status is ApprovalStatus.DENIED
     assert engine.inputs == []
+
+
+def test_every_verdict_is_audited_with_its_reasons_and_policy_version() -> None:
+    audit = RecordingAuditLog()
+    allowed, _, _ = _store(PolicyDecision(allow=True, policy_version="v1"), audit)
+    denied, _, _ = _store(PolicyDecision(allow=False, reasons=("payout_above_limit",), policy_version="v1"), audit)
+
+    allowed.submit(GuardedAction.ISSUE_PAYMENT, _PAYMENT)
+    with pytest.raises(PolicyDeniedError):
+        denied.submit(GuardedAction.ISSUE_PAYMENT, {"claim_id": "c-9", "amount_eur": 600})
+
+    assert [(e.kind, e.outcome, e.claim_id, e.detail) for e in audit.events] == [
+        (AuditKind.POLICY_DECISION, "allow", "c-1", {"reasons": [], "policy_version": "v1"}),
+        (
+            AuditKind.POLICY_DECISION,
+            "deny",
+            "c-9",
+            {"reasons": ["payout_above_limit"], "policy_version": "v1"},
+        ),
+    ]
