@@ -1,0 +1,1133 @@
+{
+ "schema_version": 1,
+ "diagram_type": "architecture",
+ "meta": {
+  "title": "Ombuds Development Board v2 · v1.0 · 2026-10-18",
+  "output": "docs/diagrams/development-overview-v2/development-overview-v2.html",
+  "quality_profile": "showcase",
+  "repository": {
+   "url": "https://github.com/haliam/ombuds.git",
+   "provider": "github",
+   "link_mode": "web",
+   "revision": "4eaf960c08747c908719f7e45cea76bf93fd74b0"
+  },
+  "legend": {
+   "mode": "auto",
+   "entries": {
+    "backend": {
+     "label": "Step · done"
+    },
+    "external": {
+     "label": "Step · pending"
+    },
+    "frontend": {
+     "label": "You are here"
+    }
+   }
+  }
+ },
+ "components": [
+  {
+   "id": "w1_rules",
+   "type": "backend",
+   "label": "Folders + rules",
+   "sublabel": "EU261 rules, tested",
+   "pos": [
+    40,
+    70
+   ],
+   "size": [
+    150,
+    64
+   ],
+   "tag": "ADR-2",
+   "sources": [
+    {
+     "path": "src/ombuds/features/claims_triage/verticals/airline/rules.py",
+     "line": 90,
+     "label": "evaluate(): the EU261 rules"
+    }
+   ]
+  },
+  {
+   "id": "w1_api",
+   "type": "backend",
+   "label": "Call AI APIs",
+   "sublabel": "compare OpenAI, Claude",
+   "pos": [
+    230,
+    70
+   ],
+   "size": [
+    150,
+    64
+   ],
+   "sources": [
+    {
+     "path": "scripts/compare_providers.py",
+     "label": "throwaway comparison script"
+    }
+   ]
+  },
+  {
+   "id": "w1_tools",
+   "type": "backend",
+   "label": "Tools + gate",
+   "sublabel": "first tools, deny-all",
+   "pos": [
+    420,
+    70
+   ],
+   "size": [
+    150,
+    64
+   ],
+   "tag": "ADR-4",
+   "sources": [
+    {
+     "path": "src/ombuds/features/claims_triage/tools/check_eligibility.py",
+     "line": 18,
+     "label": "check_eligibility tool"
+    },
+    {
+     "path": "src/ombuds/platform/ai/tool_loop.py",
+     "line": 35,
+     "label": "ToolRegistry"
+    },
+    {
+     "path": "src/ombuds/platform/guardrails/approval_gate.py",
+     "line": 26,
+     "label": "GuardedAction (gate today)"
+    }
+   ]
+  },
+  {
+   "id": "w1_triage",
+   "type": "backend",
+   "label": "/triage endpoint",
+   "sublabel": "API + unit tests",
+   "pos": [
+    610,
+    70
+   ],
+   "size": [
+    150,
+    64
+   ],
+   "sources": [
+    {
+     "path": "src/ombuds/features/claims_triage/api/routes.py",
+     "line": 40,
+     "label": "POST /claims/triage"
+    },
+    {
+     "path": "src/ombuds/features/claims_triage/application/triage_use_case.py",
+     "line": 88,
+     "label": "run_triage()"
+    }
+   ]
+  },
+  {
+   "id": "w1_stream",
+   "type": "backend",
+   "label": "Streaming",
+   "sublabel": "live updates (SSE)",
+   "pos": [
+    800,
+    70
+   ],
+   "size": [
+    150,
+    64
+   ],
+   "tag": "ADR-7",
+   "sources": [
+    {
+     "path": "src/ombuds/platform/ai/streaming.py",
+     "line": 53,
+     "label": "JSONBuffer"
+    },
+    {
+     "path": "src/ombuds/features/claims_triage/api/routes.py",
+     "line": 49,
+     "label": "POST /claims/triage/stream"
+    }
+   ]
+  },
+  {
+   "id": "w1_reply",
+   "type": "backend",
+   "label": "Reliable replies",
+   "sublabel": "checked, retried",
+   "pos": [
+    990,
+    70
+   ],
+   "size": [
+    150,
+    64
+   ],
+   "tag": "ADR-5/6",
+   "sources": [
+    {
+     "path": "src/ombuds/platform/ai/schemas/structured_output.py",
+     "line": 19,
+     "label": "parse_structured_output()"
+    },
+    {
+     "path": "src/ombuds/platform/ai/providers/fallback.py",
+     "line": 32,
+     "label": "FallbackProvider"
+    }
+   ]
+  },
+  {
+   "id": "w2_loop",
+   "type": "backend",
+   "label": "Agent loop",
+   "sublabel": "rebuilt in LangGraph",
+   "pos": [
+    40,
+    260
+   ],
+   "size": [
+    150,
+    64
+   ],
+   "tag": "ADR-1",
+   "sources": [
+    {
+     "path": "src/ombuds/features/claims_triage/agent/graph.py",
+     "line": 103,
+     "label": "build_triage_graph()"
+    },
+    {
+     "path": "src/ombuds/features/claims_triage/agent/state.py",
+     "line": 10,
+     "label": "AgentState"
+    }
+   ]
+  },
+  {
+   "id": "w2_mcp",
+   "type": "backend",
+   "label": "MCP tool server",
+   "sublabel": "4 tools exposed",
+   "pos": [
+    230,
+    260
+   ],
+   "size": [
+    150,
+    64
+   ],
+   "tag": "ADR-3",
+   "sources": [
+    {
+     "path": "src/ombuds/platform/mcp/server.py",
+     "line": 21,
+     "label": "build_server()"
+    },
+    {
+     "path": "src/ombuds/platform/mcp/tool_bindings.py",
+     "label": "tool_bindings.py"
+    }
+   ]
+  },
+  {
+   "id": "w2_amcp",
+   "type": "backend",
+   "label": "Agent uses MCP",
+   "sublabel": "tools called via MCP",
+   "pos": [
+    420,
+    260
+   ],
+   "size": [
+    150,
+    64
+   ],
+   "sources": [
+    {
+     "path": "src/ombuds/platform/mcp/client.py",
+     "line": 53,
+     "label": "McpToolClient"
+    }
+   ]
+  },
+  {
+   "id": "w2_mem",
+   "type": "backend",
+   "label": "Agent memory",
+   "sublabel": "per run + per claimant",
+   "pos": [
+    610,
+    260
+   ],
+   "size": [
+    150,
+    64
+   ],
+   "sources": [
+    {
+     "path": "src/ombuds/features/claims_triage/agent/memory/short_term.py",
+     "line": 13,
+     "label": "ShortTermMemory"
+    },
+    {
+     "path": "src/ombuds/features/claims_triage/agent/memory/long_term.py",
+     "line": 17,
+     "label": "LongTermMemory"
+    }
+   ]
+  },
+  {
+   "id": "w2_esc",
+   "type": "backend",
+   "label": "Escalate to human",
+   "sublabel": "instead of guessing",
+   "pos": [
+    800,
+    260
+   ],
+   "size": [
+    150,
+    64
+   ],
+   "sources": [
+    {
+     "path": "src/ombuds/features/claims_triage/agent/nodes/escalate_retry.py",
+     "line": 27,
+     "label": "escalate()"
+    }
+   ]
+  },
+  {
+   "id": "w2_gate",
+   "type": "backend",
+   "label": "Human approval",
+   "sublabel": "tools only submit",
+   "pos": [
+    990,
+    260
+   ],
+   "size": [
+    150,
+    64
+   ],
+   "tag": "ADR-8/9",
+   "sources": [
+    {
+     "path": "src/ombuds/platform/guardrails/approval_gate.py",
+     "line": 88,
+     "label": "ApprovalGate"
+    },
+    {
+     "path": "src/ombuds/platform/guardrails/api.py",
+     "line": 55,
+     "label": "POST /approvals/{id}/approve"
+    }
+   ]
+  },
+  {
+   "id": "w3_pg",
+   "type": "backend",
+   "label": "Postgres + pgvector",
+   "sublabel": "durable data + vectors",
+   "pos": [
+    40,
+    450
+   ],
+   "size": [
+    150,
+    64
+   ],
+   "tag": "ADR-10",
+   "sources": [
+    {
+     "path": "src/ombuds/platform/infrastructure/postgres.py",
+     "line": 41,
+     "label": "apply_migrations()"
+    },
+    {
+     "path": "src/ombuds/platform/infrastructure/repositories.py",
+     "line": 38,
+     "label": "PostgresApprovalStore"
+    },
+    {
+     "path": "src/ombuds/platform/infrastructure/migrations/0001_init.sql",
+     "label": "0001_init.sql"
+    }
+   ]
+  },
+  {
+   "id": "w3_rag",
+   "type": "backend",
+   "label": "RAG search",
+   "sublabel": "chunk, embed, cite",
+   "pos": [
+    230,
+    450
+   ],
+   "size": [
+    150,
+    64
+   ],
+   "tag": "ADR-11",
+   "sources": [
+    {
+     "path": "src/ombuds/features/claims_triage/rag/chunking.py",
+     "line": 23,
+     "label": "chunk_document()"
+    },
+    {
+     "path": "src/ombuds/features/claims_triage/rag/retriever.py",
+     "line": 25,
+     "label": "Retriever.retrieve()"
+    },
+    {
+     "path": "src/ombuds/features/claims_triage/tools/search_kb.py",
+     "line": 51,
+     "label": "search_kb tool"
+    }
+   ]
+  },
+  {
+   "id": "w3_eval",
+   "type": "backend",
+   "label": "Retrieval eval",
+   "sublabel": "30 labelled questions",
+   "pos": [
+    420,
+    450
+   ],
+   "size": [
+    150,
+    64
+   ],
+   "tag": "ADR-12",
+   "sources": [
+    {
+     "path": "evals/run_evals.py",
+     "line": 73,
+     "label": "make eval entry point"
+    },
+    {
+     "path": "evals/datasets/airline_retrieval.jsonl",
+     "label": "the 30 questions"
+    }
+   ]
+  },
+  {
+   "id": "w3_docker",
+   "type": "backend",
+   "label": "Docker Compose",
+   "sublabel": "one-command stack",
+   "pos": [
+    610,
+    450
+   ],
+   "size": [
+    150,
+    64
+   ],
+   "sources": [
+    {
+     "path": "docker-compose.yml",
+     "label": "db, migrate-ingest, api"
+    },
+    {
+     "path": "Dockerfile",
+     "label": "multi-stage build"
+    }
+   ]
+  },
+  {
+   "id": "w3_guard",
+   "type": "backend",
+   "label": "PII + injection",
+   "sublabel": "redact; flag attacks",
+   "pos": [
+    800,
+    450
+   ],
+   "size": [
+    150,
+    64
+   ],
+   "tag": "ADR-13/14",
+   "sources": [
+    {
+     "path": "src/ombuds/platform/guardrails/pii_filter.py",
+     "line": 154,
+     "label": "redact()"
+    },
+    {
+     "path": "src/ombuds/platform/guardrails/injection_detection.py",
+     "line": 146,
+     "label": "detect()"
+    }
+   ]
+  },
+  {
+   "id": "w3_it",
+   "type": "backend",
+   "label": "End-to-end test",
+   "sublabel": "/triage on real stack",
+   "pos": [
+    990,
+    450
+   ],
+   "size": [
+    150,
+    64
+   ],
+   "sources": [
+    {
+     "path": "tests/integration/api/test_triage_endpoint.py",
+     "label": "the /triage integration test"
+    }
+   ]
+  },
+  {
+   "id": "p1",
+   "type": "backend",
+   "label": "P-1 Wiring",
+   "sublabel": "store injected at start",
+   "pos": [
+    40,
+    640
+   ],
+   "size": [
+    150,
+    64
+   ],
+   "sources": [
+    {
+     "path": "src/ombuds/api_app.py",
+     "line": 31,
+     "label": "create_app()"
+    },
+    {
+     "path": "src/ombuds/features/claims_triage/application/runtime.py",
+     "line": 32,
+     "label": "build_runtime()"
+    }
+   ]
+  },
+  {
+   "id": "p2",
+   "type": "backend",
+   "label": "P-2 Executors",
+   "sublabel": "approved = run once",
+   "pos": [
+    230,
+    640
+   ],
+   "size": [
+    150,
+    64
+   ],
+   "tag": "ADR-9",
+   "sources": [
+    {
+     "path": "src/ombuds/features/claims_triage/application/executors.py",
+     "line": 28,
+     "label": "build_executors()"
+    },
+    {
+     "path": "src/ombuds/platform/guardrails/executing_store.py",
+     "line": 27,
+     "label": "ExecutingApprovalStore"
+    },
+    {
+     "path": "src/ombuds/platform/infrastructure/migrations/0002_payments.sql",
+     "label": "0002_payments.sql"
+    }
+   ]
+  },
+  {
+   "id": "p3",
+   "type": "backend",
+   "label": "P-3 Shared setup",
+   "sublabel": "one start for both paths",
+   "pos": [
+    420,
+    640
+   ],
+   "size": [
+    150,
+    64
+   ],
+   "sources": [
+    {
+     "path": "src/ombuds/features/claims_triage/application/triage_use_case.py",
+     "line": 143,
+     "label": "_PreparedRun"
+    },
+    {
+     "path": "src/ombuds/features/claims_triage/application/triage_use_case.py",
+     "line": 152,
+     "label": "_prepare_run()"
+    }
+   ]
+  },
+  {
+   "id": "p4",
+   "type": "backend",
+   "label": "P-4 Docs fixed",
+   "sublabel": "docs match the code",
+   "pos": [
+    610,
+    640
+   ],
+   "size": [
+    150,
+    64
+   ],
+   "sources": [
+    {
+     "path": "AGENTS.md",
+     "label": "AGENTS.md"
+    },
+    {
+     "path": "README.md",
+     "label": "README.md"
+    }
+   ]
+  },
+  {
+   "id": "w4_doc",
+   "type": "backend",
+   "label": "Diagram + README",
+   "sublabel": "design + trade-offs",
+   "pos": [
+    40,
+    830
+   ],
+   "size": [
+    150,
+    64
+   ],
+   "sources": [
+    {
+     "path": "README.md",
+     "label": "README.md"
+    },
+    {
+     "path": "docs/architecture.md",
+     "label": "architecture.md"
+    }
+   ]
+  },
+  {
+   "id": "here",
+   "type": "frontend",
+   "label": "YOU ARE HERE",
+   "sublabel": "Week 4: 1 of 4 done",
+   "pos": [
+    230,
+    830
+   ],
+   "size": [
+    150,
+    64
+   ],
+   "tag": "now"
+  },
+  {
+   "id": "w4_otel",
+   "type": "external",
+   "label": "Tracing (OTel)",
+   "sublabel": "planned; stub only",
+   "pos": [
+    420,
+    830
+   ],
+   "size": [
+    150,
+    64
+   ],
+   "sources": [
+    {
+     "path": "src/ombuds/platform/observability/tracing.py",
+     "line": 1,
+     "label": "stub file"
+    }
+   ]
+  },
+  {
+   "id": "w4_rego",
+   "type": "external",
+   "label": "Payout policy",
+   "sublabel": "planned; stub only",
+   "pos": [
+    610,
+    830
+   ],
+   "size": [
+    150,
+    64
+   ],
+   "sources": [
+    {
+     "path": "src/ombuds/platform/guardrails/policy_engine.py",
+     "line": 1,
+     "label": "stub file"
+    },
+    {
+     "path": "src/ombuds/platform/guardrails/policies/payout_approval.rego",
+     "line": 1,
+     "label": "stub policy"
+    }
+   ]
+  },
+  {
+   "id": "w4_audit",
+   "type": "external",
+   "label": "Audit trail",
+   "sublabel": "planned; stub only",
+   "pos": [
+    800,
+    830
+   ],
+   "size": [
+    150,
+    64
+   ],
+   "sources": [
+    {
+     "path": "src/ombuds/platform/infrastructure/audit_repository.py",
+     "line": 1,
+     "label": "stub file"
+    }
+   ]
+  }
+ ],
+ "boundaries": [
+  {
+   "kind": "region",
+   "label": "Week 1 · done",
+   "wraps": [
+    "w1_rules",
+    "w1_api",
+    "w1_tools",
+    "w1_triage",
+    "w1_stream",
+    "w1_reply"
+   ],
+   "pad": 24
+  },
+  {
+   "kind": "region",
+   "label": "Week 2 · done",
+   "wraps": [
+    "w2_loop",
+    "w2_mcp",
+    "w2_amcp",
+    "w2_mem",
+    "w2_esc",
+    "w2_gate"
+   ],
+   "pad": 24
+  },
+  {
+   "kind": "region",
+   "label": "Week 3 · done",
+   "wraps": [
+    "w3_pg",
+    "w3_rag",
+    "w3_eval",
+    "w3_docker",
+    "w3_guard",
+    "w3_it"
+   ],
+   "pad": 24
+  },
+  {
+   "kind": "region",
+   "label": "Pre-W4 · done",
+   "wraps": [
+    "p1",
+    "p2",
+    "p3",
+    "p4"
+   ],
+   "pad": 24
+  },
+  {
+   "kind": "security-group",
+   "label": "Week 4 · now",
+   "wraps": [
+    "w4_doc",
+    "here",
+    "w4_otel",
+    "w4_rego",
+    "w4_audit"
+   ],
+   "pad": 24
+  }
+ ],
+ "connections": [
+  {
+   "id": "c_w1_rules_w1_api",
+   "from": "w1_rules",
+   "to": "w1_api",
+   "variant": "emphasis"
+  },
+  {
+   "id": "c_w1_api_w1_tools",
+   "from": "w1_api",
+   "to": "w1_tools",
+   "variant": "emphasis"
+  },
+  {
+   "id": "c_w1_tools_w1_triage",
+   "from": "w1_tools",
+   "to": "w1_triage",
+   "variant": "emphasis"
+  },
+  {
+   "id": "c_w1_triage_w1_stream",
+   "from": "w1_triage",
+   "to": "w1_stream",
+   "variant": "emphasis"
+  },
+  {
+   "id": "c_w1_stream_w1_reply",
+   "from": "w1_stream",
+   "to": "w1_reply",
+   "variant": "emphasis"
+  },
+  {
+   "id": "c_w2_loop_w2_mcp",
+   "from": "w2_loop",
+   "to": "w2_mcp",
+   "variant": "emphasis"
+  },
+  {
+   "id": "c_w2_mcp_w2_amcp",
+   "from": "w2_mcp",
+   "to": "w2_amcp",
+   "variant": "emphasis"
+  },
+  {
+   "id": "c_w2_amcp_w2_mem",
+   "from": "w2_amcp",
+   "to": "w2_mem",
+   "variant": "emphasis"
+  },
+  {
+   "id": "c_w2_mem_w2_esc",
+   "from": "w2_mem",
+   "to": "w2_esc",
+   "variant": "emphasis"
+  },
+  {
+   "id": "c_w2_esc_w2_gate",
+   "from": "w2_esc",
+   "to": "w2_gate",
+   "variant": "emphasis"
+  },
+  {
+   "id": "c_w3_pg_w3_rag",
+   "from": "w3_pg",
+   "to": "w3_rag",
+   "variant": "emphasis"
+  },
+  {
+   "id": "c_w3_rag_w3_eval",
+   "from": "w3_rag",
+   "to": "w3_eval",
+   "variant": "emphasis"
+  },
+  {
+   "id": "c_w3_eval_w3_docker",
+   "from": "w3_eval",
+   "to": "w3_docker",
+   "variant": "emphasis"
+  },
+  {
+   "id": "c_w3_docker_w3_guard",
+   "from": "w3_docker",
+   "to": "w3_guard",
+   "variant": "emphasis"
+  },
+  {
+   "id": "c_w3_guard_w3_it",
+   "from": "w3_guard",
+   "to": "w3_it",
+   "variant": "emphasis"
+  },
+  {
+   "id": "c_p1_p2",
+   "from": "p1",
+   "to": "p2",
+   "variant": "emphasis"
+  },
+  {
+   "id": "c_p2_p3",
+   "from": "p2",
+   "to": "p3",
+   "variant": "emphasis"
+  },
+  {
+   "id": "c_p3_p4",
+   "from": "p3",
+   "to": "p4",
+   "variant": "emphasis"
+  },
+  {
+   "id": "c_w4_doc_here",
+   "from": "w4_doc",
+   "to": "here",
+   "variant": "emphasis"
+  },
+  {
+   "id": "c_here_w4_otel",
+   "from": "here",
+   "to": "w4_otel",
+   "variant": "emphasis"
+  },
+  {
+   "id": "c_w4_otel_w4_rego",
+   "from": "w4_otel",
+   "to": "w4_rego",
+   "variant": "emphasis"
+  },
+  {
+   "id": "c_w4_rego_w4_audit",
+   "from": "w4_rego",
+   "to": "w4_audit",
+   "variant": "emphasis"
+  },
+  {
+   "id": "h_w1_reply_w2_loop",
+   "from": "w1_reply",
+   "to": "w2_loop",
+   "variant": "dashed",
+   "fromSide": "bottom",
+   "toSide": "top",
+   "via": [
+    [
+     1065,
+     197
+    ],
+    [
+     115,
+     197
+    ]
+   ]
+  },
+  {
+   "id": "h_w2_gate_w3_pg",
+   "from": "w2_gate",
+   "to": "w3_pg",
+   "variant": "dashed",
+   "fromSide": "bottom",
+   "toSide": "top",
+   "via": [
+    [
+     1065,
+     387
+    ],
+    [
+     115,
+     387
+    ]
+   ]
+  },
+  {
+   "id": "h_w3_it_p1",
+   "from": "w3_it",
+   "to": "p1",
+   "variant": "dashed",
+   "fromSide": "bottom",
+   "toSide": "top",
+   "via": [
+    [
+     1065,
+     577
+    ],
+    [
+     115,
+     577
+    ]
+   ]
+  },
+  {
+   "id": "h_p4_w4_doc",
+   "from": "p4",
+   "to": "w4_doc",
+   "variant": "dashed",
+   "fromSide": "bottom",
+   "toSide": "top",
+   "via": [
+    [
+     685,
+     767
+    ],
+    [
+     115,
+     767
+    ]
+   ]
+  }
+ ],
+ "cards": [
+  {
+   "dot": "amber",
+   "title": "Current stage",
+   "items": [
+    "Week 4 is under way: 1 of 4 tasks done (architecture diagram + README).",
+    "Weeks 1-3 and the pre-W4 refactor (P-1 to P-4) are finished.",
+    "Next (list order): tracing → payout policy → audit trail."
+   ]
+  },
+  {
+   "dot": "rose",
+   "title": "Flagged gaps",
+   "items": [
+    "tasks.md has no 'in progress' state; Week 4 is shown as current because it is partly done.",
+    "tasks.md does not rank the 3 pending tasks; its list order is used. Priority lives on the Notion board.",
+    "tasks.md carries no dates. Order follows the task list; decision dates come from the ADRs.",
+    "tasks.md was last synced with Notion on 2026-09-24.",
+    "Weeks 1-3 merge some related tasks into one box (e.g. stub + tool schemas).",
+    "Code links point at a fixed commit; the 3 pending Week 4 steps link to one-line stub files that exist but are empty."
+   ]
+  },
+  {
+   "dot": "cyan",
+   "title": "Week 1 · what was built",
+   "items": [
+    "Folders + rules (ADR-2): the EU261 rules (scope, exemptions, delay and distance tiers) coded and unit-tested.",
+    "Call AI APIs: OpenAI and Anthropic called directly to compare outputs.",
+    "Tools + gate (ADR-4): tool schemas and the tool-use loop; the approval gate began as deny-all.",
+    "/triage endpoint: POST /claims/triage with tests for tool parsing and the endpoint.",
+    "Streaming (ADR-7): replies pushed live over SSE; tool arguments assembled from fragments.",
+    "Reliable replies (ADR-5, ADR-6): JSON checked with Pydantic and repaired on error; retries, timeouts, fallback model."
+   ]
+  },
+  {
+   "dot": "emerald",
+   "title": "Week 2 · what was built",
+   "items": [
+    "Agent loop (ADR-1): the tool loop rebuilt as a LangGraph graph with the same behaviour.",
+    "MCP tool server (ADR-3): search_kb, check_eligibility, log_claim and issue_payment exposed over MCP.",
+    "Agent uses MCP: the agent can call those tools through an MCP client.",
+    "Agent memory: short-term (one run) and long-term (per claimant) memory in the agent state.",
+    "Escalate to human: low confidence or failed repairs hand the claim to a person.",
+    "Human approval (ADR-8, replaced by ADR-9): state-changing tools only submit a request; a person approves or denies."
+   ]
+  },
+  {
+   "dot": "violet",
+   "title": "Week 3 · what was built",
+   "items": [
+    "Postgres + pgvector (ADR-10): durable data and vectors, numbered SQL migrations, approval and claim repositories.",
+    "RAG search (ADR-11): policy documents cut by heading, embedded, stored and retrieved with citations.",
+    "Retrieval eval (ADR-12): 30 labelled questions measure search quality; relevance floor set to 0.35.",
+    "Docker Compose: one command starts the database, the migrate-and-ingest job and the API.",
+    "PII + injection (ADR-13, ADR-14): personal data redacted at every boundary; injection attempts escalate to a human.",
+    "End-to-end test: /triage on the real app, graph, tools and pgvector with only the LLM scripted."
+   ]
+  },
+  {
+   "dot": "orange",
+   "title": "Pre-W4 refactor · what was built",
+   "items": [
+    "P-1 Wiring: approval store, pool and tools injected at app start; the global gate removed.",
+    "P-2 Executors (ADR-9): an approved request runs exactly once; claims and simulated payments are saved.",
+    "P-3 Shared setup: run and stream share one start; injection escalation matches the contract.",
+    "P-4 Docs fixed: AGENTS.md and README corrected to match what runs."
+   ]
+  },
+  {
+   "dot": "slate",
+   "title": "Week 4 · what is built / next",
+   "items": [
+    "Diagram + README: architecture diagram, flow diagram and README are done.",
+    "Tracing, payout policy and audit trail are pending; only one-line stub files exist today."
+   ]
+  },
+  {
+   "dot": "violet",
+   "title": "Decisions in one line (1-7)",
+   "items": [
+    "ADR-1 LangGraph: explicit flow is easier to explain and audit than agents chatting.",
+    "ADR-2 Feature-sliced: all claims-triage code sits together; shared plumbing stays generic.",
+    "ADR-3 MCP in repo: shows the protocol without a second service to deploy.",
+    "ADR-4 EU261 tools: a real, checkable law and real money beat invented ticket tools.",
+    "ADR-5 Prompted JSON: ask for JSON, validate it, ask again on errors.",
+    "ADR-6 Two-layer retry: SDK retries blips; a fallback model covers outages.",
+    "ADR-7 SSE: the stream is one-way, so plain HTTP is enough."
+   ]
+  },
+  {
+   "dot": "violet",
+   "title": "Decisions in one line (8-14)",
+   "items": [
+    "ADR-8 In-memory approval: simplest first version; superseded by ADR-9.",
+    "ADR-9 Approve once: the approval request is the action, run exactly once after a human says yes.",
+    "ADR-10 pgvector: one database means one transaction for claim, approval, search data.",
+    "ADR-11 Chunks + embeddings: cut at headings so every citation is a whole section.",
+    "ADR-12 Score floor 0.35: highest cut-off that loses no correct answers.",
+    "ADR-13 PII redaction: strip personal data at every boundary, one-way.",
+    "ADR-14 Injection check: simple pattern checks; a hit goes to a human, nothing is lost."
+   ]
+  },
+  {
+   "dot": "cyan",
+   "title": "Key terms · the problem",
+   "items": [
+    "EU261: the EU flight-compensation rule; rules.py holds its tiers and exemptions → Folders + rules engine, ADR-4.",
+    "Triage: reading a claim and deciding what happens next → Week 1 /triage endpoint.",
+    "Escalation: handing a claim to a human instead of deciding → Escalate / retry, ADR-14."
+   ]
+  },
+  {
+   "dot": "emerald",
+   "title": "Key terms · the agent",
+   "items": [
+    "Agent: the AI that reads a claim and calls tools → Agent loop.",
+    "LangGraph: library that lays the agent out as steps and arrows → ADR-1, Agent loop.",
+    "Tool: an action the agent can call (search_kb, check_eligibility, log_claim, issue_payment) → ADR-4.",
+    "MCP: standard way to offer tools to any AI client → ADR-3, MCP tool server.",
+    "Structured output: a reply in a fixed, checkable shape → ADR-5.",
+    "SSE: server pushes updates over plain HTTP → ADR-7."
+   ]
+  },
+  {
+   "dot": "orange",
+   "title": "Key terms · safety",
+   "items": [
+    "Approval gate: a state-changing action waits for a human yes → ADR-8, ADR-9.",
+    "Exactly once: an approved action runs once, never twice → ADR-9, Executors.",
+    "PII redaction: replaces emails, IBANs etc. with placeholders → ADR-13.",
+    "Prompt injection: text that tries to give the AI new orders → ADR-14."
+   ]
+  },
+  {
+   "dot": "slate",
+   "title": "Key terms · data and platform",
+   "items": [
+    "RAG: look up policy text first, then answer with citations → RAG search.",
+    "Embedding: numbers that capture a text's meaning → ADR-11.",
+    "pgvector: Postgres add-on that stores embeddings → ADR-10.",
+    "Relevance floor: minimum score for a search hit to count → ADR-12.",
+    "Eval set: labelled questions that measure search quality → Retrieval eval.",
+    "Docker Compose: starts the whole stack with one command → Docker Compose.",
+    "Composition root: the one place that wires parts together → P-1 Wiring, ADR-2."
+   ]
+  },
+  {
+   "dot": "cyan",
+   "title": "Key terms · coming in Week 4",
+   "items": [
+    "OpenTelemetry: tracing, a span per AI or tool call → Tracing.",
+    "OPA/Rego: policy code; rule is 'block auto-payout above €X' → Payout policy.",
+    "Audit trail: a log of every tool call and decision → Audit trail."
+   ]
+  }
+ ]
+}

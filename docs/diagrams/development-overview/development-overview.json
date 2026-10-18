@@ -1,0 +1,1039 @@
+{
+ "schema_version": 1,
+ "diagram_type": "architecture",
+ "meta": {
+  "title": "Ombuds Development Board · v1.0 · 2026-10-18",
+  "output": "docs/diagrams/development-overview/development-overview.html",
+  "quality_profile": "showcase",
+  "legend": {
+   "mode": "auto",
+   "entries": {
+    "backend": {
+     "label": "Step · done"
+    },
+    "external": {
+     "label": "Step · pending"
+    },
+    "security": {
+     "label": "Decision (ADR) + date"
+    },
+    "frontend": {
+     "label": "You are here"
+    }
+   }
+  }
+ },
+ "components": [
+  {
+   "id": "d2",
+   "type": "security",
+   "label": "ADR-2 Feature-sliced",
+   "sublabel": "code grouped by feature",
+   "tag": "Sep 23",
+   "pos": [
+    40,
+    100
+   ],
+   "size": [
+    150,
+    64
+   ]
+  },
+  {
+   "id": "d1",
+   "type": "security",
+   "label": "ADR-1 LangGraph",
+   "sublabel": "visible, auditable flow",
+   "tag": "Sep 23",
+   "pos": [
+    230,
+    100
+   ],
+   "size": [
+    150,
+    64
+   ]
+  },
+  {
+   "id": "d3",
+   "type": "security",
+   "label": "ADR-3 MCP in repo",
+   "sublabel": "one repo, one deploy",
+   "tag": "Sep 23",
+   "pos": [
+    420,
+    100
+   ],
+   "size": [
+    150,
+    64
+   ]
+  },
+  {
+   "id": "d4",
+   "type": "security",
+   "label": "ADR-4 EU261 tools",
+   "sublabel": "real law, real money",
+   "tag": "Sep 24",
+   "pos": [
+    420,
+    274
+   ],
+   "size": [
+    150,
+    64
+   ]
+  },
+  {
+   "id": "d7",
+   "type": "security",
+   "label": "ADR-7 SSE",
+   "sublabel": "one-way, plain HTTP",
+   "tag": "Sep 26",
+   "pos": [
+    800,
+    274
+   ],
+   "size": [
+    150,
+    64
+   ]
+  },
+  {
+   "id": "d5",
+   "type": "security",
+   "label": "ADR-5 Prompted JSON",
+   "sublabel": "check reply, then fix",
+   "tag": "Sep 26",
+   "pos": [
+    990,
+    274
+   ],
+   "size": [
+    150,
+    64
+   ]
+  },
+  {
+   "id": "w1_rules",
+   "type": "backend",
+   "label": "Folders + rules",
+   "sublabel": "EU261 rules, tested",
+   "tag": "done",
+   "pos": [
+    40,
+    392
+   ],
+   "size": [
+    150,
+    64
+   ]
+  },
+  {
+   "id": "w1_api",
+   "type": "backend",
+   "label": "Call AI APIs directly",
+   "sublabel": "OpenAI vs Anthropic",
+   "tag": "done",
+   "pos": [
+    230,
+    392
+   ],
+   "size": [
+    150,
+    64
+   ]
+  },
+  {
+   "id": "w1_tools",
+   "type": "backend",
+   "label": "Tools + deny-all gate",
+   "sublabel": "stub blocks all actions",
+   "tag": "done",
+   "pos": [
+    420,
+    392
+   ],
+   "size": [
+    150,
+    64
+   ]
+  },
+  {
+   "id": "w1_triage",
+   "type": "backend",
+   "label": "/triage endpoint",
+   "sublabel": "API + unit tests",
+   "tag": "done",
+   "pos": [
+    610,
+    392
+   ],
+   "size": [
+    150,
+    64
+   ]
+  },
+  {
+   "id": "w1_stream",
+   "type": "backend",
+   "label": "Streaming replies",
+   "sublabel": "live updates (SSE)",
+   "tag": "done",
+   "pos": [
+    800,
+    392
+   ],
+   "size": [
+    150,
+    64
+   ]
+  },
+  {
+   "id": "w1_reply",
+   "type": "backend",
+   "label": "Checked replies",
+   "sublabel": "validate, retry, backup",
+   "tag": "done",
+   "pos": [
+    990,
+    392
+   ],
+   "size": [
+    150,
+    64
+   ]
+  },
+  {
+   "id": "d6",
+   "type": "security",
+   "label": "ADR-6 Two-layer retry",
+   "sublabel": "retry, then switch model",
+   "tag": "Sep 26",
+   "pos": [
+    990,
+    510
+   ],
+   "size": [
+    150,
+    64
+   ]
+  },
+  {
+   "id": "d8",
+   "type": "security",
+   "label": "ADR-8 Memory approval",
+   "sublabel": "replaced by ADR-9",
+   "tag": "Sep 28",
+   "pos": [
+    800,
+    684
+   ],
+   "size": [
+    150,
+    64
+   ]
+  },
+  {
+   "id": "d9",
+   "type": "security",
+   "label": "ADR-9 Approve once",
+   "sublabel": "replaces ADR-8",
+   "tag": "Sep 28",
+   "pos": [
+    990,
+    684
+   ],
+   "size": [
+    150,
+    64
+   ]
+  },
+  {
+   "id": "w2_loop",
+   "type": "backend",
+   "label": "Agent loop",
+   "sublabel": "rebuilt in LangGraph",
+   "tag": "done",
+   "pos": [
+    40,
+    802
+   ],
+   "size": [
+    150,
+    64
+   ]
+  },
+  {
+   "id": "w2_mcp",
+   "type": "backend",
+   "label": "MCP tool server",
+   "sublabel": "4 tools exposed",
+   "tag": "done",
+   "pos": [
+    230,
+    802
+   ],
+   "size": [
+    150,
+    64
+   ]
+  },
+  {
+   "id": "w2_amcp",
+   "type": "backend",
+   "label": "Agent uses MCP",
+   "sublabel": "tools called over MCP",
+   "tag": "done",
+   "pos": [
+    420,
+    802
+   ],
+   "size": [
+    150,
+    64
+   ]
+  },
+  {
+   "id": "w2_mem",
+   "type": "backend",
+   "label": "Agent memory",
+   "sublabel": "short + long term",
+   "tag": "done",
+   "pos": [
+    610,
+    802
+   ],
+   "size": [
+    150,
+    64
+   ]
+  },
+  {
+   "id": "w2_esc",
+   "type": "backend",
+   "label": "Escalate / retry",
+   "sublabel": "low confidence → human",
+   "tag": "done",
+   "pos": [
+    800,
+    802
+   ],
+   "size": [
+    150,
+    64
+   ]
+  },
+  {
+   "id": "w2_gate",
+   "type": "backend",
+   "label": "Human approval gate",
+   "sublabel": "replaces deny-all stub",
+   "tag": "done",
+   "pos": [
+    990,
+    802
+   ],
+   "size": [
+    150,
+    64
+   ]
+  },
+  {
+   "id": "d10",
+   "type": "security",
+   "label": "ADR-10 pgvector",
+   "sublabel": "one DB, one commit",
+   "tag": "Oct 6",
+   "pos": [
+    40,
+    976
+   ],
+   "size": [
+    150,
+    64
+   ]
+  },
+  {
+   "id": "d11",
+   "type": "security",
+   "label": "ADR-11 Chunking",
+   "sublabel": "whole sections, cited",
+   "tag": "Oct 7",
+   "pos": [
+    230,
+    976
+   ],
+   "size": [
+    150,
+    64
+   ]
+  },
+  {
+   "id": "d12",
+   "type": "security",
+   "label": "ADR-12 Score floor",
+   "sublabel": "best cut-off, no loss",
+   "tag": "Oct 8",
+   "pos": [
+    420,
+    976
+   ],
+   "size": [
+    150,
+    64
+   ]
+  },
+  {
+   "id": "d13",
+   "type": "security",
+   "label": "ADR-13 PII redaction",
+   "sublabel": "hide personal data",
+   "tag": "Oct 8",
+   "pos": [
+    800,
+    976
+   ],
+   "size": [
+    150,
+    64
+   ]
+  },
+  {
+   "id": "w3_pg",
+   "type": "backend",
+   "label": "Postgres + pgvector",
+   "sublabel": "durable data + vectors",
+   "tag": "done",
+   "pos": [
+    40,
+    1094
+   ],
+   "size": [
+    150,
+    64
+   ]
+  },
+  {
+   "id": "w3_rag",
+   "type": "backend",
+   "label": "RAG search",
+   "sublabel": "chunk, embed, retrieve",
+   "tag": "done",
+   "pos": [
+    230,
+    1094
+   ],
+   "size": [
+    150,
+    64
+   ]
+  },
+  {
+   "id": "w3_eval",
+   "type": "backend",
+   "label": "Retrieval eval",
+   "sublabel": "30 labelled questions",
+   "tag": "done",
+   "pos": [
+    420,
+    1094
+   ],
+   "size": [
+    150,
+    64
+   ]
+  },
+  {
+   "id": "w3_docker",
+   "type": "backend",
+   "label": "Docker Compose",
+   "sublabel": "one-command stack",
+   "tag": "done",
+   "pos": [
+    610,
+    1094
+   ],
+   "size": [
+    150,
+    64
+   ]
+  },
+  {
+   "id": "w3_guard",
+   "type": "backend",
+   "label": "PII + injection",
+   "sublabel": "redact; flag attacks",
+   "tag": "done",
+   "pos": [
+    800,
+    1094
+   ],
+   "size": [
+    150,
+    64
+   ]
+  },
+  {
+   "id": "w3_it",
+   "type": "backend",
+   "label": "End-to-end test",
+   "sublabel": "/triage over real stack",
+   "tag": "done",
+   "pos": [
+    990,
+    1094
+   ],
+   "size": [
+    150,
+    64
+   ]
+  },
+  {
+   "id": "d14",
+   "type": "security",
+   "label": "ADR-14 Injection",
+   "sublabel": "a hit goes to human",
+   "tag": "Oct 8",
+   "pos": [
+    800,
+    1212
+   ],
+   "size": [
+    150,
+    64
+   ]
+  },
+  {
+   "id": "p1",
+   "type": "backend",
+   "label": "P-1 Wiring",
+   "sublabel": "approval store injected",
+   "tag": "done",
+   "pos": [
+    40,
+    1386
+   ],
+   "size": [
+    150,
+    64
+   ]
+  },
+  {
+   "id": "p2",
+   "type": "backend",
+   "label": "P-2 Executors",
+   "sublabel": "claims + payments saved",
+   "tag": "done",
+   "pos": [
+    230,
+    1386
+   ],
+   "size": [
+    150,
+    64
+   ]
+  },
+  {
+   "id": "p3",
+   "type": "backend",
+   "label": "P-3 Shared preamble",
+   "sublabel": "one setup, two paths",
+   "tag": "done",
+   "pos": [
+    420,
+    1386
+   ],
+   "size": [
+    150,
+    64
+   ]
+  },
+  {
+   "id": "p4",
+   "type": "backend",
+   "label": "P-4 Docs fixed",
+   "sublabel": "docs match the code",
+   "tag": "done",
+   "pos": [
+    610,
+    1386
+   ],
+   "size": [
+    150,
+    64
+   ]
+  },
+  {
+   "id": "w4_doc",
+   "type": "backend",
+   "label": "Diagram + README",
+   "sublabel": "design + trade-offs",
+   "tag": "done",
+   "pos": [
+    40,
+    1560
+   ],
+   "size": [
+    150,
+    64
+   ]
+  },
+  {
+   "id": "here",
+   "type": "frontend",
+   "label": "YOU ARE HERE",
+   "sublabel": "Week 4: 1 of 4 done",
+   "tag": "now",
+   "pos": [
+    230,
+    1560
+   ],
+   "size": [
+    150,
+    64
+   ]
+  },
+  {
+   "id": "w4_otel",
+   "type": "external",
+   "label": "Tracing (OTel)",
+   "sublabel": "span per AI/tool call",
+   "tag": "pending",
+   "pos": [
+    420,
+    1560
+   ],
+   "size": [
+    150,
+    64
+   ]
+  },
+  {
+   "id": "w4_rego",
+   "type": "external",
+   "label": "Payout policy (Rego)",
+   "sublabel": "block big auto-payouts",
+   "tag": "pending",
+   "pos": [
+    610,
+    1560
+   ],
+   "size": [
+    150,
+    64
+   ]
+  },
+  {
+   "id": "w4_audit",
+   "type": "external",
+   "label": "Audit trail",
+   "sublabel": "every call + decision",
+   "tag": "pending",
+   "pos": [
+    800,
+    1560
+   ],
+   "size": [
+    150,
+    64
+   ]
+  }
+ ],
+ "boundaries": [
+  {
+   "kind": "region",
+   "label": "Project start · decisions",
+   "wraps": [
+    "d2",
+    "d1",
+    "d3"
+   ],
+   "pad": 24
+  },
+  {
+   "kind": "region",
+   "label": "Week 1 · done",
+   "wraps": [
+    "d4",
+    "d7",
+    "d5",
+    "w1_rules",
+    "w1_api",
+    "w1_tools",
+    "w1_triage",
+    "w1_stream",
+    "w1_reply",
+    "d6"
+   ],
+   "pad": 24
+  },
+  {
+   "kind": "region",
+   "label": "Week 2 · done",
+   "wraps": [
+    "d8",
+    "d9",
+    "w2_loop",
+    "w2_mcp",
+    "w2_amcp",
+    "w2_mem",
+    "w2_esc",
+    "w2_gate"
+   ],
+   "pad": 24
+  },
+  {
+   "kind": "region",
+   "label": "Week 3 · done",
+   "wraps": [
+    "d10",
+    "d11",
+    "d12",
+    "d13",
+    "w3_pg",
+    "w3_rag",
+    "w3_eval",
+    "w3_docker",
+    "w3_guard",
+    "w3_it",
+    "d14"
+   ],
+   "pad": 24
+  },
+  {
+   "kind": "region",
+   "label": "Pre-W4 refactor · done",
+   "wraps": [
+    "p1",
+    "p2",
+    "p3",
+    "p4"
+   ],
+   "pad": 24
+  },
+  {
+   "kind": "security-group",
+   "label": "Week 4 · IN PROGRESS",
+   "wraps": [
+    "w4_doc",
+    "here",
+    "w4_otel",
+    "w4_rego",
+    "w4_audit"
+   ],
+   "pad": 24
+  }
+ ],
+ "connections": [
+  {
+   "id": "c_w1_rules_w1_api",
+   "from": "w1_rules",
+   "to": "w1_api",
+   "variant": "emphasis"
+  },
+  {
+   "id": "c_w1_api_w1_tools",
+   "from": "w1_api",
+   "to": "w1_tools",
+   "variant": "emphasis"
+  },
+  {
+   "id": "c_w1_tools_w1_triage",
+   "from": "w1_tools",
+   "to": "w1_triage",
+   "variant": "emphasis"
+  },
+  {
+   "id": "c_w1_triage_w1_stream",
+   "from": "w1_triage",
+   "to": "w1_stream",
+   "variant": "emphasis"
+  },
+  {
+   "id": "c_w1_stream_w1_reply",
+   "from": "w1_stream",
+   "to": "w1_reply",
+   "variant": "emphasis"
+  },
+  {
+   "id": "c_w2_loop_w2_mcp",
+   "from": "w2_loop",
+   "to": "w2_mcp",
+   "variant": "emphasis"
+  },
+  {
+   "id": "c_w2_mcp_w2_amcp",
+   "from": "w2_mcp",
+   "to": "w2_amcp",
+   "variant": "emphasis"
+  },
+  {
+   "id": "c_w2_amcp_w2_mem",
+   "from": "w2_amcp",
+   "to": "w2_mem",
+   "variant": "emphasis"
+  },
+  {
+   "id": "c_w2_mem_w2_esc",
+   "from": "w2_mem",
+   "to": "w2_esc",
+   "variant": "emphasis"
+  },
+  {
+   "id": "c_w2_esc_w2_gate",
+   "from": "w2_esc",
+   "to": "w2_gate",
+   "variant": "emphasis"
+  },
+  {
+   "id": "c_w3_pg_w3_rag",
+   "from": "w3_pg",
+   "to": "w3_rag",
+   "variant": "emphasis"
+  },
+  {
+   "id": "c_w3_rag_w3_eval",
+   "from": "w3_rag",
+   "to": "w3_eval",
+   "variant": "emphasis"
+  },
+  {
+   "id": "c_w3_eval_w3_docker",
+   "from": "w3_eval",
+   "to": "w3_docker",
+   "variant": "emphasis"
+  },
+  {
+   "id": "c_w3_docker_w3_guard",
+   "from": "w3_docker",
+   "to": "w3_guard",
+   "variant": "emphasis"
+  },
+  {
+   "id": "c_w3_guard_w3_it",
+   "from": "w3_guard",
+   "to": "w3_it",
+   "variant": "emphasis"
+  },
+  {
+   "id": "c_p1_p2",
+   "from": "p1",
+   "to": "p2",
+   "variant": "emphasis"
+  },
+  {
+   "id": "c_p2_p3",
+   "from": "p2",
+   "to": "p3",
+   "variant": "emphasis"
+  },
+  {
+   "id": "c_p3_p4",
+   "from": "p3",
+   "to": "p4",
+   "variant": "emphasis"
+  },
+  {
+   "id": "c_w4_doc_here",
+   "from": "w4_doc",
+   "to": "here",
+   "variant": "emphasis"
+  },
+  {
+   "id": "c_here_w4_otel",
+   "from": "here",
+   "to": "w4_otel",
+   "variant": "emphasis"
+  },
+  {
+   "id": "c_w4_otel_w4_rego",
+   "from": "w4_otel",
+   "to": "w4_rego",
+   "variant": "emphasis"
+  },
+  {
+   "id": "c_w4_rego_w4_audit",
+   "from": "w4_rego",
+   "to": "w4_audit",
+   "variant": "emphasis"
+  },
+  {
+   "id": "c_d2_w1_rules",
+   "from": "d2",
+   "to": "w1_rules",
+   "variant": "dashed"
+  },
+  {
+   "id": "c_d4_w1_tools",
+   "from": "d4",
+   "to": "w1_tools",
+   "variant": "dashed"
+  },
+  {
+   "id": "c_d7_w1_stream",
+   "from": "d7",
+   "to": "w1_stream",
+   "variant": "dashed"
+  },
+  {
+   "id": "c_d5_w1_reply",
+   "from": "d5",
+   "to": "w1_reply",
+   "variant": "dashed"
+  },
+  {
+   "id": "c_d6_w1_reply",
+   "from": "d6",
+   "to": "w1_reply",
+   "variant": "dashed",
+   "fromSide": "top",
+   "toSide": "bottom"
+  },
+  {
+   "id": "c_d9_w2_gate",
+   "from": "d9",
+   "to": "w2_gate",
+   "variant": "dashed"
+  },
+  {
+   "id": "c_d10_w3_pg",
+   "from": "d10",
+   "to": "w3_pg",
+   "variant": "dashed"
+  },
+  {
+   "id": "c_d11_w3_rag",
+   "from": "d11",
+   "to": "w3_rag",
+   "variant": "dashed"
+  },
+  {
+   "id": "c_d12_w3_eval",
+   "from": "d12",
+   "to": "w3_eval",
+   "variant": "dashed"
+  },
+  {
+   "id": "c_d13_w3_guard",
+   "from": "d13",
+   "to": "w3_guard",
+   "variant": "dashed"
+  },
+  {
+   "id": "c_d14_w3_guard",
+   "from": "d14",
+   "to": "w3_guard",
+   "variant": "dashed",
+   "fromSide": "top",
+   "toSide": "bottom"
+  },
+  {
+   "id": "c_d8_d9",
+   "from": "d8",
+   "to": "d9",
+   "variant": "dashed"
+  }
+ ],
+ "cards": [
+  {
+   "dot": "amber",
+   "title": "Current stage",
+   "items": [
+    "Week 4 is under way: 1 of 4 tasks done (architecture diagram + README).",
+    "Weeks 1-3 and the pre-W4 refactor (P-1 to P-4) are finished.",
+    "Next (list order): tracing → payout policy → audit trail."
+   ]
+  },
+  {
+   "dot": "rose",
+   "title": "Flagged gaps",
+   "items": [
+    "tasks.md has no 'in progress' state; Week 4 is shown as current because it is partly done.",
+    "tasks.md does not rank the 3 pending tasks; its list order is used. Priority lives on the Notion board.",
+    "tasks.md carries no dates. Order follows the task list; decision dates come from the ADRs.",
+    "tasks.md was last synced with Notion on 2026-09-24.",
+    "Weeks 1-3 merge some related tasks into one box (e.g. stub + tool schemas)."
+   ]
+  },
+  {
+   "dot": "violet",
+   "title": "Decisions in one line (1-7)",
+   "items": [
+    "ADR-1 LangGraph: explicit flow is easier to explain and audit than agents chatting.",
+    "ADR-2 Feature-sliced: all claims-triage code sits together; shared plumbing stays generic.",
+    "ADR-3 MCP in repo: shows the protocol without a second service to deploy.",
+    "ADR-4 EU261 tools: a real, checkable law and real money beat invented ticket tools.",
+    "ADR-5 Prompted JSON: ask for JSON, validate it, ask again on errors.",
+    "ADR-6 Two-layer retry: SDK retries blips; a fallback model covers outages.",
+    "ADR-7 SSE: the stream is one-way, so plain HTTP is enough."
+   ]
+  },
+  {
+   "dot": "violet",
+   "title": "Decisions in one line (8-14)",
+   "items": [
+    "ADR-8 In-memory approval: simplest first version; superseded by ADR-9.",
+    "ADR-9 Approve once: the approval request is the action, run exactly once after a human says yes.",
+    "ADR-10 pgvector: one database means one transaction for claim, approval, search data.",
+    "ADR-11 Chunks + embeddings: cut at headings so every citation is a whole section.",
+    "ADR-12 Score floor 0.35: highest cut-off that loses no correct answers.",
+    "ADR-13 PII redaction: strip personal data at every boundary, one-way.",
+    "ADR-14 Injection check: simple pattern checks; a hit goes to a human, nothing is lost."
+   ]
+  },
+  {
+   "dot": "cyan",
+   "title": "Key terms · the problem",
+   "items": [
+    "EU261: the EU flight-compensation rule; rules.py holds its tiers and exemptions → Folders + rules engine, ADR-4.",
+    "Triage: reading a claim and deciding what happens next → Week 1 /triage endpoint.",
+    "Escalation: handing a claim to a human instead of deciding → Escalate / retry, ADR-14."
+   ]
+  },
+  {
+   "dot": "emerald",
+   "title": "Key terms · the agent",
+   "items": [
+    "Agent: the AI that reads a claim and calls tools → Agent loop.",
+    "LangGraph: library that lays the agent out as steps and arrows → ADR-1, Agent loop.",
+    "Tool: an action the agent can call (search_kb, check_eligibility, log_claim, issue_payment) → ADR-4.",
+    "MCP: standard way to offer tools to any AI client → ADR-3, MCP tool server.",
+    "Structured output: a reply in a fixed, checkable shape → ADR-5.",
+    "SSE: server pushes updates over plain HTTP → ADR-7."
+   ]
+  },
+  {
+   "dot": "orange",
+   "title": "Key terms · safety",
+   "items": [
+    "Approval gate: a state-changing action waits for a human yes → ADR-8, ADR-9.",
+    "Exactly once: an approved action runs once, never twice → ADR-9, Executors.",
+    "PII redaction: replaces emails, IBANs etc. with placeholders → ADR-13.",
+    "Prompt injection: text that tries to give the AI new orders → ADR-14."
+   ]
+  },
+  {
+   "dot": "slate",
+   "title": "Key terms · data and platform",
+   "items": [
+    "RAG: look up policy text first, then answer with citations → RAG search.",
+    "Embedding: numbers that capture a text's meaning → ADR-11.",
+    "pgvector: Postgres add-on that stores embeddings → ADR-10.",
+    "Relevance floor: minimum score for a search hit to count → ADR-12.",
+    "Eval set: labelled questions that measure search quality → Retrieval eval.",
+    "Docker Compose: starts the whole stack with one command → Docker Compose.",
+    "Composition root: the one place that wires parts together → P-1 Wiring, ADR-2."
+   ]
+  },
+  {
+   "dot": "cyan",
+   "title": "Key terms · coming in Week 4",
+   "items": [
+    "OpenTelemetry: tracing, a span per AI or tool call → Tracing.",
+    "OPA/Rego: policy code; rule is 'block auto-payout above €X' → Payout policy.",
+    "Audit trail: a log of every tool call and decision → Audit trail."
+   ]
+  }
+ ]
+}

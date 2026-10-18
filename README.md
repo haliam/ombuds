@@ -22,7 +22,7 @@ A tool being *callable* by the agent must never imply automatic *permission* to 
 
 ## Design
 
-![Ombuds component architecture](docs/diagrams/archify/architecture.png)
+![Ombuds component architecture](docs/diagrams/architecture/architecture.png)
 
 *Component view. Full table, deployment and layering notes in [`docs/architecture.md`](docs/architecture.md). Diagram sources are in [`docs/diagrams/`](docs/diagrams/README.md).*
 
@@ -36,11 +36,11 @@ A claim comes in — for example, a flight cancellation compensation claim. Ombu
 6. **Gates risky actions behind a human.** A state-changing tool call (`log_claim` today; `issue_payment`, which the agent is never offered) only *submits* a payload-bound approval request, made of server-issued and rules-derived values, never model-authored ones. It does this whatever the model's confidence. The W4 OPA/Rego policy is meant to let low-risk logging auto-execute and always require a human for money.
 7. **Executes only after approval.** Once a human approves, the action runs exactly once against Postgres, which the LLM never owns ([ADR-0009](docs/decisions/0009-approval-request-is-the-pending-action.md)): `log_claim` writes the `claims` row, and `issue_payment` writes a *simulated* payout record to `payments` (there is no real payment rail) and requires a logged claim with a matching amount.
 
-![Triage and approval sequence](docs/diagrams/archify/triage-approval-flow.png)
+![Triage and approval sequence](docs/diagrams/triage-approval-flow/triage-approval-flow.png)
 
 *One triage, then the later human approval. Note that nothing changes state until the second half.*
 
-More diagrams: [guardrails pipeline](docs/architecture.md#guardrails-and-tool-scoping), [RAG and evals](docs/architecture.md#rag-and-evals), [MCP process boundary](docs/architecture.md#mcp-process-boundary), [data model](docs/architecture.md#data-model), [layering](docs/architecture.md#layering), [approval lifecycle](docs/decisions/0009-approval-request-is-the-pending-action.md#lifecycle-of-an-approval-request) and [triage graph](docs/decisions/0005-prompted-json-with-repair-over-native-structured-output.md#the-triage-graph-end-to-end), [Compose startup](docs/architecture.md#deployment), [memory](docs/architecture.md#memory) and [prompt versioning](docs/architecture.md#prompt-versioning). The full index is in [`docs/diagrams/`](docs/diagrams/README.md), and each diagram is explained twice (simply, and for an interviewer) in [`docs/diagrams/explained.md`](docs/diagrams/explained.md).
+More diagrams: [guardrails pipeline](docs/diagrams/guardrails-pipeline/README.md), [RAG and evals](docs/diagrams/rag-evals-pipeline/README.md), [MCP process boundary](docs/diagrams/mcp-boundary/README.md), [data model](docs/diagrams/data-model/README.md), [layering](docs/diagrams/layering/README.md), [approval lifecycle](docs/diagrams/approval-lifecycle/README.md), [triage graph](docs/diagrams/triage-graph/README.md), [provider fallback](docs/diagrams/provider-fallback/README.md), [SSE event order](docs/diagrams/sse-event-order/README.md), [Compose startup](docs/diagrams/compose-startup/README.md), [memory](docs/diagrams/memory-flow/README.md), [prompt versioning](docs/diagrams/prompt-versioning/README.md) and [injection detection](docs/diagrams/injection-detection/README.md). Every diagram has its own page with version, date and two plain-language explanations; the index is in [`docs/diagrams/`](docs/diagrams/README.md).
 
 ### How it is built
 
@@ -113,4 +113,4 @@ The agent, RAG, Postgres-backed approvals and execution, MCP server, Docker Comp
 | 3 | RAG pipeline, Postgres + vector store, Docker Compose, PII/injection guardrails |
 | 4 | Observability (OpenTelemetry), OPA/Rego policy, audit trail, architecture docs |
 
-Design decisions: [`docs/decisions/`](docs/decisions/). Architecture detail: [`docs/architecture.md`](docs/architecture.md).
+Design decisions: [`docs/decisions/`](docs/decisions). Architecture detail: [`docs/architecture.md`](docs/architecture.md).

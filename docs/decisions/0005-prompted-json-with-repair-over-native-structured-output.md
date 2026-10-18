@@ -18,24 +18,7 @@ Prompt the model (`platform/prompts/claims_triage/v3.txt`) to reply with a singl
 
 ## The triage graph, end to end
 
-```mermaid
-flowchart TD
-    start([start]) --> call_model
-    call_model["call_model<br/>turns += 1, one provider turn"]
-    call_model -->|"turns > 8, or stop_reason is<br/>max_tokens / refusal"| escalate
-    call_model -->|"tool calls pending"| dispatch_tools
-    call_model -->|"no tool calls"| finalize
-    dispatch_tools["dispatch_tools<br/>run tools, replay results,<br/>remember check_eligibility facts"] --> call_model
-    finalize{"finalize<br/>parse JSON, then verify against<br/>the check_eligibility result"}
-    finalize -->|"valid, or plain text without a brace"| done([END: answer + decision])
-    finalize -->|"invalid, repair_attempts < 2<br/>(repair message appended)"| call_model
-    finalize -->|"invalid, repair_attempts = 2"| escalate
-    escalate["escalate<br/>escalated = true, fixed human-review answer,<br/>model text never used"] --> done2([END: escalated])
-```
-
-Three counters bound the loop: `turns` (cap `MAX_TOOL_TURNS = 8`), `repair_attempts` (cap `MAX_REPAIR_ATTEMPTS = 2`) and the unrecoverable stop reasons. Every path ends at `END`; running out of budget is a business outcome (`escalated`), never an exception. The routing mirrors `build_triage_graph().get_graph().draw_mermaid()` node for node. Sources: `features/claims_triage/agent/graph.py`, `agent/nodes/escalate_retry.py`, `application/decision.py` (`verify_decision`).
-
-Memory beside the loop: `dispatch_tools` writes rules-derived facts into short-term memory (never into a prompt). `run_triage` loads long-term memory by `claimant_id` into the first user message and writes `last_*` facts back after a verified run. The HTTP routes do not pass `claimant_id` yet, so cross-run memory is only used by the library path.
+Diagram: [LangGraph Triage Loop v1.0](../diagrams/triage-graph/README.md)
 
 ## Alternatives considered
 - **`output_config.format` (constrained decoding on the final turn).** Guarantees schema-valid JSON server-side, but the model still needs a plain-text mode for clarifying questions, so the loop would need to know in advance which turn is "the decision turn" before asking — the same problem this design avoids by treating it as a bare `"{" in text` check on a reply the model produced without that instruction baked into the API call. It also still says nothing about whether the *content* is right (see the F-01 gap above), so it would not have avoided that defect either.

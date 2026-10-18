@@ -1,16 +1,12 @@
 # Architecture
 
-Ombuds triages airline EU261 claims with an LLM agent, but the LLM never owns the outcome: eligibility comes from a deterministic rules engine, and every state change waits for a human approval and then runs exactly once. This page shows how the pieces fit. Design decisions and what was given up are in [`decisions/`](decisions/).
+Ombuds triages airline EU261 claims with an LLM agent, but the LLM never owns the outcome: eligibility comes from a deterministic rules engine, and every state change waits for a human approval and then runs exactly once. This page shows how the pieces fit. Design decisions and what was given up are in [`decisions/`](decisions).
 
 ## Component view
 
-![Ombuds component architecture](diagrams/archify/architecture.png)
+![Ombuds component architecture](diagrams/architecture/architecture.png)
 
-The diagram is generated with archify from [`diagrams/archify/architecture.json`](diagrams/archify/architecture.json), which pins the commit it was traced from and cites source lines per component. The interactive HTML is committed next to it as `diagrams/archify/architecture.html` (about 820 KB, so the repo's `check-added-large-files` limit is 1000 KB). To regenerate it, run from the repo root:
-
-```bash
-node ~/.claude/skills/archify/bin/archify.mjs finalize architecture docs/diagrams/archify/architecture.json /tmp/ombuds-architecture.html --repo-root . --quality showcase
-```
+Diagram: [Ombuds Claims Triage v1.0](diagrams/architecture/README.md) (interactive HTML, source and regeneration steps are on that page). Each component's source lines are cited in its JSON.
 
 | Component | What it does | Code |
 |---|---|---|
@@ -29,174 +25,69 @@ node ~/.claude/skills/archify/bin/archify.mjs finalize architecture docs/diagram
 
 ## Triage and approval flow
 
-![Triage and approval sequence](diagrams/archify/triage-approval-flow.png)
+![Triage and approval sequence](diagrams/triage-approval-flow/triage-approval-flow.png)
 
-Source: [`diagrams/archify/triage-approval-flow.json`](diagrams/archify/triage-approval-flow.json) (interactive page: `diagrams/archify/triage-approval-flow.html`), regenerated the same way with `sequence` in place of `architecture`. The agent only ever *submits* `log_claim`; the human approval later is a separate request, and only then does the executor write to Postgres. A suspected injection, a verdict that still disagrees with the rules engine after two repairs, or more than eight tool turns all end in an escalation to a human instead of a verdict.
+One triage and the later human approval are two separate moments: the agent only submits `log_claim`, and only after a human approves does the executor write to Postgres.
+
+Diagram: [Triage and Approval Flow v1.0](diagrams/triage-approval-flow/README.md)
 
 ## MCP process boundary
 
-![MCP process boundary](diagrams/archify/mcp-boundary.png)
+![MCP process boundary](diagrams/mcp-boundary/mcp-boundary.png)
 
-With `use_mcp=True` the library path spawns the MCP server as a subprocess and bridges its synchronous graph to an async MCP session; the HTTP API does not use MCP. The server builds the same Postgres-backed runtime as the API, so approvals are shared. Source: [`diagrams/archify/mcp-boundary.json`](diagrams/archify/mcp-boundary.json) (interactive page: `diagrams/archify/mcp-boundary.html`), regenerated the same way. Decision: [ADR-0003](decisions/0003-mcp-as-subpackage-not-service.md).
+With `use_mcp=True` the library path spawns the MCP server as a subprocess; the HTTP API does not use MCP. Decision: [ADR-0003](decisions/0003-mcp-as-subpackage-not-service.md).
+
+Diagram: [MCP Process Boundary v1.0](diagrams/mcp-boundary/README.md)
 
 ## Guardrails and tool scoping
 
-![Guardrails and tool scoping pipeline](diagrams/archify/guardrails-pipeline.png)
+![Guardrails and tool scoping pipeline](diagrams/guardrails-pipeline/guardrails-pipeline.png)
 
-Where untrusted text is screened and redacted, and where the model's authority ends: it never chooses the `claim_id`, is never offered `issue_payment`, and `log_claim` only submits a rules-derived approval request. Source: [`diagrams/archify/guardrails-pipeline.json`](diagrams/archify/guardrails-pipeline.json) (interactive page: `diagrams/archify/guardrails-pipeline.html`), regenerated the same way with `dataflow` in place of `architecture`. Decisions: [ADR-0013](decisions/0013-regex-pii-redaction-at-the-trust-boundaries.md), [ADR-0014](decisions/0014-heuristic-injection-detection-escalates.md).
+Where untrusted text is screened and redacted, and where the model's authority ends. Decisions: [ADR-0013](decisions/0013-regex-pii-redaction-at-the-trust-boundaries.md), [ADR-0014](decisions/0014-heuristic-injection-detection-escalates.md).
+
+Diagram: [Guardrails and Tool Scoping Pipeline v1.0](diagrams/guardrails-pipeline/README.md)
 
 ## RAG and evals
 
-![RAG ingest, retrieval and evals](diagrams/archify/rag-evals-pipeline.png)
+![RAG ingest, retrieval and evals](diagrams/rag-evals-pipeline/rag-evals-pipeline.png)
 
-Offline ingest and online retrieval meet at the `kb_chunks` table; the eval harness reads the same table and sweeps the relevance floor over saved scores. Source: [`diagrams/archify/rag-evals-pipeline.json`](diagrams/archify/rag-evals-pipeline.json) (interactive page: `diagrams/archify/rag-evals-pipeline.html`), regenerated with `dataflow`. Decisions: [ADR-0010](decisions/0010-pgvector-in-postgres-over-chroma.md), [ADR-0011](decisions/0011-heading-aware-chunking-and-openai-embeddings.md), [ADR-0012](decisions/0012-retrieval-relevance-floor.md). The end-to-end agent eval dataset is still empty.
+Offline ingest and online retrieval meet at the `kb_chunks` table, and the eval harness sweeps the relevance floor over saved scores. Decisions: [ADR-0010](decisions/0010-pgvector-in-postgres-over-chroma.md), [ADR-0011](decisions/0011-heading-aware-chunking-and-openai-embeddings.md), [ADR-0012](decisions/0012-retrieval-relevance-floor.md).
+
+Diagram: [RAG Ingest, Retrieval and Evals v1.0](diagrams/rag-evals-pipeline/README.md)
 
 ## Data model
 
-```mermaid
-erDiagram
-    approval_requests ||--o| payments : "approval_request_id (FK)"
-    claims ||--o| payments : "claim_id (PK, FK)"
-    approval_requests {
-        text id PK "uuid default"
-        text action "log_claim | issue_payment"
-        jsonb payload "rules-derived, no claim_text"
-        text payload_key "UNIQUE with action"
-        text status "pending | approved | denied | executed"
-        text approver
-        text note
-        timestamptz created_at
-        timestamptz updated_at
-    }
-    claims {
-        text claim_id PK "server-issued"
-        jsonb facts
-        jsonb decision "rules engine output"
-        timestamptz created_at
-    }
-    payments {
-        text claim_id PK "FK claims"
-        int amount_eur "CHECK > 0"
-        text approval_request_id FK
-        timestamptz created_at
-    }
-    long_term_memory {
-        text claimant_id PK
-        jsonb facts
-        timestamptz updated_at
-    }
-    kb_chunks {
-        bigserial id PK
-        text source "UNIQUE with chunk_index"
-        int chunk_index
-        text content
-        vector_1536 embedding "HNSW cosine index"
-    }
-```
+Five tables in one Postgres database: approvals, claims, payments, long-term memory and the knowledge base.
 
-Only `payments` has foreign keys: one payment per claim, and only for a logged claim. The `claim_id` inside an `approval_requests.payload` is a logical link, not a foreign key. `long_term_memory` and `kb_chunks` stand alone, and `schema_migrations` (applied versions, under an advisory lock) is omitted. Sources: `platform/infrastructure/migrations/0001_init.sql`, `0002_payments.sql`; decisions [ADR-0009](decisions/0009-approval-request-is-the-pending-action.md) and [ADR-0010](decisions/0010-pgvector-in-postgres-over-chroma.md). `long_term_memory` has no caller in the HTTP API yet.
+Diagram: [Postgres Data Model v1.0](diagrams/data-model/README.md)
 
 ## Layering
 
 Imports run `features → platform → domain`, never the reverse. `platform/` has no airline or triage knowledge. Only the composition roots (`api_app.py`, the MCP server entrypoint) wire a feature into the platform (ADR-0002).
 
-```mermaid
-flowchart TB
-    subgraph roots["Composition roots (only place a feature is wired into platform)"]
-        api["api_app.py<br/>create_app, lifespan"]
-        mcp_server["platform/mcp/server.py<br/>python -m ombuds.platform.mcp.server"]
-    end
-    subgraph features["features/claims_triage"]
-        runtime["application/runtime.py<br/>build_runtime(pool)"]
-        usecase["application: triage_use_case, executors"]
-        agent["agent, rag, tools, api"]
-        airline["verticals/airline: rules, kb_seed"]
-    end
-    subgraph platform["platform (feature-agnostic)"]
-        guardrails["guardrails: pii, injection,<br/>approval gate, executing store"]
-        ai["ai: providers, tool loop, streaming"]
-        mcp["mcp: tool_bindings, client"]
-        infra["infrastructure: postgres, repositories, vector store"]
-    end
-    domain["domain: models, enums, errors"]
-
-    api -->|"build_runtime(pool)"| runtime
-    mcp_server -->|"build_runtime(pool)"| runtime
-    api --> guardrails
-    runtime --> usecase
-    runtime --> agent
-    usecase --> airline
-    agent --> airline
-    usecase --> mcp
-    runtime --> guardrails
-    runtime --> infra
-    agent --> ai
-    features --> platform
-    platform --> domain
-    features --> domain
-```
-
-`build_runtime` assembles the Postgres-backed approval store, the executors and the tool registry once, and both roots call it, so the API and the MCP subprocess share one wiring and the same Postgres rows. `create_app` also accepts an injected store and registry so tests can pass in-memory fakes. The rule is convention only: nothing in `make lint` or the tests checks import direction. At this commit the only `platform` file that imports from `features` is `platform/mcp/server.py`, which is a composition root by design. Sources: `api_app.py` (35-65), `features/claims_triage/application/runtime.py` (25-32), `platform/mcp/server.py` (13).
+Diagram: [Layering and Composition Roots v1.0](diagrams/layering/README.md)
 
 ## Deployment
 
-`docker compose up` (via `make up`) runs three services: `db` (pgvector/pgvector:pg16), a one-shot `migrate-ingest` (migrations plus KB ingest), and `api` on port 8000. The API keeps no approval state in process, because approvals live in Postgres.
+`docker compose up` (via `make up`) runs three services: `db`, a one-shot `migrate-ingest`, and `api` on port 8000. The API keeps no approval state in process, because approvals live in Postgres.
 
-```mermaid
-sequenceDiagram
-    participant U as make up
-    participant D as db (pgvector pg16)
-    participant M as migrate-ingest (one-shot)
-    participant A as api (:8000)
-    U->>D: start
-    loop every 2s, up to 20 tries
-        D-->>D: pg_isready healthcheck
-    end
-    D-->>M: service_healthy
-    M->>D: apply migrations (advisory lock)
-    M->>D: chunk + embed KB seed, replace per source (needs OPENAI_API_KEY)
-    M-->>A: service_completed_successfully, then exits (restart: no)
-    A->>D: create pool, build_runtime (needs ANTHROPIC_API_KEY for triage)
-    loop every 3s, up to 20 tries
-        A-->>A: GET /openapi.json healthcheck
-    end
-    Note over A: the API never migrates on its own, and keeps no approval state in process
-```
-
-`api` waits on both `db` (healthy) and `migrate-ingest` (completed successfully), so a failed migration or ingest keeps the API from starting. Both steps are idempotent, so running `make up` again is safe. Source: `docker-compose.yml`.
+Diagram: [Docker Compose Startup v1.0](diagrams/compose-startup/README.md)
 
 ## Memory
 
-```mermaid
-flowchart LR
-    subgraph run["One triage run"]
-        tools["dispatch_tools<br/>latest successful check_eligibility"] -->|"eligible, compensation_eur, reasons<br/>(rendered by our code)"| st["ShortTermMemory<br/>in AgentState, never put in a prompt"]
-    end
-    st -->|"only if a verified decision exists"| cons["_consolidate<br/>keys become last_*"]
-    cons -->|"save(claimant_id)"| store[("LongTermMemoryStore<br/>Postgres long_term_memory<br/>or in-memory")]
-    store -->|"load(claimant_id)"| ctx["as_context()<br/>separate text block in the FIRST user message"]
-    ctx --> first["first user turn of the next run<br/>(not the system prompt)"]
-```
+Short-term memory lives in the graph state for one run; long-term memory is loaded and saved per claimant. Both hold only rules-derived facts.
 
-Both kinds hold only rules-derived facts, never model-written text, and memory is never promoted to system-prompt trust (W2 review F-06). Cross-run memory is opt-in: `run_triage` needs both a `claimant_id` and a `long_term_store`. The HTTP routes pass neither, so today only the library path uses it, and `PostgresLongTermMemoryStore` has no production caller. Sources: `agent/graph.py` (`_remember_eligibility`), `agent/memory/*`, `application/triage_use_case.py` (`run_triage`, `_consolidate`, `_first_user_message`).
+Diagram: [Memory Flow v1.0](diagrams/memory-flow/README.md)
 
 ## Prompt versioning
 
-```mermaid
-flowchart LR
-    v1["v1<br/>stub"] --> v2["v2<br/>system prompt: always call check_eligibility, cite reason codes"] --> v3["v3<br/>adds final-answer JSON format and repair instruction"] --> v4["v4 (live)<br/>log_claim takes flight facts, reply must match check_eligibility"]
-    env[".env / CLAIMS_TRIAGE_PROMPT_VERSION<br/>default v4"] -->|"selects"| cfg["config.ACTIVE_PROMPT_VERSIONS"]
-    cfg --> load["load_prompt('claims_triage')<br/>read per run in _prepare_run"]
-    v4 -.-> load
-    gate{"new version?"} -->|"bump, never edit old files"| vn["vN.txt"]
-    vn -->|"must run clean against evals/datasets"| cfg
-```
+Prompts are versioned files; the live version is chosen by `CLAIMS_TRIAGE_PROMPT_VERSION` (v4 today) and old versions stay as history.
 
-Old versions stay as history. The gate is a policy, not code: the end-to-end eval dataset (`evals/datasets/airline_claims.jsonl`) is still empty, so only retrieval is measured today. Sources: `src/ombuds/config.py` (`ACTIVE_PROMPT_VERSIONS`, `load_prompt`), `platform/prompts/claims_triage/v1.txt` to `v4.txt`, `.env.example`.
+Diagram: [Prompt Versioning v1.0](diagrams/prompt-versioning/README.md)
 
 ## Development history
 
-Two diagrams show how the project was built, week by week: [`diagrams/archify/development-overview.html`](diagrams/archify/development-overview.html) (v1: steps and key decisions) and [`diagrams/archify/development-overview-v2.html`](diagrams/archify/development-overview-v2.html) (v2: steps only, each linked to its code at a fixed commit). Each has a `.json` source and a `.png` next to it.
+Two boards show how the project was built, week by week: [Ombuds Development Board, v1.0](diagrams/development-overview/README.md) (steps and key decisions) and [Ombuds Development Board v2, v1.0](diagrams/development-overview-v2/README.md) (steps only, each linked to its code at a fixed commit).
 
 ## Not built yet
 

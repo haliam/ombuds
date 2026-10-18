@@ -49,6 +49,9 @@ Any tool that changes state (`log_claim`, `issue_payment`, an escalation) must p
 ## Prompt versioning
 Prompts are versioned files under `src/ombuds/platform/prompts/<feature>/vN.txt` (currently `claims_triage/v4.txt` is live, with `v1`–`v3` kept as history), never inline strings. Bump the version rather than overwriting when wording changes meaningfully. A new version must run clean against `evals/datasets/` before it becomes the active version referenced in `config.py`. Record which version is live per environment in `.env.example`.
 
+## Diagrams
+Every diagram has one versioned page in `docs/diagrams/` (index and template there; rules in `docs/code-style.md`). ADRs and `architecture.md` link to it, never paste it.
+
 ## Decisions
 Architecture decisions live in `docs/decisions/` as ADRs — start from `docs/decisions/0000-template.md`. Write one when choosing between real alternatives (a framework, a storage engine, a deployment shape), not for routine implementation choices.
 

@@ -1,0 +1,67 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Ombuds Claims Triage · v1.0 · 2026-10-18",
+    "output": "docs/diagrams/architecture/architecture.html",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "https://github.com/haliam/ombuds.git",
+      "provider": "github",
+      "link_mode": "web",
+      "revision": "7342b6cac9c7f99e4e7d05dc5b22e7e74a1287ff"
+    }
+  },
+  "components": [
+    { "id": "caller", "type": "external", "label": "Claimant client", "sublabel": "HTTP", "pos": [40, 40], "size": [140, 60] },
+    { "id": "api", "type": "backend", "label": "FastAPI app", "sublabel": "create_app · /claims", "pos": [250, 40], "size": [140, 60],
+      "sources": [ { "path": "src/ombuds/api_app.py", "line": 31, "end_line": 53 }, { "path": "src/ombuds/features/claims_triage/api/routes.py", "line": 40, "end_line": 47 } ] },
+    { "id": "usecase", "type": "backend", "label": "Triage use case", "sublabel": "run_triage", "pos": [460, 40], "size": [140, 60],
+      "sources": [ { "path": "src/ombuds/features/claims_triage/application/triage_use_case.py", "line": 88, "end_line": 141 } ] },
+    { "id": "agent", "type": "backend", "label": "LangGraph agent", "sublabel": "tool loop · verify · repair", "pos": [670, 40], "size": [150, 60],
+      "sources": [ { "path": "src/ombuds/features/claims_triage/agent/graph.py", "line": 103, "end_line": 194 }, { "path": "src/ombuds/features/claims_triage/application/decision.py", "line": 47 } ] },
+    { "id": "llm", "type": "external", "label": "LLM providers", "sublabel": "Anthropic · OpenAI", "pos": [890, 40], "size": [140, 60],
+      "sources": [ { "path": "src/ombuds/platform/ai/providers/fallback.py", "line": 32, "end_line": 146 } ] },
+    { "id": "guard", "type": "security", "label": "Input guardrails", "sublabel": "injection · PII redact", "pos": [460, 190], "size": [140, 60],
+      "sources": [ { "path": "src/ombuds/platform/guardrails/injection_detection.py", "line": 146 }, { "path": "src/ombuds/platform/guardrails/pii_filter.py", "line": 154 } ] },
+    { "id": "dispatch", "type": "security", "label": "Guarded dispatch", "sublabel": "scoped · args redacted", "pos": [670, 190], "size": [150, 60],
+      "sources": [ { "path": "src/ombuds/platform/guardrails/guarded_dispatcher.py", "line": 15, "end_line": 31 }, { "path": "src/ombuds/features/claims_triage/tools/__init__.py", "line": 45, "end_line": 82 } ] },
+    { "id": "mcp", "type": "backend", "label": "MCP server", "sublabel": "stdio · same registry", "pos": [890, 190], "size": [140, 60],
+      "sources": [ { "path": "src/ombuds/platform/mcp/server.py", "line": 21, "end_line": 45 }, { "path": "src/ombuds/platform/mcp/client.py", "line": 53 } ] },
+    { "id": "kb", "type": "backend", "label": "search_kb (RAG)", "sublabel": "floor 0.35 · cited", "pos": [460, 340], "size": [140, 60],
+      "sources": [ { "path": "src/ombuds/features/claims_triage/tools/search_kb.py", "line": 51 }, { "path": "src/ombuds/features/claims_triage/rag/retriever.py", "line": 17 } ] },
+    { "id": "rules", "type": "backend", "label": "check_eligibility", "sublabel": "deterministic EU261", "pos": [670, 340], "size": [150, 60],
+      "sources": [ { "path": "src/ombuds/features/claims_triage/tools/check_eligibility.py", "line": 18 }, { "path": "src/ombuds/features/claims_triage/verticals/airline/rules.py", "line": 90 } ] },
+    { "id": "gate", "type": "security", "label": "Approval gate", "sublabel": "submit · approve · execute once", "pos": [890, 340], "size": [150, 60],
+      "sources": [ { "path": "src/ombuds/platform/guardrails/approval_gate.py", "line": 67 }, { "path": "src/ombuds/platform/guardrails/executing_store.py", "line": 27, "end_line": 66 }, { "path": "src/ombuds/features/claims_triage/application/executors.py", "line": 28, "end_line": 43 } ] },
+    { "id": "approvals", "type": "backend", "label": "Approvals API", "sublabel": "/approvals", "pos": [1130, 340], "size": [140, 60],
+      "sources": [ { "path": "src/ombuds/platform/guardrails/api.py", "line": 40, "end_line": 74 } ] },
+    { "id": "human", "type": "external", "label": "Human approver", "sublabel": "approve / deny", "pos": [1130, 190], "size": [140, 60] },
+    { "id": "db", "type": "database", "label": "PostgreSQL + pgvector", "sublabel": "claims · payments · approvals · KB", "pos": [670, 490], "size": [170, 64],
+      "sources": [ { "path": "src/ombuds/platform/infrastructure/repositories.py", "line": 38 }, { "path": "src/ombuds/platform/infrastructure/vector_store.py", "line": 64 }, { "path": "docker-compose.yml", "line": 3, "end_line": 17 } ] }
+  ],
+  "boundaries": [
+    { "kind": "security-group", "label": "LLM never executes: guardrails", "wraps": ["guard", "dispatch"] }
+  ],
+  "connections": [
+    { "id": "c-api", "from": "caller", "to": "api", "label": "POST", "variant": "emphasis" },
+    { "id": "c-uc", "from": "api", "to": "usecase", "label": "run" },
+    { "id": "c-agent", "from": "usecase", "to": "agent", "label": "claim", "variant": "emphasis" },
+    { "id": "c-llm", "from": "agent", "to": "llm", "label": "turns" },
+    { "id": "c-guard", "from": "usecase", "to": "guard", "label": "screen", "fromSide": "bottom", "toSide": "top" },
+    { "id": "c-disp", "from": "agent", "to": "dispatch", "label": "tool calls", "fromSide": "bottom", "toSide": "top" },
+    { "id": "c-mcp", "from": "dispatch", "to": "mcp", "label": "optional MCP", "variant": "dashed" },
+    { "id": "c-kb", "from": "dispatch", "to": "kb", "fromSide": "bottom", "toSide": "top" },
+    { "id": "c-rules", "from": "dispatch", "to": "rules", "fromSide": "bottom", "toSide": "top" },
+    { "id": "c-gate", "from": "dispatch", "to": "gate", "label": "submit only", "variant": "security", "fromSide": "bottom", "toSide": "top" },
+    { "id": "c-human", "from": "human", "to": "approvals", "label": "decide", "variant": "security" },
+    { "id": "c-appr", "from": "approvals", "to": "gate", "label": "approve", "variant": "security" },
+    { "id": "c-vec", "from": "kb", "to": "db", "label": "vector search", "fromSide": "bottom", "toSide": "left" },
+    { "id": "c-exec", "from": "gate", "to": "db", "label": "execute once", "variant": "emphasis", "fromSide": "bottom", "toSide": "right" }
+  ],
+  "cards": [
+    { "dot": "rose", "title": "Core claim", "items": ["LLM chooses how to investigate; rules and humans decide outcomes", "State changes only run after approval, exactly once"] },
+    { "dot": "cyan", "title": "Deployed with Docker Compose", "items": ["db: pgvector/pgvector:pg16", "migrate-ingest: one-shot migrations + KB ingest", "api: FastAPI on :8000, MCP spawned over stdio"] },
+    { "dot": "amber", "title": "Planned for W4, not built", "items": ["OpenTelemetry tracing", "OPA/Rego payout policy", "Audit trail"] }
+  ]
+}
