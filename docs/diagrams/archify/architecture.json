@@ -2,8 +2,8 @@
   "schema_version": 1,
   "diagram_type": "architecture",
   "meta": {
-    "title": "Ombuds Claims Triage",
-    "output": "docs/diagrams/architecture.html",
+    "title": "Ombuds Claims Triage · v1.0 · 2026-10-18",
+    "output": "docs/diagrams/archify/architecture.html",
     "quality_profile": "showcase",
     "repository": {
       "url": "https://github.com/haliam/ombuds.git",

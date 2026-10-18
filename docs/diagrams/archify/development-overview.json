@@ -2,8 +2,8 @@
  "schema_version": 1,
  "diagram_type": "architecture",
  "meta": {
-  "title": "Ombuds Development Board",
-  "output": "docs/diagrams/development-overview.html",
+  "title": "Ombuds Development Board · v1.0 · 2026-10-18",
+  "output": "docs/diagrams/archify/development-overview.html",
   "quality_profile": "showcase",
   "legend": {
    "mode": "auto",

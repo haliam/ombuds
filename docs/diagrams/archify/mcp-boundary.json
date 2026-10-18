@@ -2,7 +2,7 @@
  "schema_version": 1,
  "diagram_type": "architecture",
  "meta": {
-  "title": "MCP Process Boundary",
+  "title": "MCP Process Boundary · v1.0 · 2026-10-18",
   "output": "docs/diagrams/archify/mcp-boundary.html",
   "quality_profile": "showcase",
   "repository": {

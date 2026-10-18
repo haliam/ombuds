@@ -1,26 +1,33 @@
 # Diagrams
 
-This folder is the one home for diagram sources and outputs.
+This folder is the one home for diagrams. **Every diagram has one page, `<slug>.md`, built from [`_template.md`](_template.md)**: title, version, date, pinned commit, the diagram, what it shows, a child and an interviewer explanation, and how to regenerate it. Other docs (ADRs, `architecture.md`, the root README) link to that page instead of repeating the diagram.
 
 | Path | What it holds |
 |---|---|
-| `archify/` | Showcase diagrams made with the archify skill: `<name>.json` (source, pinned to a commit), `<name>.html` (interactive) and `<name>.png` (embedded in docs). |
-| `src/` | Scripts that generate an archify JSON (e.g. `development_board_gen.py`). |
+| `<slug>.md` | The diagram page (the thing to read and link to). |
+| `archify/` | For archify diagrams: `<slug>.json` (source, pinned to a commit), `<slug>.html` (interactive) and `<slug>.png` (embedded in the page). |
+| `src/` | Scripts: `render_archify.py` rebuilds an archify `.html` and `.png`; `development_board_gen.py` generates board v1's JSON. |
 
-Mermaid diagrams are not stored here. They live inline in the doc they explain (ADRs, `docs/architecture.md`).
+## Versioning
 
-Plain-language explanations (one for a child, one for an interviewer) of every diagram below are in [explained.md](explained.md).
+Each diagram is `MAJOR.MINOR` with a date, shown in the page header and in the diagram's own title (`meta.title` for archify, the front-matter `title:` for Mermaid). Bump MINOR for a redraw or accuracy fix, MAJOR when the system it shows changes shape, and add a line to the page's change log. The pinned commit is the code revision the diagram was last checked against.
 
 ## Diagram index
 
+| Diagram | Ver | Date | Tool | Decisions |
+|---|---|---|---|---|
+| [Ombuds Claims Triage](architecture.md) | 1.0 | 2026-10-18 | archify | ADR-0001, 0002, 0009 |
+| [Triage and Approval Flow](triage-approval-flow.md) | 1.0 | 2026-10-18 | archify | ADR-0009, 0014 |
+| [Guardrails and Tool Scoping Pipeline](guardrails-pipeline.md) | 1.0 | 2026-10-18 | archify | ADR-0013, 0014 |
+| [RAG Ingest, Retrieval and Evals](rag-evals-pipeline.md) | 1.0 | 2026-10-18 | archify | ADR-0010, 0011, 0012 |
+| [MCP Process Boundary](mcp-boundary.md) | 1.0 | 2026-10-18 | archify | ADR-0003 |
+| [Ombuds Development Board](development-overview.md) | 1.0 | 2026-10-18 | archify | all |
+| [Ombuds Development Board v2](development-overview-v2.md) | 1.0 | 2026-10-18 | archify | all |
+
+Mermaid diagrams, still inline in the doc they explain until they get their own pages:
+
 | Diagram | Tool | Where |
 |---|---|---|
-| Component architecture | archify | [`architecture.md`](../architecture.md) (`archify/architecture.*`) |
-| Triage and approval sequence | archify | [`architecture.md`](../architecture.md#triage-and-approval-flow) (`archify/triage-approval-flow.*`) |
-| Guardrails and tool scoping | archify | [`architecture.md`](../architecture.md#guardrails-and-tool-scoping) (`archify/guardrails-pipeline.*`) |
-| RAG ingest, retrieval and evals | archify | [`architecture.md`](../architecture.md#rag-and-evals) (`archify/rag-evals-pipeline.*`) |
-| MCP process boundary | archify | [`architecture.md`](../architecture.md#mcp-process-boundary) (`archify/mcp-boundary.*`) |
-| Development history boards | archify | [`architecture.md`](../architecture.md#development-history) (`archify/development-overview*.*`) |
 | Postgres data model | Mermaid | [`architecture.md`](../architecture.md#data-model) |
 | Layering and composition roots | Mermaid | [`architecture.md`](../architecture.md#layering) |
 | Approval lifecycle | Mermaid | [ADR-0009](../decisions/0009-approval-request-is-the-pending-action.md#lifecycle-of-an-approval-request) |
@@ -32,6 +39,8 @@ Plain-language explanations (one for a child, one for an interviewer) of every d
 | Prompt versioning | Mermaid | [`architecture.md`](../architecture.md#prompt-versioning) |
 | Injection detection internals | Mermaid | [ADR-0014](../decisions/0014-heuristic-injection-detection-escalates.md#inside-detect) |
 
+Their plain-language explanations are in [explained.md](explained.md).
+
 ## Which tool
 
 - **Mermaid**: small diagrams that sit beside prose (state machines, flowcharts, ER). GitHub renders them, no binaries.
@@ -39,10 +48,4 @@ Plain-language explanations (one for a child, one for an interviewer) of every d
 
 ## Regenerate an archify diagram
 
-From the repo root:
-
-```bash
-node ~/.claude/skills/archify/bin/archify.mjs finalize <type> docs/diagrams/archify/<name>.json /tmp/<name>.html --repo-root . --quality showcase
-```
-
-archify writes scratch runs to `.archify/` at the repo root. It is gitignored; delete it freely.
+From the repo root: `python docs/diagrams/src/render_archify.py <slug>` (needs node, the archify skill, google-chrome and Pillow). It runs `archify finalize` and rewrites the `.html` and `.png`. archify writes scratch runs to `.archify/` at the repo root. It is gitignored; delete it freely.

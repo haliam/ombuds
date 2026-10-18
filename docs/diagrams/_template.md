@@ -1,0 +1,36 @@
+# <Title>
+
+**Version** 1.0 · **Date** YYYY-MM-DD · **Tool** archify | Mermaid · **Type** component | sequence | dataflow | state | ER | flow · **Pinned commit** `abc1234`
+**Decisions** [ADR-00NN](../decisions/00NN-slug.md)
+**Source** code paths the diagram was checked against
+
+<!-- archify: ![slug](archify/slug.png) + links to archify/slug.html and archify/slug.json -->
+<!-- Mermaid: a ```mermaid block that starts with front matter:
+---
+title: <Title> · v1.0 · YYYY-MM-DD
+---
+-->
+
+## What it shows
+
+One or two sentences.
+
+## Like I'm 5
+
+One analogy, short sentences, no acronyms.
+
+## For an interviewer
+
+What it is, the trade-off, and an honest "not built yet" gap. Under one printed page.
+
+## Likely follow-up
+
+A question and a one-line answer.
+
+## Regenerate
+
+archify: `python docs/diagrams/src/render_archify.py <slug>` after editing the JSON. Mermaid: edit this file.
+
+## Change log
+
+- 1.0 (YYYY-MM-DD): first versioned release.

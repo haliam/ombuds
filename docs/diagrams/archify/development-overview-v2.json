@@ -2,8 +2,8 @@
  "schema_version": 1,
  "diagram_type": "architecture",
  "meta": {
-  "title": "Ombuds Development Board v2",
-  "output": "docs/diagrams/development-overview-v2.html",
+  "title": "Ombuds Development Board v2 · v1.0 · 2026-10-18",
+  "output": "docs/diagrams/archify/development-overview-v2.html",
   "quality_profile": "showcase",
   "repository": {
    "url": "https://github.com/haliam/ombuds.git",

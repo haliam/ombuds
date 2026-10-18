@@ -200,7 +200,7 @@ cards = [
     ),
 ]
 meta = dict(
-    title="Ombuds Development Board",
+    title="Ombuds Development Board · v1.0 · 2026-10-18",
     output="/tmp/development-overview.html",
     quality_profile="showcase",
     legend=dict(
