@@ -17,6 +17,8 @@ Use LangGraph as the orchestration layer for the agent.
 
 The resulting graph (nodes, counters and escalation paths) is drawn in [ADR-0005](0005-prompted-json-with-repair-over-native-structured-output.md#the-triage-graph-end-to-end).
 
+Diagram: [LangGraph Triage Loop v1.0](../diagrams/triage-graph/README.md)
+
 ## Alternatives considered
 - **CrewAI / AutoGen** — role-based/conversable agent abstractions fit multi-agent collaboration better than a single agent with a strict approval gate; state and control flow are less explicit than a state graph.
 - **Semantic Kernel** — strong enterprise/.NET integration story, worth knowing conceptually for the interview, but the Python-first LangGraph ecosystem matched the rest of this stack better.

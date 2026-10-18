@@ -87,9 +87,9 @@ Ordered by priority, then by dependency.
 
 ### F-01: An escalated run returns the rejected, unverified verdict as the passenger-facing `answer`
 - **Area:** Domain correctness / governance
-- **Current situation:** `escalate()` sets `answer = state["text"] or <fallback message>` ([escalate_retry.py:20](../src/ombuds/features/claims_triage/agent/nodes/escalate_retry.py#L20)). `state["text"]` is the last model turn, so it contains:
-  - **after repair exhaustion** ([graph.py:118-123](../src/ombuds/features/claims_triage/agent/graph.py#L118-L123)): the verdict JSON that `verify_decision` just **rejected**, because it contradicts `check_eligibility`;
-  - **after `MAX_TOOL_TURNS`** ([graph.py:72-76](../src/ombuds/features/claims_triage/agent/graph.py#L72-L76)): stale text from an earlier tool-use turn, e.g. "Let me check…";
+- **Current situation:** `escalate()` sets `answer = state["text"] or <fallback message>` ([escalate_retry.py:20](../../src/ombuds/features/claims_triage/agent/nodes/escalate_retry.py#L20)). `state["text"]` is the last model turn, so it contains:
+  - **after repair exhaustion** ([graph.py:118-123](../../src/ombuds/features/claims_triage/agent/graph.py#L118-L123)): the verdict JSON that `verify_decision` just **rejected**, because it contradicts `check_eligibility`;
+  - **after `MAX_TOOL_TURNS`** ([graph.py:72-76](../../src/ombuds/features/claims_triage/agent/graph.py#L72-L76)): stale text from an earlier tool-use turn, e.g. "Let me check…";
   - **after `stop_reason="max_tokens"`**: a truncated reply.
 
   The escalation tests assert `escalated`, `decision is None` and `escalation_reason`, but **never `answer`**.
@@ -101,10 +101,10 @@ Ordered by priority, then by dependency.
 ### F-02: An approval is reusable forever and isn't bound to what the human approved
 - **Area:** Governance / security / data model
 - **Current situation:**
-  - `ApprovalGate.check` returns `approved=True` every time it sees an `APPROVED` request ([approval_gate.py:88-89](../src/ombuds/platform/guardrails/approval_gate.py#L88-L89)). Nothing consumes an approval. Verified: one approval, then three checks, all `True`.
-  - `log_claim`'s approval context is `{"claim_id": …}` only ([log_claim.py:53](../src/ombuds/features/claims_triage/tools/log_claim.py#L53)). The approver sees a bare id: no facts, no computed eligibility, no amount. The eligibility is computed one line earlier and then discarded. A later `log_claim` for the same `claim_id` with **different facts** matches the same approved request.
-  - `check_approval(action, context=None)` falls back to `{}` ([approval_gate.py:133-135](../src/ombuds/platform/guardrails/approval_gate.py#L133-L135)). Approving one request with an empty context would approve every future context-less call for that action.
-  - `ApprovalRequest` is `frozen=False` and mutated in place under the lock ([approval_gate.py:36](../src/ombuds/platform/guardrails/approval_gate.py#L36), [119-127](../src/ombuds/platform/guardrails/approval_gate.py#L119-L127)). But `check()` reads `status` **outside** the lock, and `list_pending()` hands the same mutable objects to the API serializer.
+  - `ApprovalGate.check` returns `approved=True` every time it sees an `APPROVED` request ([approval_gate.py:88-89](../../src/ombuds/platform/guardrails/approval_gate.py#L88-L89)). Nothing consumes an approval. Verified: one approval, then three checks, all `True`.
+  - `log_claim`'s approval context is `{"claim_id": …}` only ([log_claim.py:53](../../src/ombuds/features/claims_triage/tools/log_claim.py#L53)). The approver sees a bare id: no facts, no computed eligibility, no amount. The eligibility is computed one line earlier and then discarded. A later `log_claim` for the same `claim_id` with **different facts** matches the same approved request.
+  - `check_approval(action, context=None)` falls back to `{}` ([approval_gate.py:133-135](../../src/ombuds/platform/guardrails/approval_gate.py#L133-L135)). Approving one request with an empty context would approve every future context-less call for that action.
+  - `ApprovalRequest` is `frozen=False` and mutated in place under the lock ([approval_gate.py:36](../../src/ombuds/platform/guardrails/approval_gate.py#L36), [119-127](../../src/ombuds/platform/guardrails/approval_gate.py#L119-L127)). But `check()` reads `status` **outside** the lock, and `list_pending()` hands the same mutable objects to the API serializer.
 - **Problem / risk:** This is latent today, because both approved branches raise "not implemented". W3 writes the persistence behind those branches, and at that point **one human approval authorises unlimited executions**, including ones with facts the human never saw. That is the double-log/double-pay case the W2 task text (W1 F-04) said must not happen. The Postgres schema W3 designs for approvals will also copy whatever these semantics are.
 - **Recommended change:**
   1. **Single-use.** Checking an approved request transitions it atomically, under the lock, to a terminal `CONSUMED` state (the name is your call), and it is returned as approved once. In W3 the transition and the persistence write share one DB transaction.
@@ -121,7 +121,7 @@ Ordered by priority, then by dependency.
 ### F-03: `claim_id` is invented by the model
 - **Area:** Identity / API design
 - **Current situation:**
-  - `TriageRequest` has only `claim_text` ([schemas.py:9-14](../src/ombuds/features/claims_triage/api/schemas.py#L9-L14)).
+  - `TriageRequest` has only `claim_text` ([schemas.py:9-14](../../src/ombuds/features/claims_triage/api/schemas.py#L9-L14)).
   - `LogClaimArgs.claim_id` and `IssuePaymentArgs.claim_id` are tool arguments the LLM fills in. Nothing issues, validates or scopes them.
 - **Problem / risk:**
   - The approval dedup key, the future idempotency key and the future `claims` primary key are all whatever string the model chose.
@@ -139,7 +139,7 @@ Ordered by priority, then by dependency.
 
 ### F-04: `issue_payment.amount_eur` is authored by the LLM, which regresses W1 F-01 on the money path
 - **Area:** Domain correctness / governance
-- **Current situation:** `log_claim` recomputes eligibility from the facts (the pre-W2 T-6 fix). `issue_payment`, added in W2, takes `amount_eur: int` directly from the model ([issue_payment.py:16](../src/ombuds/features/claims_triage/tools/issue_payment.py#L16)) and puts it into the approval context. Nothing checks it against `rules.evaluate()`. Nothing requires the claim to have been logged first either, although the docstring says "for an already-logged claim".
+- **Current situation:** `log_claim` recomputes eligibility from the facts (the pre-W2 T-6 fix). `issue_payment`, added in W2, takes `amount_eur: int` directly from the model ([issue_payment.py:16](../../src/ombuds/features/claims_triage/tools/issue_payment.py#L16)) and puts it into the approval context. Nothing checks it against `rules.evaluate()`. Nothing requires the claim to have been logged first either, although the docstring says "for an already-logged claim".
 - **Problem / risk:** The human approver is shown a model-typed number as the payout, which is the exact scenario W1 F-01 described. The prompt (v4) doesn't mention `issue_payment` at all, yet the tool is offered to the model on every turn (see F-09).
 - **Recommended change:** Mirror `log_claim` until persistence exists: `IssuePaymentArgs` = `claim_id` + `FlightDisruption`, and the amount comes from `evaluate()`. Once W3 has a `claims` table, the amount comes from the logged claim record, and a payment requires one. Whether the triage agent should be offered `issue_payment` at all belongs to the F-05 decision.
 - **Priority:** High · **Complexity:** Small · **Must fix before W3:** Yes
@@ -170,10 +170,10 @@ Ordered by priority, then by dependency.
 ### F-06: Memory promotes tool output and model-written text into the system prompt
 - **Area:** AI security / prompt design
 - **Current situation:**
-  - `dispatch_tools` copies every successful tool result's raw `content` into `short_term` ([graph.py:101-104](../src/ombuds/features/claims_triage/agent/graph.py#L101-L104)).
-  - `_augmented_system` appends it to the **system prompt** every turn ([graph.py:49-52](../src/ombuds/features/claims_triage/agent/graph.py#L49-L52)).
+  - `dispatch_tools` copies every successful tool result's raw `content` into `short_term` ([graph.py:101-104](../../src/ombuds/features/claims_triage/agent/graph.py#L101-L104)).
+  - `_augmented_system` appends it to the **system prompt** every turn ([graph.py:49-52](../../src/ombuds/features/claims_triage/agent/graph.py#L49-L52)).
   - The same results are already in `messages` as `tool_result` blocks, so each result is sent twice per turn.
-  - Long-term memory saves `decision.explanation`, which is free text the model wrote from a passenger's claim text ([triage_use_case.py:124](../src/ombuds/features/claims_triage/application/triage_use_case.py#L124)), and replays it into the **system prompt** of every later run for that claimant.
+  - Long-term memory saves `decision.explanation`, which is free text the model wrote from a passenger's claim text ([triage_use_case.py:124](../../src/ombuds/features/claims_triage/application/triage_use_case.py#L124)), and replays it into the **system prompt** of every later run for that claimant.
 - **Problem / risk:** Today the only remembered result is `check_eligibility`'s, which is trusted rules output, so it's harmless. W3 makes `search_kb` real: retrieved document snippets will then be raised from tool-result trust to **system-prompt trust**, and a passenger's claim text gains a path, via the explanation, into a *future* run's system prompt (persistent injection).
 
   This lands in the same week as W3's "prompt-injection test cases" task. A system prompt that changes every turn also rules out prompt caching of the tools + system prefix later.
@@ -186,7 +186,7 @@ Ordered by priority, then by dependency.
 
 ### F-07: `/claims/triage/stream` bypasses the graph: no verification, no escalation, and it raises on non-convergence
 - **Area:** API consistency / governance
-- **Current situation:** `stream_triage` ([triage_use_case.py:128-158](../src/ombuds/features/claims_triage/application/triage_use_case.py#L128-L158)) is the W1 loop. It has:
+- **Current situation:** `stream_triage` ([triage_use_case.py:128-158](../../src/ombuds/features/claims_triage/application/triage_use_case.py#L128-L158)) is the W1 loop. It has:
   - no `verify_decision` and no repair;
   - no escalation;
   - no `stop_reason` handling;
@@ -208,7 +208,7 @@ Ordered by priority, then by dependency.
 ### F-08: Wiring is per request and global rather than at the composition root
 - **Area:** Dependency injection / resource use
 - **Current situation:**
-  - `run_triage` builds a new `FallbackProvider` (two `anthropic.Anthropic` clients, i.e. two connection pools) and **recompiles the graph** on every request ([triage_use_case.py:77](../src/ombuds/features/claims_triage/application/triage_use_case.py#L77), [95](../src/ombuds/features/claims_triage/application/triage_use_case.py#L95)).
+  - `run_triage` builds a new `FallbackProvider` (two `anthropic.Anthropic` clients, i.e. two connection pools) and **recompiles the graph** on every request ([triage_use_case.py:77](../../src/ombuds/features/claims_triage/application/triage_use_case.py#L77), [95](../../src/ombuds/features/claims_triage/application/triage_use_case.py#L95)).
   - The approval gate is a module-level `_GATE`.
   - `LongTermMemoryStore` has no production wiring.
   - Route tests monkeypatch module attributes.
@@ -252,7 +252,7 @@ Ordered by priority, then by dependency.
 
 ### F-12: `MAX_TOKENS = 1024` is hardcoded, and truncation now means escalation
 - **Area:** LLM integration
-- **Current situation:** `MAX_TOKENS = 1024` is set in [anthropic.py:13](../src/ombuds/platform/ai/providers/anthropic.py#L13). Since W2, `stop_reason="max_tokens"` routes to `escalate`, so a long explanation now becomes a human-review ticket rather than a truncated answer. W1 O-4 asked for this to be configurable during the W2 loop rebuild.
+- **Current situation:** `MAX_TOKENS = 1024` is set in [anthropic.py:13](../../src/ombuds/platform/ai/providers/anthropic.py#L13). Since W2, `stop_reason="max_tokens"` routes to `escalate`, so a long explanation now becomes a human-review ticket rather than a truncated answer. W1 O-4 asked for this to be configurable during the W2 loop rebuild.
 - **Recommended change:** Add `ANTHROPIC_MAX_TOKENS` to config and `.env.example`, with a 4096 default.
 - **Priority:** Low · **Complexity:** Small · **Must fix before W3:** No
 
@@ -265,10 +265,10 @@ Ordered by priority, then by dependency.
 ### F-14: Hygiene carried over
 - **Area:** Maintainability
 - **Items** (about 30 minutes in total, any time):
-  - The `FallbackProvider` docstring still says primary and fallback "may be entirely different SDKs". The message history is Anthropic-shaped, so they can't be (W1 F-08) ([fallback.py:3](../src/ombuds/platform/ai/providers/fallback.py#L3)).
+  - The `FallbackProvider` docstring still says primary and fallback "may be entirely different SDKs". The message history is Anthropic-shaped, so they can't be (W1 F-08) ([fallback.py:3](../../src/ombuds/platform/ai/providers/fallback.py#L3)).
   - `openai` is still a runtime dependency, but only `scripts/compare_providers.py` uses it. Move it to a `scripts` dependency group.
   - `claim_text` has no `max_length`, so the token cost of one request has no ceiling.
-  - If `McpToolClient.__enter__` fails to connect, it leaves the portal thread running ([client.py:71-76](../src/ombuds/platform/mcp/client.py#L71-L76)).
+  - If `McpToolClient.__enter__` fails to connect, it leaves the portal thread running ([client.py:71-76](../../src/ombuds/platform/mcp/client.py#L71-L76)).
   - Commit `1c0ea0b`, "Implement feature X to enhance user experience…", is a docs-only commit with a placeholder message. Reword it before merging `w2_final_review`.
 - **Priority:** Low · **Complexity:** Small · **Must fix before W3:** No
 

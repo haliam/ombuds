@@ -57,8 +57,8 @@ Ordered by priority.
 ### F-01: The LLM is the source of truth for eligibility and amount (both in the returned decision and in `log_claim`)
 - **Area:** Domain correctness / governance
 - **Current situation:**
-  - `LogClaimArgs.eligibility: EligibilityResult` ([log_claim.py:10-16](src/ombuds/features/claims_triage/tools/log_claim.py#L10-L16)) is filled in **by the model** as tool arguments. The docstring says it is "`check_eligibility`'s prior output, not recomputed", but nothing verifies that.
-  - `TriageDecision.eligible` and `compensation_amount_eur` ([decision.py:15-18](src/ombuds/features/claims_triage/application/decision.py#L15-L18)) are model-authored JSON that is only schema-validated ([triage_use_case.py:45-53](src/ombuds/features/claims_triage/application/triage_use_case.py#L45-L53)).
+  - `LogClaimArgs.eligibility: EligibilityResult` ([log_claim.py:10-16](../../src/ombuds/features/claims_triage/tools/log_claim.py#L10-L16)) is filled in **by the model** as tool arguments. The docstring says it is "`check_eligibility`'s prior output, not recomputed", but nothing verifies that.
+  - `TriageDecision.eligible` and `compensation_amount_eur` ([decision.py:15-18](../../src/ombuds/features/claims_triage/application/decision.py#L15-L18)) are model-authored JSON that is only schema-validated ([triage_use_case.py:45-53](../../src/ombuds/features/claims_triage/application/triage_use_case.py#L45-L53)).
   - A decision is accepted even if `check_eligibility` was never called or returned something different.
   - `reason_codes` are free strings. The unit test itself uses `"EU261_ART7"`, which is not a `Reason` value, and it passes.
   - `compensation_amount_eur: float` vs `EligibilityResult.compensation_eur: int`: two types for the same fact.
@@ -77,7 +77,7 @@ Ordered by priority.
 
 ### F-02: `ANTHROPIC_TIMEOUT_SECONDS` / `ANTHROPIC_MAX_RETRIES` are dead config
 - **Area:** Configuration
-- **Current situation:** [config.py:14-15](src/ombuds/config.py#L14-L15) reads both variables and `.env.example` documents them. But `build_default_provider()` ([fallback.py:114-122](src/ombuds/platform/ai/providers/fallback.py#L114-L122)) passes only `model=`, so `AnthropicProvider` always uses its hard-coded `DEFAULT_TIMEOUT_SECONDS = 30.0` / `DEFAULT_MAX_RETRIES = 2` ([anthropic.py:13-15](src/ombuds/platform/ai/providers/anthropic.py#L13-L15)). `DEFAULT_MODEL` is also defined twice: in `config.py` and in `anthropic.py`.
+- **Current situation:** [config.py:14-15](../../src/ombuds/config.py#L14-L15) reads both variables and `.env.example` documents them. But `build_default_provider()` ([fallback.py:114-122](../../src/ombuds/platform/ai/providers/fallback.py#L114-L122)) passes only `model=`, so `AnthropicProvider` always uses its hard-coded `DEFAULT_TIMEOUT_SECONDS = 30.0` / `DEFAULT_MAX_RETRIES = 2` ([anthropic.py:13-15](../../src/ombuds/platform/ai/providers/anthropic.py#L13-L15)). `DEFAULT_MODEL` is also defined twice: in `config.py` and in `anthropic.py`.
 - **Problem / risk:** Operators tune a setting that has no effect. This is a silent correctness bug in a W1 deliverable.
 - **Recommended change:** Pass `timeout=` / `max_retries=` from config in `build_default_provider()`. Drop `DEFAULT_MODEL` from `anthropic.py` and make `model` a required constructor argument.
 - **Reason:** A trivial fix for a real bug.
@@ -85,7 +85,7 @@ Ordered by priority.
 
 ### F-03: `FallbackProvider` retries everything, and its retries multiply with the SDK's own retries
 - **Area:** Error handling / resilience / cost
-- **Current situation:** `FallbackProvider` catches `Exception` ([fallback.py:55, 74, 97](src/ombuds/platform/ai/providers/fallback.py#L55)) and retries the primary 3×, on top of the SDK client that already retries 2× (the SDK retries connection errors, 408, 409, 429 and 5xx).
+- **Current situation:** `FallbackProvider` catches `Exception` ([fallback.py:55, 74, 97](../../src/ombuds/platform/ai/providers/fallback.py#L55)) and retries the primary 3×, on top of the SDK client that already retries 2× (the SDK retries connection errors, 408, 409, 429 and 5xx).
 - **Problem / risk:**
   - **Non-retryable failures are retried and then re-run on the fallback model.** This covers 400 (for example a malformed tool schema), 401/403 (a bad key), 404 (a bad model id), and even a `TypeError` or `KeyError` in our own response parsing. The result is 4 useless calls plus a misleading "falling back" warning, and a programming bug gets reported as provider flakiness.
   - **Amplification:** up to 3 × (1 + 2) = 9 HTTP attempts at a 30 s timeout, so about 4.5 min per turn before fallback. With up to 8 turns plus repairs, one request can hang for tens of minutes while holding a threadpool worker.
@@ -99,7 +99,7 @@ Ordered by priority.
 
 ### F-04: The `idempotency-key` header on Messages API calls most likely does nothing, and it sits on the wrong layer
 - **Area:** API design / correctness of claims
-- **Current situation:** `_idempotency_key()` ([anthropic.py:19-32](src/ombuds/platform/ai/providers/anthropic.py#L19-L32)) hashes the model, system prompt, messages and tool names, and sends the result as `idempotency-key` on every call. The docstring and the task summary state that "Anthropic's Messages API honors an `idempotency-key` header the same way Stripe's does."
+- **Current situation:** `_idempotency_key()` ([anthropic.py:19-32](../../src/ombuds/platform/ai/providers/anthropic.py#L19-L32)) hashes the model, system prompt, messages and tool names, and sends the result as `idempotency-key` on every call. The docstring and the task summary state that "Anthropic's Messages API honors an `idempotency-key` header the same way Stripe's does."
 - **Problem / risk:**
   - I found no documentation of an idempotency header for the Messages API. **This needs verifying**, but if it is unsupported, the code is dead and the docstring makes a false claim about a W1 deliverable.
   - Even if the header were honoured, LLM generation has no side effects, so deduplicating it only saves tokens. A key derived from content would also collide for two different users who submit the same claim text.
@@ -112,7 +112,7 @@ Ordered by priority.
 
 ### F-05: `ToolRegistry.dispatch` claims "never raises", but handler exceptions escape, and W2's first approval will hit that
 - **Area:** Error handling / interface contract
-- **Current situation:** [tool_loop.py:32-49](src/ombuds/platform/ai/tool_loop.py#L32-L49) catches only `ValidationError`, so `handler(args)` can raise. `log_claim` raises `NotImplementedError` as soon as approval returns `approved=True` ([log_claim.py:41-44](src/ombuds/features/claims_triage/tools/log_claim.py#L41-L44)). The handler adapters use `assert isinstance(...)` ([triage_use_case.py:56-63](src/ombuds/features/claims_triage/application/triage_use_case.py#L56-L63)), and asserts are stripped under `python -O`.
+- **Current situation:** [tool_loop.py:32-49](../../src/ombuds/platform/ai/tool_loop.py#L32-L49) catches only `ValidationError`, so `handler(args)` can raise. `log_claim` raises `NotImplementedError` as soon as approval returns `approved=True` ([log_claim.py:41-44](../../src/ombuds/features/claims_triage/tools/log_claim.py#L41-L44)). The handler adapters use `assert isinstance(...)` ([triage_use_case.py:56-63](../../src/ombuds/features/claims_triage/application/triage_use_case.py#L56-L63)), and asserts are stripped under `python -O`.
 - **Problem / risk:** The first approval granted in W2 turns into a 500 that aborts the whole triage. W2 also adds a second consumer of the registry (MCP), which needs a defined answer to "what does a failing tool return".
 - **Recommended change:**
   - Define `ToolExecutionError` in `domain/errors.py` (currently an empty file). Tools raise it for expected failures, such as persistence unavailable.
@@ -125,7 +125,7 @@ Ordered by priority.
 ### F-06: The tool catalogue has no home, and ADR-0003 contradicts ADR-0002 about where MCP bindings live
 - **Area:** Architecture / dependency direction
 - **Current situation:**
-  - The list of registered tools lives privately inside the use case (`_build_registry`, [triage_use_case.py:56-70](src/ombuds/features/claims_triage/application/triage_use_case.py#L56-L70)).
+  - The list of registered tools lives privately inside the use case (`_build_registry`, [triage_use_case.py:56-70](../../src/ombuds/features/claims_triage/application/triage_use_case.py#L56-L70)).
   - ADR-0003 says "`platform/mcp/tool_bindings.py` is the single place that wraps feature tools (`features/claims_triage/tools/`)". That means `platform` importing `features`, which ADR-0002 and AGENTS.md forbid ("only composition roots wire features into platform").
 - **Problem / risk:** W2 tasks 2 and 3 (MCP server, LangGraph over MCP) need the same tool set in up to three places. Without a decision now, the natural path either duplicates the tool list or breaks the import rule on day 1 of W2.
 - **Recommended change:**
@@ -138,7 +138,7 @@ Ordered by priority.
 
 ### F-07: `/triage/stream` skips decision validation and repair, so the two endpoints return different contracts
 - **Area:** API consistency
-- **Current situation:** `stream_triage` ([triage_use_case.py:121-164](src/ombuds/features/claims_triage/application/triage_use_case.py#L121-L164)) returns on the first turn with no tool calls. The client receives raw JSON text inside `turn_done`, gets no `decision`, and there is no repair step. The task summary justifies this as "platform can't know `TriageDecision`", but `stream_triage` is in `features/` and could yield a feature-level event (e.g. `TriageStreamEvent = StreamEvent | DecisionEvent`) without touching `platform/`. The two loops also duplicate the turn cap and the tool-result message construction.
+- **Current situation:** `stream_triage` ([triage_use_case.py:121-164](../../src/ombuds/features/claims_triage/application/triage_use_case.py#L121-L164)) returns on the first turn with no tool calls. The client receives raw JSON text inside `turn_done`, gets no `decision`, and there is no repair step. The task summary justifies this as "platform can't know `TriageDecision`", but `stream_triage` is in `features/` and could yield a feature-level event (e.g. `TriageStreamEvent = StreamEvent | DecisionEvent`) without touching `platform/`. The two loops also duplicate the turn cap and the tool-result message construction.
 - **Problem / risk:** Clients of the streaming endpoint get unvalidated verdicts, and F-01's consistency check would apply to only one path.
 - **Recommended change:** **Don't fix this in the raw loop**, because W2 task 1 replaces it with LangGraph. Instead, make it an acceptance criterion of that task: one graph whose sync and streaming entry points share the same finalise → validate → verify (F-01) → repair step, and emit a `decision` SSE frame. The existing `test_triage_use_case.py` scenarios become the parity suite for the new graph.
 - **Reason:** Fixing it now would mean rewriting code that is about to be deleted.
@@ -147,7 +147,7 @@ Ordered by priority.
 ### F-08: The provider abstraction leaks Anthropic's wire format into the feature layer
 - **Area:** Abstraction / extensibility
 - **Current situation:**
-  - The use case builds Anthropic-shaped `{"type": "tool_result", "tool_use_id": ...}` messages itself ([triage_use_case.py:103-116](src/ombuds/features/claims_triage/application/triage_use_case.py#L103-L116)).
+  - The use case builds Anthropic-shaped `{"type": "tool_result", "tool_use_id": ...}` messages itself ([triage_use_case.py:103-116](../../src/ombuds/features/claims_triage/application/triage_use_case.py#L103-L116)).
   - `messages` is `list[dict[str, object]]` in "provider-native wire format".
   - `FallbackProvider`'s docstring says primary and fallback "may be entirely different SDKs". That can't work: the history is Anthropic-shaped, and the primary's `turn.content` is replayed to the fallback.
   - A separate concern to verify: Sonnet 5 runs adaptive thinking by default when `thinking` is omitted, so the primary's content may include thinking blocks, which would then be replayed to Haiku on fallback.
@@ -163,7 +163,7 @@ Ordered by priority.
 
 ### F-09: `MAX_TOKENS = 1024`, and `stop_reason` is never inspected
 - **Area:** LLM integration correctness
-- **Current situation:** [anthropic.py:16](src/ombuds/platform/ai/providers/anthropic.py#L16) sets 1024 max tokens, and the loop treats any turn without tool calls as final, whatever `stop_reason` is.
+- **Current situation:** [anthropic.py:16](../../src/ombuds/platform/ai/providers/anthropic.py#L16) sets 1024 max tokens, and the loop treats any turn without tool calls as final, whatever `stop_reason` is.
 - **Problem / risk:** If adaptive thinking is on (see F-08), thinking tokens count against 1024, so a truncated reply is likely. A turn with `max_tokens` becomes either a pointless repair round-trip or, when the reply is prose, a truncated `answer` returned as final. `refusal` is handled the same way.
 - **Recommended change:** Make `max_tokens` a config value with a realistic default (4–8k). In the loop, treat `stop_reason in {"max_tokens", "refusal"}` as an explicit failure (a typed error, and an escalation route in W2) rather than a final answer.
 - **Priority:** Medium · **Complexity:** Small · **Must fix before W2:** No (fold into the W2 loop rebuild; the `MAX_TOKENS` change is a one-liner that can go in any time)
@@ -191,7 +191,7 @@ Ordered by priority.
   - `AnthropicProvider.run_turn` and `stream_turn` are untested. They contain the most intricate adapter code: block-index → call-id mapping, `JSONBuffer` integration, and `get_final_message` reconciliation. Only `_idempotency_key` is tested.
   - `test_eu261_rules.py` is an empty duplicate of `test_rules.py`.
   - `tests/unit/features/claims_triage/guardrails/` is an empty package with no `src` counterpart.
-  - [test_tool_calls.py:25-34](tests/unit/platform/ai/test_tool_calls.py#L25-L34) uses `try/except Exception` instead of `pytest.raises(ValidationError)`.
+  - [test_tool_calls.py:25-34](../../tests/unit/platform/ai/test_tool_calls.py#L25-L34) uses `try/except Exception` instead of `pytest.raises(ValidationError)`.
 - **Recommended change:**
   - Add adapter tests with a fake `anthropic.Anthropic` client that returns canned content blocks and stream events. This is also where F-03's error translation gets tested.
   - Delete the two empty placeholders.
@@ -201,7 +201,7 @@ Ordered by priority.
 ### F-13: Provider built per request inside the use case (hidden dependency)
 - **Area:** Dependency injection / resource use
 - **Current situation:**
-  - `provider = provider or build_default_provider()` ([triage_use_case.py:79, 128](src/ombuds/features/claims_triage/application/triage_use_case.py#L79)) constructs two fresh `anthropic.Anthropic` clients, and so two HTTP connection pools, **per request**.
+  - `provider = provider or build_default_provider()` ([triage_use_case.py:79, 128](../../src/ombuds/features/claims_triage/application/triage_use_case.py#L79)) constructs two fresh `anthropic.Anthropic` clients, and so two HTTP connection pools, **per request**.
   - `build_default_provider` reads `ombuds.config` through a lazy import from inside `platform/`.
   - Route tests have to monkeypatch module attributes.
 - **Problem / risk:** No connection reuse, and the wiring is hidden. W2's graph construction needs the provider too.

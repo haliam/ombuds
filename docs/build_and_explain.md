@@ -52,12 +52,12 @@ The README's leftover chat-text artifact from the original draft was also cleane
 - **Memory (W2):** short-term and long-term memory under `agent/memory/`, added to the model's system prompt by `agent/graph.py`. Escalation on low confidence is a separate node, `escalate_retry.py`.
 - **Governance (W2):** `platform/guardrails/approval_gate.py` sits in front of `log_claim` and `issue_payment`. (`policy_engine.py` is still an empty stub; the OPA policy is a W4 task.) Per ADR-0009, a tool call only *submits* a payload-bound approval request with server-issued `claim_id` and rules-derived amounts — never model-authored ones — and execution happens exactly once, after a human approves, never inline in the tool.
 
-A fuller review of what W2 changed architecturally, plus the hardening work done before W3 started, is in [`reviews/w2_review_pre_w3_plan.md`](reviews/w2_review_pre_w3_plan.md).
+A fuller review of what W2 changed architecturally, plus the hardening work done before W3 started, is in [`reviews/w2_review_pre_w3_plan.md`](progress/w2_review_pre_w3_plan.md).
 
 ## W3 and the pre-W4 refactor: what shipped
 
 - **W3:** Postgres + pgvector (ADR-0010), the RAG pipeline (ADR-0011), the retrieval eval and relevance floor (ADR-0012), PII redaction (ADR-0013), prompt-injection detection (ADR-0014), Docker Compose, and an end-to-end `/triage` integration test.
-- **Pre-W4 refactor (from [`reviews/w3_review_pre_w4_plan.md`](reviews/w3_review_pre_w4_plan.md)):** the approval store, pool and tool registry are injected at the composition roots; an approved request now runs its executor exactly once and writes `claims` and `payments` rows; `run_triage` and `stream_triage` share one setup step; the docs were reconciled.
+- **Pre-W4 refactor (from [`reviews/w3_review_pre_w4_plan.md`](progress/w3_review_pre_w4_plan.md)):** the approval store, pool and tool registry are injected at the composition roots; an approved request now runs its executor exactly once and writes `claims` and `payments` rows; `run_triage` and `stream_triage` share one setup step; the docs were reconciled.
 - Of the decisions the plan said to record, pgvector vs Chroma was the first one due, and it is ADR-0010.
 
 ## Next: W4

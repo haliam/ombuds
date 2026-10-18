@@ -23,4 +23,4 @@ The RAG pipeline needs a chunking strategy for the airline policy documents and 
 - **Fixed-size sliding windows** — simpler, but splits sections mid-rule and gives citations that start mid-sentence.
 - **A local sentence-transformers model** — no API key or cost, but a heavy dependency and a 384/768-dimension schema change.
 
-See the RAG and evals diagram in [architecture.md](../diagrams/rag-evals-pipeline/README.md).
+Diagram: [RAG Ingest, Retrieval and Evals v1.0](../diagrams/rag-evals-pipeline/README.md)
