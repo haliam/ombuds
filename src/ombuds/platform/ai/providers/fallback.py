@@ -11,8 +11,10 @@ one layer catching everything.
 import logging
 import time
 from collections.abc import Callable, Iterator, Sequence
+from functools import lru_cache
 from typing import TypeVar
 
+from ombuds.platform.ai.budget import ModelPrice, UsageBudget
 from ombuds.platform.ai.providers.base import LLMProvider, ProviderTurn, ProviderUnavailableError
 from ombuds.platform.ai.schemas.tool_calls import ToolDefinition
 from ombuds.platform.ai.streaming import StreamEvent
@@ -123,22 +125,37 @@ class FallbackProvider:
         raise last_exc
 
 
+@lru_cache(maxsize=1)
+def process_budget() -> UsageBudget:
+    """The one spend ledger every default provider in this process charges (ADR-0018), built from config."""
+    from ombuds import config
+
+    return UsageBudget(
+        max_usd=config.LLM_BUDGET_MAX_USD,
+        max_tokens=config.LLM_BUDGET_MAX_TOKENS,
+        prices={model: ModelPrice(*price) for model, price in config.LLM_PRICES_USD_PER_MTOK.items()},
+        unknown_price=ModelPrice(*config.LLM_UNKNOWN_PRICE_USD_PER_MTOK),
+    )
+
+
 def build_default_provider() -> LLMProvider:
     """The provider triage uses by default: `ANTHROPIC_MODEL`, falling back to `ANTHROPIC_FALLBACK_MODEL`.
 
-    Both providers share the same configured timeout/max-retries — see `config.py` and `.env.example`.
+    Both providers share the same configured timeout/max-retries/max-tokens — see `config.py` and `.env.example`
+    — and both charge the process-wide `process_budget()`.
     """
-    from ombuds.config import (
-        ANTHROPIC_FALLBACK_MODEL,
-        ANTHROPIC_MAX_RETRIES,
-        ANTHROPIC_MODEL,
-        ANTHROPIC_TIMEOUT_SECONDS,
-    )
+    from ombuds import config
     from ombuds.platform.ai.providers.anthropic import AnthropicProvider
+    from ombuds.platform.ai.providers.budgeted import BudgetedProvider
     from ombuds.platform.ai.providers.traced import TracedProvider
 
     def traced(model: str) -> LLMProvider:
-        adapter = AnthropicProvider(model, timeout=ANTHROPIC_TIMEOUT_SECONDS, max_retries=ANTHROPIC_MAX_RETRIES)
-        return TracedProvider(adapter, model)
+        adapter = AnthropicProvider(
+            model,
+            timeout=config.ANTHROPIC_TIMEOUT_SECONDS,
+            max_retries=config.ANTHROPIC_MAX_RETRIES,
+            max_tokens=config.ANTHROPIC_MAX_TOKENS,
+        )
+        return TracedProvider(BudgetedProvider(adapter, model, process_budget()), model)
 
-    return FallbackProvider(primary=traced(ANTHROPIC_MODEL), fallback=traced(ANTHROPIC_FALLBACK_MODEL))
+    return FallbackProvider(primary=traced(config.ANTHROPIC_MODEL), fallback=traced(config.ANTHROPIC_FALLBACK_MODEL))

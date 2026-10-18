@@ -2,7 +2,9 @@ import pytest
 from fastapi.testclient import TestClient
 
 from ombuds import api_app
+from ombuds.features.claims_triage.api import routes as claims_routes
 from ombuds.features.claims_triage.application.runtime import ClaimsTriageRuntime
+from ombuds.platform.ai.budget import BudgetExceededError
 from ombuds.platform.ai.tool_loop import ToolRegistry
 from ombuds.platform.guardrails.approval_gate import ApprovalGate
 
@@ -46,3 +48,16 @@ def test_the_scalar_api_reference_is_served_and_points_at_the_openapi_schema() -
     assert response.status_code == 200
     assert 'data-url="/openapi.json"' in response.text
     assert "/scalar" not in client.get("/openapi.json").json()["paths"]
+
+
+def test_a_spent_llm_budget_is_a_429_not_a_500(monkeypatch: pytest.MonkeyPatch) -> None:
+    def refuse(*_: object, **__: object) -> None:
+        raise BudgetExceededError("LLM spend cap reached")
+
+    monkeypatch.setattr(claims_routes, "run_triage", refuse)
+
+    with TestClient(api_app.create_app(ApprovalGate(), ToolRegistry())) as client:
+        response = client.post("/claims/triage", json={"claim_text": "my flight was cancelled"})
+
+    assert response.status_code == 429
+    assert "spend cap" in response.json()["detail"]

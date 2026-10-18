@@ -3,12 +3,13 @@
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
-from fastapi.responses import HTMLResponse
+from fastapi import FastAPI, Request
+from fastapi.responses import HTMLResponse, JSONResponse
 
 from ombuds import config
 from ombuds.features.claims_triage.api.routes import router as claims_triage_router
 from ombuds.features.claims_triage.application.runtime import build_runtime
+from ombuds.platform.ai.budget import BudgetExceededError
 from ombuds.platform.ai.tool_loop import ToolDispatcher
 from ombuds.platform.guardrails.api import router as approvals_router
 from ombuds.platform.guardrails.approval_gate import ApprovalStore
@@ -47,6 +48,11 @@ async def _postgres_lifespan(app: FastAPI) -> AsyncIterator[None]:
         pool.close()
 
 
+def _budget_exceeded(request: Request, exc: Exception) -> JSONResponse:
+    """The LLM spend cap is reached (ADR-0018): refuse with 429 instead of an opaque 500."""
+    return JSONResponse(status_code=429, content={"detail": str(exc)})
+
+
 def create_app(approvals: ApprovalStore | None = None, registry: ToolDispatcher | None = None) -> FastAPI:
     """Build the FastAPI app: the claims-triage feature's routes plus the platform-level approvals routes.
 
@@ -65,6 +71,7 @@ def create_app(approvals: ApprovalStore | None = None, registry: ToolDispatcher 
             app.state.approvals = approvals
         if registry is not None:
             app.state.registry = registry
+    app.add_exception_handler(BudgetExceededError, _budget_exceeded)
     app.include_router(claims_triage_router)
     app.include_router(approvals_router)
 

@@ -7,10 +7,11 @@ import anthropic
 from ombuds.platform.ai.providers.base import ProviderTurn, ProviderUnavailableError
 from ombuds.platform.ai.schemas.tool_calls import ToolCall, ToolDefinition
 from ombuds.platform.ai.streaming import JSONBuffer, StreamEvent, TextDelta, ToolCallDelta, TurnDone
+from ombuds.platform.ai.usage import TokenUsage
 
 DEFAULT_TIMEOUT_SECONDS = 30.0
 DEFAULT_MAX_RETRIES = 2
-MAX_TOKENS = 1024
+DEFAULT_MAX_TOKENS = 1024
 
 # Anthropic SDK exceptions that mean "this model is unavailable right now", once the SDK client's own
 # retries (see AnthropicProvider.__init__) are already exhausted — connection failures/timeouts, rate
@@ -44,7 +45,9 @@ class AnthropicProvider:
         *,
         timeout: float = DEFAULT_TIMEOUT_SECONDS,
         max_retries: int = DEFAULT_MAX_RETRIES,
+        max_tokens: int = DEFAULT_MAX_TOKENS,
     ) -> None:
+        self._max_tokens = max_tokens
         self._client = client or anthropic.Anthropic(timeout=timeout, max_retries=max_retries)
         self._model = model
 
@@ -59,7 +62,7 @@ class AnthropicProvider:
         try:
             response = self._client.messages.create(
                 model=self._model,
-                max_tokens=MAX_TOKENS,
+                max_tokens=self._max_tokens,
                 system=system,
                 messages=messages,  # type: ignore[arg-type]
                 tools=[_to_anthropic_tool(tool) for tool in tools],  # type: ignore[misc]
@@ -79,6 +82,7 @@ class AnthropicProvider:
             tool_calls=tool_calls,
             stop_reason=response.stop_reason or "",
             content=[block.model_dump() for block in response.content],
+            usage=_usage(response.usage),
         )
 
     def stream_turn(
@@ -101,7 +105,7 @@ class AnthropicProvider:
         try:
             with self._client.messages.stream(
                 model=self._model,
-                max_tokens=MAX_TOKENS,
+                max_tokens=self._max_tokens,
                 system=system,
                 messages=messages,  # type: ignore[arg-type]
                 tools=[_to_anthropic_tool(tool) for tool in tools],  # type: ignore[misc]
@@ -135,9 +139,16 @@ class AnthropicProvider:
             tool_calls=tool_calls,
             stop_reason=final.stop_reason or "",
             content=[block.model_dump() for block in final.content],
+            usage=_usage(final.usage),
         )
 
 
 def _to_anthropic_tool(tool: ToolDefinition) -> dict[str, object]:
     """Anthropic's tool-use wire format: name, description, and a JSON Schema for the arguments."""
     return {"name": tool.name, "description": tool.description, "input_schema": tool.input_schema()}
+
+
+def _usage(usage: anthropic.types.Usage) -> TokenUsage:
+    """Billable tokens: cache reads/writes are input tokens too, so they are counted (at the plain input rate)."""
+    cached = (usage.cache_creation_input_tokens or 0) + (usage.cache_read_input_tokens or 0)
+    return TokenUsage(input_tokens=usage.input_tokens + cached, output_tokens=usage.output_tokens)
