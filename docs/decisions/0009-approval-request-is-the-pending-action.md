@@ -4,7 +4,7 @@
 **Date:** 2026-09-28
 
 ## Context
-ADR-0008 made the human-approval gate a deny-and-dedupe check: a state-changing tool call creates a `PENDING` request, and "the *next* call with the same action/context sees the resolution". The W2 review (`docs/reviews/w2_review_pre_w3_plan.md`, F-02 to F-05) found that this model has no path from approval to execution:
+ADR-0008 made the human-approval gate a deny-and-dedupe check: a state-changing tool call creates a `PENDING` request, and "the *next* call with the same action/context sees the resolution". The W2 review (`w2_review_pre_w3_plan.md`, removed since; see git history, F-02 to F-05) found that this model has no path from approval to execution:
 
 - Nothing makes that "next call". The run that hit the gate has ended, and a new run would have to reproduce the same model-invented `claim_id` and context.
 - An approval, once granted, stayed approved for every later check, so one approval would have allowed unlimited executions.

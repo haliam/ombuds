@@ -40,7 +40,7 @@ Four gaps existed between this plan and the Notion board when the build started.
 1. **Tool names.** Notion originally listed generic helpdesk tools (`create_ticket`, `check_sla`, `escalate_ticket`). The build used the EU261-specific set instead — `search_kb`, `check_eligibility`, `log_claim`, `issue_payment` — because a claims-triage demo needs claims-shaped tools to be legible in an interview. Recorded as ADR-0004.
 2. **Rules engine had no task.** Added as the first W1 task, ahead of anything LLM-related: `verticals/airline/rules.py` (distance tiers, notice periods, exemptions) plus unit tests. Pure Python, no LLM — it's the ground truth `check_eligibility` calls into, and the reason the agent can't talk its way past an ineligible claim.
 3. **OpenTelemetry task location.** Was filed under the Training view instead of Build; moved to W4 Build, where the tracing work actually happens.
-4. **Approval gate sequencing.** The gate was originally scheduled for W2, but `issue_payment` (a state-changing tool) existed from W1. Rather than pull the whole gate forward, W1 shipped `approval_gate` as a **deny-all stub** so no state-changing tool could execute before real governance existed — then W2 replaced the stub with the actual human-approval flow (ADR-0008), later hardened into a submit-once/execute-once model after a W1 review flagged that a retried approval could double-pay a claim (ADR-0009, `docs/reviews/w1_review_pre_w2_plan.md` finding F-04). That boundary — a tool being *callable* is not the same as being *permitted* — is the throughline for Q5 and the main claim in the README.
+4. **Approval gate sequencing.** The gate was originally scheduled for W2, but `issue_payment` (a state-changing tool) existed from W1. Rather than pull the whole gate forward, W1 shipped `approval_gate` as a **deny-all stub** so no state-changing tool could execute before real governance existed — then W2 replaced the stub with the actual human-approval flow (ADR-0008), later hardened into a submit-once/execute-once model after a W1 review flagged that a retried approval could double-pay a claim (ADR-0009, the W1 review (`w1_review_pre_w2_plan.md`, removed; see git history) finding F-04). That boundary — a tool being *callable* is not the same as being *permitted* — is the throughline for Q5 and the main claim in the README.
 
 The README's leftover chat-text artifact from the original draft was also cleaned up as part of this pass.
 
@@ -52,12 +52,12 @@ The README's leftover chat-text artifact from the original draft was also cleane
 - **Memory (W2):** short-term and long-term memory under `agent/memory/`, added to the model's system prompt by `agent/graph.py`. Escalation on low confidence is a separate node, `escalate_retry.py`.
 - **Governance (W2):** `platform/guardrails/approval_gate.py` sits in front of `log_claim` and `issue_payment`. (`policy_engine.py` is still an empty stub; the OPA policy is a W4 task.) Per ADR-0009, a tool call only *submits* a payload-bound approval request with server-issued `claim_id` and rules-derived amounts — never model-authored ones — and execution happens exactly once, after a human approves, never inline in the tool.
 
-A fuller review of what W2 changed architecturally, plus the hardening work done before W3 started, is in [`reviews/w2_review_pre_w3_plan.md`](progress/w2_review_pre_w3_plan.md).
+A fuller review of what W2 changed architecturally, plus the hardening work done before W3 started, is in `w2_review_pre_w3_plan.md` (since removed; see git history).
 
 ## W3 and the pre-W4 refactor: what shipped
 
 - **W3:** Postgres + pgvector (ADR-0010), the RAG pipeline (ADR-0011), the retrieval eval and relevance floor (ADR-0012), PII redaction (ADR-0013), prompt-injection detection (ADR-0014), Docker Compose, and an end-to-end `/triage` integration test.
-- **Pre-W4 refactor (from [`reviews/w3_review_pre_w4_plan.md`](progress/w3_review_pre_w4_plan.md)):** the approval store, pool and tool registry are injected at the composition roots; an approved request now runs its executor exactly once and writes `claims` and `payments` rows; `run_triage` and `stream_triage` share one setup step; the docs were reconciled.
+- **Pre-W4 refactor (from the W3 review, `w3_review_pre_w4_plan.md`, since removed; see git history):** the approval store, pool and tool registry are injected at the composition roots; an approved request now runs its executor exactly once and writes `claims` and `payments` rows; `run_triage` and `stream_triage` share one setup step; the docs were reconciled.
 - Of the decisions the plan said to record, pgvector vs Chroma was the first one due, and it is ADR-0010.
 
 ## Next: W4
