@@ -21,6 +21,7 @@ from ombuds.platform.ai.schemas.tool_calls import ToolCall
 from ombuds.platform.infrastructure.postgres import Pool
 from ombuds.platform.infrastructure.vector_store import PgVectorStore
 from tests.fakes import FakeEmbedder, ScriptedProvider
+from tests.integration.policy_fakes import PAYOUT_LIMIT_EUR, AllowAllPolicy
 
 _CLAIM = "My flight from Berlin to Lisbon was cancelled."
 _DECISION_JSON = (
@@ -60,7 +61,7 @@ def app_client(pool: Pool, monkeypatch: pytest.MonkeyPatch) -> Iterator[TestClie
     embedder, store = FakeEmbedder(), PgVectorStore(pool)
     ingest_directory(KB_SEED_DIR, embedder, store)
     # min_score=0: FakeEmbedder similarities are low in absolute terms; the real KB is what is under test.
-    runtime = build_runtime(pool, lambda: Retriever(embedder, store, min_score=0.0))
+    runtime = build_runtime(pool, AllowAllPolicy(), PAYOUT_LIMIT_EUR, lambda: Retriever(embedder, store, min_score=0.0))
     yield TestClient(create_app(runtime.approvals, runtime.registry))
 
 

@@ -10,12 +10,13 @@ Python ≥3.11 · FastAPI · LangGraph · MCP · PostgreSQL + pgvector (or Chrom
 
 ## Commands
 Keep this section accurate or delete a stale line — a wrong command here is worse than no command.
-**Status (2026-10-15):** `make test`, `make lint`, `make format`, `make db-up`/`db-down`, `make test-integration`, `make ingest`, `make eval`, `make up` and `make down` are wired. Add a command here only once it actually works.
+**Status (2026-10-15):** `make test-policy`, `make opa-up`, `make test`, `make lint`, `make format`, `make db-up`/`db-down`, `make test-integration`, `make ingest`, `make eval`, `make up` and `make down` are wired. Add a command here only once it actually works.
 - Full command reference with explanations: `docs/commands.md`; `make help` lists the targets. Also wired: `make logs`, `make ps`, `make run` (API with reload, outside Docker) and `make db-reset` (destructive: deletes the Postgres volume).
 - `make test` → `make lint` then `uv run pytest tests/unit` (uv creates `.venv` and installs deps on first run)
 - `make lint` → `ruff check` + `ruff format --check` + `mypy`; `make format` → ruff auto-fix. Config in `pyproject.toml`
 - `make db-up` → `docker compose up -d --wait db` (Postgres + pgvector on host port 5433); `make test-integration` starts it and runs `tests/integration`
 - `make ingest` → starts the db, then chunks + embeds `verticals/airline/kb_seed/*.md` into pgvector (needs `OPENAI_API_KEY`); safe to re-run
+- `make test-policy` → `opa check` + Rego unit tests (`*_test.rego`) in the OPA container; `make opa-up` starts the OPA server on :8181 (`make test-integration` does it too; `make up` includes it). `PAYOUT_LIMIT_EUR` (default 400) is the payout ceiling
 - `uv run pre-commit install` → one-time, runs the same checks on every commit
 - `make eval` → `make ingest`, then `python -m evals.run_evals`: retrieval hit@k/MRR per relevance floor over `evals/datasets/airline_retrieval.jsonl` (needs `OPENAI_API_KEY`; prints a report, never fails)
 - `make up` → `docker compose up --build -d --wait`: db, a one-shot `migrate-ingest` (migrations + KB ingest, needs `OPENAI_API_KEY` in `.env`), then the API on `localhost:8000` (needs `ANTHROPIC_API_KEY` too); `make down` stops it.. Approvals live in Postgres, so the API holds no per-process approval state
@@ -34,7 +35,7 @@ Keep this section accurate or delete a stale line — a wrong command here is wo
   - `api/` — FastAPI routes and schemas. Thin — delegate to `application/`.
 - `platform/` — feature-agnostic. Must not import from `features/` or contain airline/triage knowledge.
   - `ai/` — provider-agnostic LLM layer: `providers/` (anthropic, openai, fallback), structured-output schemas, `tool_loop.py`, streaming.
-  - `guardrails/` — the one governance layer: `pii_filter` (+ `guarded_dispatcher`, which applies it to tool-call arguments; ADR-0013), `injection_detection`, `approval_gate` (+ `executing_store`, which runs an approved request's executor exactly once), `policy_engine` + `policies/*.rego`.
+  - `guardrails/` — the one governance layer: `pii_filter` (+ `guarded_dispatcher`, which applies it to tool-call arguments; ADR-0013), `injection_detection`, `approval_gate` (+ `executing_store`, which runs an approved request's executor exactly once), `policy_engine` (OPA server client, fails closed) + `policy_checked_store` (checks `submit` against `policies/*.rego`; ADR-0015).
   - `mcp/` — `tool_bindings.py` wraps a `ToolRegistry` for MCP exposure without importing `features/`; `server.py` (a composition root) builds the registry from a feature (e.g. `claims_triage.tools.build_tool_registry()`) and hands it to `tool_bindings.py`. A subpackage, not a service (ADR-0003).
   - `infrastructure/` — Postgres, vector store, repositories, audit log.
   - `observability/` — logging, tracing, metrics.

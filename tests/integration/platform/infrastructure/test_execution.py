@@ -9,6 +9,7 @@ from ombuds.features.claims_triage.application.runtime import build_runtime
 from ombuds.platform.guardrails.approval_gate import ApprovalStateError, ApprovalStatus, GuardedAction
 from ombuds.platform.infrastructure.postgres import Pool
 from ombuds.platform.infrastructure.repositories import PostgresApprovalStore
+from tests.integration.policy_fakes import PAYOUT_LIMIT_EUR, AllowAllPolicy
 
 _LOG: dict[str, JsonValue] = {
     "claim_id": "c-1",
@@ -28,7 +29,7 @@ def _count(pool: Pool, table: str) -> int:
 
 
 def test_approving_log_claim_writes_exactly_one_claims_row(pool: Pool) -> None:
-    approvals = build_runtime(pool).approvals
+    approvals = build_runtime(pool, AllowAllPolicy(), PAYOUT_LIMIT_EUR).approvals
     request = approvals.submit(GuardedAction.LOG_CLAIM, _LOG)
     assert _count(pool, "claims") == 0
 
@@ -44,7 +45,7 @@ def test_approving_log_claim_writes_exactly_one_claims_row(pool: Pool) -> None:
 
 
 def test_concurrent_approvals_execute_exactly_once(pool: Pool) -> None:
-    approvals = build_runtime(pool).approvals
+    approvals = build_runtime(pool, AllowAllPolicy(), PAYOUT_LIMIT_EUR).approvals
     request = approvals.submit(GuardedAction.LOG_CLAIM, _LOG)
 
     def attempt(_: int) -> bool:
@@ -62,7 +63,7 @@ def test_concurrent_approvals_execute_exactly_once(pool: Pool) -> None:
 
 
 def test_a_payment_is_recorded_only_for_a_logged_claim(pool: Pool) -> None:
-    approvals = build_runtime(pool).approvals
+    approvals = build_runtime(pool, AllowAllPolicy(), PAYOUT_LIMIT_EUR).approvals
     log = approvals.submit(GuardedAction.LOG_CLAIM, _LOG)
     payment = approvals.submit(GuardedAction.ISSUE_PAYMENT, _PAY)
 
@@ -76,7 +77,7 @@ def test_a_payment_is_recorded_only_for_a_logged_claim(pool: Pool) -> None:
 
 
 def test_approving_a_payment_for_an_unlogged_claim_fails_and_writes_nothing(pool: Pool) -> None:
-    approvals = build_runtime(pool).approvals
+    approvals = build_runtime(pool, AllowAllPolicy(), PAYOUT_LIMIT_EUR).approvals
     payment = approvals.submit(GuardedAction.ISSUE_PAYMENT, _PAY)
 
     with pytest.raises(Exception, match="has not been logged"):
@@ -87,11 +88,13 @@ def test_approving_a_payment_for_an_unlogged_claim_fails_and_writes_nothing(pool
 
 
 def test_pending_and_approved_requests_survive_a_restart(pool: Pool) -> None:
-    pending = build_runtime(pool).approvals.submit(GuardedAction.LOG_CLAIM, _LOG)
+    pending = build_runtime(pool, AllowAllPolicy(), PAYOUT_LIMIT_EUR).approvals.submit(GuardedAction.LOG_CLAIM, _LOG)
     approved_before = PostgresApprovalStore(pool).submit(GuardedAction.ISSUE_PAYMENT, _PAY)
     PostgresApprovalStore(pool).approve(approved_before.id, "alice")
 
-    restarted = build_runtime(pool).approvals  # a fresh process: new store objects over the same database
+    restarted = build_runtime(
+        pool, AllowAllPolicy(), PAYOUT_LIMIT_EUR
+    ).approvals  # a fresh process: new store objects over the same database
 
     assert [r.id for r in restarted.list_pending()] == [pending.id]
     assert restarted.get(approved_before.id).status is ApprovalStatus.APPROVED

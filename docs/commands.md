@@ -36,6 +36,8 @@ Once the API is up:
 
 | Command | What it does |
 |---|---|
+| `make opa-up` | Starts the OPA policy server on :8181 (ADR-0015). |
+| `make test-policy` | `opa check --strict` and the Rego unit tests, run in the OPA container. |
 | `make ingest` | Chunks and embeds `verticals/airline/kb_seed/*.md` into pgvector. Needs `OPENAI_API_KEY`. Safe to re-run. |
 | `make eval` | Runs ingest, then prints retrieval metrics. Never fails the build. |
 
