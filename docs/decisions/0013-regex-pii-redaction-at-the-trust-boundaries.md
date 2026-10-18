@@ -35,4 +35,4 @@ Detection is regex plus a checksum where one exists (Luhn for cards, mod-97 for 
 - **Pydantic validators on the request model:** they validate known fields but can't find an email inside a sentence. Pydantic is used only for the result types.
 - **Reject claims that contain PII:** passengers routinely include contact details, so rejecting would block ordinary claims.
 
-See the pipeline diagram in [architecture.md](../diagrams/guardrails-pipeline.md).
+See the pipeline diagram in [architecture.md](../diagrams/guardrails-pipeline/README.md).

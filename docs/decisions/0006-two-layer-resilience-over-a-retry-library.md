@@ -17,7 +17,7 @@ Split resilience into two layers: `AnthropicProvider` builds its `anthropic.Anth
 
 ## How a failure travels
 
-Diagram: [Provider Retry and Fallback v1.0](../diagrams/provider-fallback.md)
+Diagram: [Provider Retry and Fallback v1.0](../diagrams/provider-fallback/README.md)
 
 ## Alternatives considered
 - **One retry library across both layers** (e.g. `tenacity` wrapping the whole `primary` call, with a second decorated call to `fallback` on exhaustion). Handles the "retry the same model" case fine, but the mid-stream "don't replay output already sent to the caller" rule and the "switch to a structurally different `LLMProvider`, not just retry the same callable" step don't fit a retry decorator's model of one call, one predicate, one backoff — they need the fallover logic that lives in `FallbackProvider` regardless of what handles the innermost retries.

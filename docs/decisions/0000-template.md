@@ -18,4 +18,4 @@ What was chosen, stated as one clear sentence.
 Briefly: what else was on the table, and the one main reason each was rejected. Not exhaustive — just enough to stop the same debate restarting later.
 
 ## Diagram (optional)
-If a diagram helps, link its page instead of pasting it here: `Diagram: [Title v1.0](../diagrams/<slug>.md)`. See [docs/diagrams/README.md](../diagrams/README.md).
+If a diagram helps, link its page instead of pasting it here: `Diagram: [Title v1.0](../diagrams/<slug>/README.md)`. See [docs/diagrams/README.md](../diagrams/README.md).

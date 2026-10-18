@@ -21,7 +21,7 @@ The transport decision stands; what the frames carry changed. `/claims/triage/st
 
 ## Event order of one streamed triage
 
-Diagram: [SSE Event Order v1.0](../diagrams/sse-event-order.md)
+Diagram: [SSE Event Order v1.0](../diagrams/sse-event-order/README.md)
 
 ## Alternatives considered
 - **WebSockets.** Gives a bidirectional channel this endpoint doesn't use yet, at the cost of a connection-lifecycle protocol (open/ping-pong/close) and a client that must speak it, for no round-trip this flow currently needs.

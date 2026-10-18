@@ -4,9 +4,9 @@
 **Decisions** ADR-0001 to ADR-0014 (see v1 for the decision view)
 **Source** `docs/progress/tasks.md`; generated from `development-overview-v2.json`
 
-![development-overview-v2](development-overview-v2/development-overview-v2.png)
+![development-overview-v2](development-overview-v2.png)
 
-Interactive version: [`development-overview-v2/development-overview-v2.html`](development-overview-v2/development-overview-v2.html) · Source: [`development-overview-v2/development-overview-v2.json`](development-overview-v2/development-overview-v2.json)
+Interactive version: [`development-overview-v2.html`](development-overview-v2.html) · Source: [`development-overview-v2.json`](development-overview-v2.json)
 
 ## What it shows
 
@@ -26,7 +26,7 @@ Why two boards? One is for narrating decisions, the other for proving the steps 
 
 ## Regenerate
 
-Edit [`development-overview-v2/development-overview-v2.json`](development-overview-v2/development-overview-v2.json) (bump the version and date in `meta.title`), then from the repo root:
+Edit [`development-overview-v2.json`](development-overview-v2.json) (bump the version and date in `meta.title`), then from the repo root:
 
 ```bash
 python docs/diagrams/render_archify.py development-overview-v2

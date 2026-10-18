@@ -26,6 +26,6 @@ The passenger's `claim_text` is the only untrusted free text that reaches the mo
 
 ## Inside `detect()`
 
-Diagram: [Injection Detection Internals v1.0](../diagrams/injection-detection.md)
+Diagram: [Injection Detection Internals v1.0](../diagrams/injection-detection/README.md)
 
-See the pipeline diagram in [architecture.md](../diagrams/guardrails-pipeline.md).
+See the pipeline diagram in [architecture.md](../diagrams/guardrails-pipeline/README.md).

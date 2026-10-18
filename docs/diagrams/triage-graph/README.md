@@ -1,7 +1,7 @@
 # LangGraph Triage Loop
 
 **Version** 1.0 · **Date** 2026-10-18 · **Tool** Mermaid · **Type** flow · **Pinned commit** `cbc2790`
-**Decisions** [ADR-0001](../decisions/0001-langgraph-over-crewai.md), [ADR-0005](../decisions/0005-prompted-json-with-repair-over-native-structured-output.md)
+**Decisions** [ADR-0001](../../decisions/0001-langgraph-over-crewai.md), [ADR-0005](../../decisions/0005-prompted-json-with-repair-over-native-structured-output.md)
 **Source** see the sources listed under "What it shows"
 
 ```mermaid

@@ -1,12 +1,12 @@
 # Triage and Approval Flow
 
 **Version** 1.0 · **Date** 2026-10-18 · **Tool** archify · **Type** sequence · **Pinned commit** `7342b6c`
-**Decisions** [ADR-0009](../decisions/0009-approval-request-is-the-pending-action.md), [ADR-0014](../decisions/0014-heuristic-injection-detection-escalates.md)
+**Decisions** [ADR-0009](../../decisions/0009-approval-request-is-the-pending-action.md), [ADR-0014](../../decisions/0014-heuristic-injection-detection-escalates.md)
 **Source** `triage_use_case.py`, `agent/graph.py`, `platform/guardrails/approval_gate.py`, `executing_store.py`
 
-![triage-approval-flow](triage-approval-flow/triage-approval-flow.png)
+![triage-approval-flow](triage-approval-flow.png)
 
-Interactive version: [`triage-approval-flow/triage-approval-flow.html`](triage-approval-flow/triage-approval-flow.html) · Source: [`triage-approval-flow/triage-approval-flow.json`](triage-approval-flow/triage-approval-flow.json)
+Interactive version: [`triage-approval-flow.html`](triage-approval-flow.html) · Source: [`triage-approval-flow.json`](triage-approval-flow.json)
 
 ## What it shows
 
@@ -26,7 +26,7 @@ What if the executor fails after approval? The request stays approved, the write
 
 ## Regenerate
 
-Edit [`triage-approval-flow/triage-approval-flow.json`](triage-approval-flow/triage-approval-flow.json) (bump the version and date in `meta.title`), then from the repo root:
+Edit [`triage-approval-flow.json`](triage-approval-flow.json) (bump the version and date in `meta.title`), then from the repo root:
 
 ```bash
 python docs/diagrams/render_archify.py triage-approval-flow

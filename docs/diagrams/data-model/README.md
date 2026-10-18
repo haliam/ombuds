@@ -1,7 +1,7 @@
 # Postgres Data Model
 
 **Version** 1.0 · **Date** 2026-10-18 · **Tool** Mermaid · **Type** ER · **Pinned commit** `241f2ae`
-**Decisions** [ADR-0009](../decisions/0009-approval-request-is-the-pending-action.md), [ADR-0010](../decisions/0010-pgvector-in-postgres-over-chroma.md)
+**Decisions** [ADR-0009](../../decisions/0009-approval-request-is-the-pending-action.md), [ADR-0010](../../decisions/0010-pgvector-in-postgres-over-chroma.md)
 **Source** see the sources listed under "What it shows"
 
 ```mermaid
@@ -50,7 +50,7 @@ erDiagram
 
 ## What it shows
 
-Only `payments` has foreign keys: one payment per claim, and only for a logged claim. The `claim_id` inside an `approval_requests.payload` is a logical link, not a foreign key. `long_term_memory` and `kb_chunks` stand alone, and `schema_migrations` (applied versions, under an advisory lock) is omitted. Sources: `platform/infrastructure/migrations/0001_init.sql`, `0002_payments.sql`; decisions [ADR-0009](../decisions/0009-approval-request-is-the-pending-action.md) and [ADR-0010](../decisions/0010-pgvector-in-postgres-over-chroma.md). `long_term_memory` has no caller in the HTTP API yet.
+Only `payments` has foreign keys: one payment per claim, and only for a logged claim. The `claim_id` inside an `approval_requests.payload` is a logical link, not a foreign key. `long_term_memory` and `kb_chunks` stand alone, and `schema_migrations` (applied versions, under an advisory lock) is omitted. Sources: `platform/infrastructure/migrations/0001_init.sql`, `0002_payments.sql`; decisions [ADR-0009](../../decisions/0009-approval-request-is-the-pending-action.md) and [ADR-0010](../../decisions/0010-pgvector-in-postgres-over-chroma.md). `long_term_memory` has no caller in the HTTP API yet.
 
 ## Like I'm 5
 

@@ -1,7 +1,7 @@
 # Provider Retry and Fallback
 
 **Version** 1.0 · **Date** 2026-10-18 · **Tool** Mermaid · **Type** flow · **Pinned commit** `a2cbe51`
-**Decisions** [ADR-0006](../decisions/0006-two-layer-resilience-over-a-retry-library.md), [ADR-0007](../decisions/0007-sse-over-websockets-for-triage-streaming.md)
+**Decisions** [ADR-0006](../../decisions/0006-two-layer-resilience-over-a-retry-library.md), [ADR-0007](../../decisions/0007-sse-over-websockets-for-triage-streaming.md)
 **Source** see the sources listed under "What it shows"
 
 ```mermaid
@@ -22,7 +22,7 @@ flowchart TD
 
 ## What it shows
 
-For `stream_turn` there is one extra rule: fallover is allowed only while nothing has been yielded to the caller. Once the first event is out, a `ProviderUnavailableError` is re-raised as-is and the SSE route turns it into an `error` frame (see [ADR-0007](../decisions/0007-sse-over-websockets-for-triage-streaming.md)). Sources: `platform/ai/providers/fallback.py`, `platform/ai/providers/base.py`.
+For `stream_turn` there is one extra rule: fallover is allowed only while nothing has been yielded to the caller. Once the first event is out, a `ProviderUnavailableError` is re-raised as-is and the SSE route turns it into an `error` frame (see [ADR-0007](../../decisions/0007-sse-over-websockets-for-triage-streaming.md)). Sources: `platform/ai/providers/fallback.py`, `platform/ai/providers/base.py`.
 
 ## Like I'm 5
 

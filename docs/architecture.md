@@ -1,12 +1,12 @@
 # Architecture
 
-Ombuds triages airline EU261 claims with an LLM agent, but the LLM never owns the outcome: eligibility comes from a deterministic rules engine, and every state change waits for a human approval and then runs exactly once. This page shows how the pieces fit. Design decisions and what was given up are in [`decisions/`](decisions/).
+Ombuds triages airline EU261 claims with an LLM agent, but the LLM never owns the outcome: eligibility comes from a deterministic rules engine, and every state change waits for a human approval and then runs exactly once. This page shows how the pieces fit. Design decisions and what was given up are in [`decisions/`](decisions).
 
 ## Component view
 
 ![Ombuds component architecture](diagrams/architecture/architecture.png)
 
-Diagram: [Ombuds Claims Triage v1.0](diagrams/architecture.md) (interactive HTML, source and regeneration steps are on that page). Each component's source lines are cited in its JSON.
+Diagram: [Ombuds Claims Triage v1.0](diagrams/architecture/README.md) (interactive HTML, source and regeneration steps are on that page). Each component's source lines are cited in its JSON.
 
 | Component | What it does | Code |
 |---|---|---|
@@ -29,7 +29,7 @@ Diagram: [Ombuds Claims Triage v1.0](diagrams/architecture.md) (interactive HTML
 
 One triage and the later human approval are two separate moments: the agent only submits `log_claim`, and only after a human approves does the executor write to Postgres.
 
-Diagram: [Triage and Approval Flow v1.0](diagrams/triage-approval-flow.md)
+Diagram: [Triage and Approval Flow v1.0](diagrams/triage-approval-flow/README.md)
 
 ## MCP process boundary
 
@@ -37,7 +37,7 @@ Diagram: [Triage and Approval Flow v1.0](diagrams/triage-approval-flow.md)
 
 With `use_mcp=True` the library path spawns the MCP server as a subprocess; the HTTP API does not use MCP. Decision: [ADR-0003](decisions/0003-mcp-as-subpackage-not-service.md).
 
-Diagram: [MCP Process Boundary v1.0](diagrams/mcp-boundary.md)
+Diagram: [MCP Process Boundary v1.0](diagrams/mcp-boundary/README.md)
 
 ## Guardrails and tool scoping
 
@@ -45,7 +45,7 @@ Diagram: [MCP Process Boundary v1.0](diagrams/mcp-boundary.md)
 
 Where untrusted text is screened and redacted, and where the model's authority ends. Decisions: [ADR-0013](decisions/0013-regex-pii-redaction-at-the-trust-boundaries.md), [ADR-0014](decisions/0014-heuristic-injection-detection-escalates.md).
 
-Diagram: [Guardrails and Tool Scoping Pipeline v1.0](diagrams/guardrails-pipeline.md)
+Diagram: [Guardrails and Tool Scoping Pipeline v1.0](diagrams/guardrails-pipeline/README.md)
 
 ## RAG and evals
 
@@ -53,41 +53,41 @@ Diagram: [Guardrails and Tool Scoping Pipeline v1.0](diagrams/guardrails-pipelin
 
 Offline ingest and online retrieval meet at the `kb_chunks` table, and the eval harness sweeps the relevance floor over saved scores. Decisions: [ADR-0010](decisions/0010-pgvector-in-postgres-over-chroma.md), [ADR-0011](decisions/0011-heading-aware-chunking-and-openai-embeddings.md), [ADR-0012](decisions/0012-retrieval-relevance-floor.md).
 
-Diagram: [RAG Ingest, Retrieval and Evals v1.0](diagrams/rag-evals-pipeline.md)
+Diagram: [RAG Ingest, Retrieval and Evals v1.0](diagrams/rag-evals-pipeline/README.md)
 
 ## Data model
 
 Five tables in one Postgres database: approvals, claims, payments, long-term memory and the knowledge base.
 
-Diagram: [Postgres Data Model v1.0](diagrams/data-model.md)
+Diagram: [Postgres Data Model v1.0](diagrams/data-model/README.md)
 
 ## Layering
 
 Imports run `features → platform → domain`, never the reverse. `platform/` has no airline or triage knowledge. Only the composition roots (`api_app.py`, the MCP server entrypoint) wire a feature into the platform (ADR-0002).
 
-Diagram: [Layering and Composition Roots v1.0](diagrams/layering.md)
+Diagram: [Layering and Composition Roots v1.0](diagrams/layering/README.md)
 
 ## Deployment
 
 `docker compose up` (via `make up`) runs three services: `db`, a one-shot `migrate-ingest`, and `api` on port 8000. The API keeps no approval state in process, because approvals live in Postgres.
 
-Diagram: [Docker Compose Startup v1.0](diagrams/compose-startup.md)
+Diagram: [Docker Compose Startup v1.0](diagrams/compose-startup/README.md)
 
 ## Memory
 
 Short-term memory lives in the graph state for one run; long-term memory is loaded and saved per claimant. Both hold only rules-derived facts.
 
-Diagram: [Memory Flow v1.0](diagrams/memory-flow.md)
+Diagram: [Memory Flow v1.0](diagrams/memory-flow/README.md)
 
 ## Prompt versioning
 
 Prompts are versioned files; the live version is chosen by `CLAIMS_TRIAGE_PROMPT_VERSION` (v4 today) and old versions stay as history.
 
-Diagram: [Prompt Versioning v1.0](diagrams/prompt-versioning.md)
+Diagram: [Prompt Versioning v1.0](diagrams/prompt-versioning/README.md)
 
 ## Development history
 
-Two boards show how the project was built, week by week: [Ombuds Development Board, v1.0](diagrams/development-overview.md) (steps and key decisions) and [Ombuds Development Board v2, v1.0](diagrams/development-overview-v2.md) (steps only, each linked to its code at a fixed commit).
+Two boards show how the project was built, week by week: [Ombuds Development Board, v1.0](diagrams/development-overview/README.md) (steps and key decisions) and [Ombuds Development Board v2, v1.0](diagrams/development-overview-v2/README.md) (steps only, each linked to its code at a fixed commit).
 
 ## Not built yet
 

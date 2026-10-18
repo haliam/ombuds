@@ -18,7 +18,7 @@ Prompt the model (`platform/prompts/claims_triage/v3.txt`) to reply with a singl
 
 ## The triage graph, end to end
 
-Diagram: [LangGraph Triage Loop v1.0](../diagrams/triage-graph.md)
+Diagram: [LangGraph Triage Loop v1.0](../diagrams/triage-graph/README.md)
 
 ## Alternatives considered
 - **`output_config.format` (constrained decoding on the final turn).** Guarantees schema-valid JSON server-side, but the model still needs a plain-text mode for clarifying questions, so the loop would need to know in advance which turn is "the decision turn" before asking — the same problem this design avoids by treating it as a bare `"{" in text` check on a reply the model produced without that instruction baked into the API call. It also still says nothing about whether the *content* is right (see the F-01 gap above), so it would not have avoided that defect either.

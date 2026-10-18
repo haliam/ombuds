@@ -1,7 +1,7 @@
 # Memory Flow
 
 **Version** 1.0 · **Date** 2026-10-18 · **Tool** Mermaid · **Type** flow · **Pinned commit** `241f2ae`
-**Decisions** [ADR-0009](../decisions/0009-approval-request-is-the-pending-action.md) (rules-derived facts only); W2 review F-06
+**Decisions** [ADR-0009](../../decisions/0009-approval-request-is-the-pending-action.md) (rules-derived facts only); W2 review F-06
 **Source** see the sources listed under "What it shows"
 
 ```mermaid

@@ -40,7 +40,7 @@ A claim comes in — for example, a flight cancellation compensation claim. Ombu
 
 *One triage, then the later human approval. Note that nothing changes state until the second half.*
 
-More diagrams: [guardrails pipeline](docs/diagrams/guardrails-pipeline.md), [RAG and evals](docs/diagrams/rag-evals-pipeline.md), [MCP process boundary](docs/diagrams/mcp-boundary.md), [data model](docs/diagrams/data-model.md), [layering](docs/diagrams/layering.md), [approval lifecycle](docs/diagrams/approval-lifecycle.md), [triage graph](docs/diagrams/triage-graph.md), [provider fallback](docs/diagrams/provider-fallback.md), [SSE event order](docs/diagrams/sse-event-order.md), [Compose startup](docs/diagrams/compose-startup.md), [memory](docs/diagrams/memory-flow.md), [prompt versioning](docs/diagrams/prompt-versioning.md) and [injection detection](docs/diagrams/injection-detection.md). Every diagram has its own page with version, date and two plain-language explanations; the index is in [`docs/diagrams/`](docs/diagrams/README.md).
+More diagrams: [guardrails pipeline](docs/diagrams/guardrails-pipeline/README.md), [RAG and evals](docs/diagrams/rag-evals-pipeline/README.md), [MCP process boundary](docs/diagrams/mcp-boundary/README.md), [data model](docs/diagrams/data-model/README.md), [layering](docs/diagrams/layering/README.md), [approval lifecycle](docs/diagrams/approval-lifecycle/README.md), [triage graph](docs/diagrams/triage-graph/README.md), [provider fallback](docs/diagrams/provider-fallback/README.md), [SSE event order](docs/diagrams/sse-event-order/README.md), [Compose startup](docs/diagrams/compose-startup/README.md), [memory](docs/diagrams/memory-flow/README.md), [prompt versioning](docs/diagrams/prompt-versioning/README.md) and [injection detection](docs/diagrams/injection-detection/README.md). Every diagram has its own page with version, date and two plain-language explanations; the index is in [`docs/diagrams/`](docs/diagrams/README.md).
 
 ### How it is built
 
@@ -113,4 +113,4 @@ The agent, RAG, Postgres-backed approvals and execution, MCP server, Docker Comp
 | 3 | RAG pipeline, Postgres + vector store, Docker Compose, PII/injection guardrails |
 | 4 | Observability (OpenTelemetry), OPA/Rego policy, audit trail, architecture docs |
 
-Design decisions: [`docs/decisions/`](docs/decisions/). Architecture detail: [`docs/architecture.md`](docs/architecture.md).
+Design decisions: [`docs/decisions/`](docs/decisions). Architecture detail: [`docs/architecture.md`](docs/architecture.md).

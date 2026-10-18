@@ -1,7 +1,7 @@
 # Docker Compose Startup
 
 **Version** 1.0 · **Date** 2026-10-18 · **Tool** Mermaid · **Type** sequence · **Pinned commit** `241f2ae`
-**Decisions** none (see [architecture.md](../architecture.md#deployment))
+**Decisions** none (see [architecture.md](../../architecture.md#deployment))
 **Source** see the sources listed under "What it shows"
 
 ```mermaid

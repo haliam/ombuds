@@ -1,7 +1,7 @@
 # Injection Detection Internals
 
 **Version** 1.0 · **Date** 2026-10-18 · **Tool** Mermaid · **Type** flow · **Pinned commit** `f508450`
-**Decisions** [ADR-0014](../decisions/0014-heuristic-injection-detection-escalates.md)
+**Decisions** [ADR-0014](../../decisions/0014-heuristic-injection-detection-escalates.md)
 **Source** see the sources listed under "What it shows"
 
 ```mermaid

@@ -1,7 +1,7 @@
 # Approval Request Lifecycle
 
 **Version** 1.0 · **Date** 2026-10-18 · **Tool** Mermaid · **Type** state · **Pinned commit** `364363b`
-**Decisions** [ADR-0009](../decisions/0009-approval-request-is-the-pending-action.md), [ADR-0008](../decisions/0008-in-memory-poll-based-human-approval.md) (superseded)
+**Decisions** [ADR-0009](../../decisions/0009-approval-request-is-the-pending-action.md), [ADR-0008](../../decisions/0008-in-memory-poll-based-human-approval.md) (superseded)
 **Source** see the sources listed under "What it shows"
 
 ```mermaid

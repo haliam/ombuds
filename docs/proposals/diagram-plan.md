@@ -4,14 +4,14 @@
 
 | # | Diagram | Tool | Where it lives |
 |---|---|---|---|
-| 1 | Approval lifecycle | Mermaid | [page](../diagrams/approval-lifecycle.md) |
-| 2 | LangGraph triage loop | Mermaid | [page](../diagrams/triage-graph.md) |
-| 3 | Guardrails and tool scoping | archify | [page](../diagrams/guardrails-pipeline.md) |
-| 4 | Postgres data model | Mermaid | [page](../diagrams/data-model.md) |
-| 5 | RAG ingest, retrieval and evals | archify | [page](../diagrams/rag-evals-pipeline.md) |
-| 6 | Layering and composition roots | Mermaid | [page](../diagrams/layering.md) |
-| 7 | Provider fallback and SSE order | Mermaid | [provider-fallback](../diagrams/provider-fallback.md), [sse-event-order](../diagrams/sse-event-order.md) |
-| 8 | MCP process boundary | archify | [page](../diagrams/mcp-boundary.md) |
+| 1 | Approval lifecycle | Mermaid | [page](../diagrams/approval-lifecycle/README.md) |
+| 2 | LangGraph triage loop | Mermaid | [page](../diagrams/triage-graph/README.md) |
+| 3 | Guardrails and tool scoping | archify | [page](../diagrams/guardrails-pipeline/README.md) |
+| 4 | Postgres data model | Mermaid | [page](../diagrams/data-model/README.md) |
+| 5 | RAG ingest, retrieval and evals | archify | [page](../diagrams/rag-evals-pipeline/README.md) |
+| 6 | Layering and composition roots | Mermaid | [page](../diagrams/layering/README.md) |
+| 7 | Provider fallback and SSE order | Mermaid | [provider-fallback](../diagrams/provider-fallback/README.md), [sse-event-order](../diagrams/sse-event-order/README.md) |
+| 8 | MCP process boundary | archify | [page](../diagrams/mcp-boundary/README.md) |
 
 Added later (2026-10-17): Docker Compose startup, memory flow, prompt versioning and injection-detection internals (ADR-0014). Not drawn yet (needs the code first): Week 4 tracing, Rego payout policy and audit trail; an end-to-end agent eval flow. Plain-language explanations of each diagram: each diagram's own page in [`docs/diagrams/`](../diagrams/README.md) (plan: [diagram-explanations-plan.md](diagram-explanations-plan.md)). The original plan follows for reference.
 
@@ -23,14 +23,14 @@ Tool rule: **Mermaid** (text, renders natively on GitHub, no binaries) for diagr
 
 | # | Diagram | Tool | Mermaid type / archify type | Covers (glossary / ADR) | Source of truth |
 |---|---|---|---|---|---|
-| 1 | Approval lifecycle | **Mermaid** | `stateDiagram-v2` | exactly-once, compare-and-set, executor, ADR-0008/0009 | [page](../diagrams/approval-lifecycle.md) |
-| 2 | LangGraph triage loop | **Mermaid** (hand-drawn with caps and escalation reasons) + `graph.get_graph().draw_mermaid()` as a drift cross-check | `flowchart` | LangGraph, repair loop, escalation, ADR-0001/0005 | [page](../diagrams/triage-graph.md) |
-| 3 | Guardrails + tool scoping pipeline | **archify** | data-flow with trust boundaries | PII, injection, NFKC, ADR-0013/0014 | [page](../diagrams/guardrails-pipeline.md) |
-| 4 | Postgres data model | **Mermaid** (tables checked against the migrations, optionally generated from the live schema) | `erDiagram` | ADR-0009 | [page](../diagrams/data-model.md) |
-| 5 | RAG ingest + retrieval with eval floor sweep | **archify** | two-lane data-flow | chunking, embedding, cosine, relevance floor, evals, ADR-0010/11/12 | [page](../diagrams/rag-evals-pipeline.md) |
-| 6 | Layering + composition roots | **Mermaid** (optionally cross-checked by an `import-linter` graph) | `flowchart` with subgraphs | ADR-0002/0003, lifespan, ExitStack | [page](../diagrams/layering.md) |
-| 7 | Provider retry/fallback + streaming | **Mermaid** | `flowchart` (retry layers) + `sequenceDiagram` (stream events) | ADR-0006/0007, JSON buffering, SSE | [provider-fallback](../diagrams/provider-fallback.md), [sse-event-order](../diagrams/sse-event-order.md) |
-| 8 | MCP process boundary | **archify** | architecture with process boundaries | MCP, BlockingPortal, stdio | [page](../diagrams/mcp-boundary.md) |
+| 1 | Approval lifecycle | **Mermaid** | `stateDiagram-v2` | exactly-once, compare-and-set, executor, ADR-0008/0009 | [page](../diagrams/approval-lifecycle/README.md) |
+| 2 | LangGraph triage loop | **Mermaid** (hand-drawn with caps and escalation reasons) + `graph.get_graph().draw_mermaid()` as a drift cross-check | `flowchart` | LangGraph, repair loop, escalation, ADR-0001/0005 | [page](../diagrams/triage-graph/README.md) |
+| 3 | Guardrails + tool scoping pipeline | **archify** | data-flow with trust boundaries | PII, injection, NFKC, ADR-0013/0014 | [page](../diagrams/guardrails-pipeline/README.md) |
+| 4 | Postgres data model | **Mermaid** (tables checked against the migrations, optionally generated from the live schema) | `erDiagram` | ADR-0009 | [page](../diagrams/data-model/README.md) |
+| 5 | RAG ingest + retrieval with eval floor sweep | **archify** | two-lane data-flow | chunking, embedding, cosine, relevance floor, evals, ADR-0010/11/12 | [page](../diagrams/rag-evals-pipeline/README.md) |
+| 6 | Layering + composition roots | **Mermaid** (optionally cross-checked by an `import-linter` graph) | `flowchart` with subgraphs | ADR-0002/0003, lifespan, ExitStack | [page](../diagrams/layering/README.md) |
+| 7 | Provider retry/fallback + streaming | **Mermaid** | `flowchart` (retry layers) + `sequenceDiagram` (stream events) | ADR-0006/0007, JSON buffering, SSE | [provider-fallback](../diagrams/provider-fallback/README.md), [sse-event-order](../diagrams/sse-event-order/README.md) |
+| 8 | MCP process boundary | **archify** | architecture with process boundaries | MCP, BlockingPortal, stdio | [page](../diagrams/mcp-boundary/README.md) |
 
 Result: 5 Mermaid (#1, #2, #4, #6, #7), 3 archify (#3, #5, #8). Mermaid blocks go inline in the ADR/glossary/architecture doc they explain; archify outputs go in `docs/diagrams/` as before.
 

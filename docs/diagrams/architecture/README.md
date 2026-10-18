@@ -1,12 +1,12 @@
 # Ombuds Claims Triage
 
 **Version** 1.0 · **Date** 2026-10-18 · **Tool** archify · **Type** component · **Pinned commit** `7342b6c`
-**Decisions** [ADR-0001](../decisions/0001-langgraph-over-crewai.md), [ADR-0002](../decisions/0002-feature-sliced-over-clean-layers.md), [ADR-0009](../decisions/0009-approval-request-is-the-pending-action.md)
+**Decisions** [ADR-0001](../../decisions/0001-langgraph-over-crewai.md), [ADR-0002](../../decisions/0002-feature-sliced-over-clean-layers.md), [ADR-0009](../../decisions/0009-approval-request-is-the-pending-action.md)
 **Source** `src/ombuds/api_app.py`, `features/claims_triage/`, `platform/` (source lines are cited per component in the JSON)
 
-![architecture](architecture/architecture.png)
+![architecture](architecture.png)
 
-Interactive version: [`architecture/architecture.html`](architecture/architecture.html) · Source: [`architecture/architecture.json`](architecture/architecture.json)
+Interactive version: [`architecture.html`](architecture.html) · Source: [`architecture.json`](architecture.json)
 
 ## What it shows
 
@@ -26,7 +26,7 @@ Why not let the LLM decide eligibility? Because it is a legal calculation with e
 
 ## Regenerate
 
-Edit [`architecture/architecture.json`](architecture/architecture.json) (bump the version and date in `meta.title`), then from the repo root:
+Edit [`architecture.json`](architecture.json) (bump the version and date in `meta.title`), then from the repo root:
 
 ```bash
 python docs/diagrams/render_archify.py architecture

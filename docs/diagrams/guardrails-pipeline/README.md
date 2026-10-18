@@ -1,12 +1,12 @@
 # Guardrails and Tool Scoping Pipeline
 
 **Version** 1.0 · **Date** 2026-10-18 · **Tool** archify · **Type** dataflow · **Pinned commit** `cbc2790`
-**Decisions** [ADR-0013](../decisions/0013-regex-pii-redaction-at-the-trust-boundaries.md), [ADR-0014](../decisions/0014-heuristic-injection-detection-escalates.md)
+**Decisions** [ADR-0013](../../decisions/0013-regex-pii-redaction-at-the-trust-boundaries.md), [ADR-0014](../../decisions/0014-heuristic-injection-detection-escalates.md)
 **Source** `platform/guardrails/` (`injection_detection.py`, `pii_filter.py`, `guarded_dispatcher.py`, `approval_gate.py`), `features/claims_triage/tools/`
 
-![guardrails-pipeline](guardrails-pipeline/guardrails-pipeline.png)
+![guardrails-pipeline](guardrails-pipeline.png)
 
-Interactive version: [`guardrails-pipeline/guardrails-pipeline.html`](guardrails-pipeline/guardrails-pipeline.html) · Source: [`guardrails-pipeline/guardrails-pipeline.json`](guardrails-pipeline/guardrails-pipeline.json)
+Interactive version: [`guardrails-pipeline.html`](guardrails-pipeline.html) · Source: [`guardrails-pipeline.json`](guardrails-pipeline.json)
 
 ## What it shows
 
@@ -26,7 +26,7 @@ If injection detection is bypassed, what is the blast radius? Small, because the
 
 ## Regenerate
 
-Edit [`guardrails-pipeline/guardrails-pipeline.json`](guardrails-pipeline/guardrails-pipeline.json) (bump the version and date in `meta.title`), then from the repo root:
+Edit [`guardrails-pipeline.json`](guardrails-pipeline.json) (bump the version and date in `meta.title`), then from the repo root:
 
 ```bash
 python docs/diagrams/render_archify.py guardrails-pipeline

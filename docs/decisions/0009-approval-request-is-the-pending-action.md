@@ -41,7 +41,7 @@ Along with this:
 
 ## Lifecycle of an approval request
 
-Diagram: [Approval Request Lifecycle v1.0](../diagrams/approval-lifecycle.md)
+Diagram: [Approval Request Lifecycle v1.0](../diagrams/approval-lifecycle/README.md)
 
 ## Addendum (2026-10-15): executors and the transaction model
 

@@ -1,12 +1,12 @@
 # MCP Process Boundary
 
 **Version** 1.0 · **Date** 2026-10-18 · **Tool** archify · **Type** component · **Pinned commit** `a2cbe51`
-**Decisions** [ADR-0003](../decisions/0003-mcp-as-subpackage-not-service.md)
+**Decisions** [ADR-0003](../../decisions/0003-mcp-as-subpackage-not-service.md)
 **Source** `platform/mcp/server.py`, `platform/mcp/tool_bindings.py`, the MCP client in `platform/ai/`
 
-![mcp-boundary](mcp-boundary/mcp-boundary.png)
+![mcp-boundary](mcp-boundary.png)
 
-Interactive version: [`mcp-boundary/mcp-boundary.html`](mcp-boundary/mcp-boundary.html) · Source: [`mcp-boundary/mcp-boundary.json`](mcp-boundary/mcp-boundary.json)
+Interactive version: [`mcp-boundary.html`](mcp-boundary.html) · Source: [`mcp-boundary.json`](mcp-boundary.json)
 
 ## What it shows
 
@@ -26,7 +26,7 @@ Why not run MCP as its own microservice? It would add a deployment and network h
 
 ## Regenerate
 
-Edit [`mcp-boundary/mcp-boundary.json`](mcp-boundary/mcp-boundary.json) (bump the version and date in `meta.title`), then from the repo root:
+Edit [`mcp-boundary.json`](mcp-boundary.json) (bump the version and date in `meta.title`), then from the repo root:
 
 ```bash
 python docs/diagrams/render_archify.py mcp-boundary

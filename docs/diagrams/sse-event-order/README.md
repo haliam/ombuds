@@ -1,7 +1,7 @@
 # SSE Event Order
 
 **Version** 1.0 · **Date** 2026-10-18 · **Tool** Mermaid · **Type** sequence · **Pinned commit** `a2cbe51`
-**Decisions** [ADR-0007](../decisions/0007-sse-over-websockets-for-triage-streaming.md)
+**Decisions** [ADR-0007](../../decisions/0007-sse-over-websockets-for-triage-streaming.md)
 **Source** see the sources listed under "What it shows"
 
 ```mermaid

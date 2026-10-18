@@ -1,7 +1,7 @@
 # Layering and Composition Roots
 
 **Version** 1.0 · **Date** 2026-10-18 · **Tool** Mermaid · **Type** flow · **Pinned commit** `241f2ae`
-**Decisions** [ADR-0002](../decisions/0002-feature-sliced-over-clean-layers.md), [ADR-0003](../decisions/0003-mcp-as-subpackage-not-service.md)
+**Decisions** [ADR-0002](../../decisions/0002-feature-sliced-over-clean-layers.md), [ADR-0003](../../decisions/0003-mcp-as-subpackage-not-service.md)
 **Source** see the sources listed under "What it shows"
 
 ```mermaid
