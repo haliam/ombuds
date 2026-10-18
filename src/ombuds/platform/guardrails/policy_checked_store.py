@@ -13,6 +13,7 @@ from ombuds.domain.errors import PolicyDeniedError
 from ombuds.platform.guardrails.approval_gate import ApprovalRequest, ApprovalStore, GuardedAction
 from ombuds.platform.guardrails.audit_log import AuditEvent, AuditKind, AuditLog
 from ombuds.platform.guardrails.policy_engine import PolicyEngine
+from ombuds.platform.observability.tracing import start_span
 
 
 class PolicyCheckedApprovalStore:
@@ -27,7 +28,10 @@ class PolicyCheckedApprovalStore:
         self._audit = audit
 
     def submit(self, action: GuardedAction, payload: Mapping[str, JsonValue]) -> ApprovalRequest:
-        decision = self._engine.evaluate({"action": action, "payload": dict(payload), "limits": self._limits})
+        with start_span("policy.check", action=action) as span:
+            decision = self._engine.evaluate({"action": action, "payload": dict(payload), "limits": self._limits})
+            span.set_attribute("policy.decision", "allow" if decision.allow else "deny")
+            span.set_attribute("policy.version", decision.policy_version)
         claim_id = payload.get("claim_id")
         self._audit.record(
             AuditEvent(

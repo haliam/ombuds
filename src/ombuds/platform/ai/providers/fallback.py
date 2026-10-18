@@ -135,12 +135,10 @@ def build_default_provider() -> LLMProvider:
         ANTHROPIC_TIMEOUT_SECONDS,
     )
     from ombuds.platform.ai.providers.anthropic import AnthropicProvider
+    from ombuds.platform.ai.providers.traced import TracedProvider
 
-    return FallbackProvider(
-        primary=AnthropicProvider(
-            ANTHROPIC_MODEL, timeout=ANTHROPIC_TIMEOUT_SECONDS, max_retries=ANTHROPIC_MAX_RETRIES
-        ),
-        fallback=AnthropicProvider(
-            ANTHROPIC_FALLBACK_MODEL, timeout=ANTHROPIC_TIMEOUT_SECONDS, max_retries=ANTHROPIC_MAX_RETRIES
-        ),
-    )
+    def traced(model: str) -> LLMProvider:
+        adapter = AnthropicProvider(model, timeout=ANTHROPIC_TIMEOUT_SECONDS, max_retries=ANTHROPIC_MAX_RETRIES)
+        return TracedProvider(adapter, model)
+
+    return FallbackProvider(primary=traced(ANTHROPIC_MODEL), fallback=traced(ANTHROPIC_FALLBACK_MODEL))

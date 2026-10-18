@@ -8,6 +8,7 @@ caught the configured timeout/max-retries silently going nowhere.
 from ombuds import config
 from ombuds.platform.ai.providers.anthropic import AnthropicProvider
 from ombuds.platform.ai.providers.fallback import FallbackProvider, build_default_provider
+from ombuds.platform.ai.providers.traced import TracedProvider
 
 
 def test_build_default_provider_passes_configured_model_timeout_and_retries(monkeypatch) -> None:
@@ -20,7 +21,10 @@ def test_build_default_provider_passes_configured_model_timeout_and_retries(monk
     provider = build_default_provider()
 
     assert isinstance(provider, FallbackProvider)
-    primary, fallback = provider._primary, provider._fallback  # only way to inspect wiring: private, no public getter
+    traced_primary, traced_fallback = provider._primary, provider._fallback  # private, no public getter
+    assert isinstance(traced_primary, TracedProvider)
+    assert isinstance(traced_fallback, TracedProvider)
+    primary, fallback = traced_primary._inner, traced_fallback._inner
     assert isinstance(primary, AnthropicProvider)
     assert isinstance(fallback, AnthropicProvider)
     assert primary._model == "test-primary-model"

@@ -17,6 +17,9 @@ dependencies = [
     "uvicorn>=0.30",
     "mcp>=1.6,<2",
     "psycopg[binary,pool]>=3.2",
+    "opentelemetry-api>=1.45.1",
+    "opentelemetry-sdk>=1.45.1",
+    "opentelemetry-exporter-otlp-proto-http>=1.45.1",
 ]
 
 [dependency-groups]

@@ -85,3 +85,13 @@ def test_audit_rows_cannot_be_updated_deleted_or_truncated(pool: Pool) -> None:
             conn.execute(statement.encode())
 
     assert [e.outcome for e in PostgresAuditLog(pool).for_claim(claim_id)] == ["ok"]
+
+
+def test_an_event_is_stamped_with_the_active_trace_id(pool: Pool, monkeypatch: pytest.MonkeyPatch) -> None:
+    claim_id = _claim_id()
+    monkeypatch.setattr("ombuds.platform.infrastructure.audit_repository.current_trace_id", lambda: "ab" * 16)
+    audit = PostgresAuditLog(pool)
+
+    audit.record(AuditEvent(kind=AuditKind.TOOL_CALL, subject="search_kb", outcome="ok", claim_id=claim_id))
+
+    assert [e.trace_id for e in audit.for_claim(claim_id)] == ["ab" * 16]

@@ -1,6 +1,6 @@
 # Plan: Week 4 implementation order
 
-**Status: proposed (2026-10-18).** Tasks 1 (Rego policy, ADR-0015) and 2 (audit trail, ADR-0016) are done; Task 3 (OpenTelemetry tracing) is next.
+**Status: done (2026-10-18).** Tasks 1 (Rego policy, ADR-0015), 2 (audit trail, ADR-0016) and 3 (OpenTelemetry tracing, ADR-0017) are done.
 
 ## Context
 Three open W4 tasks (docs/progress/tasks.md): OpenTelemetry tracing, one OPA/Rego payout policy, audit trail. All three are scaffolds today: `platform/guardrails/policy_engine.py` + `policies/payout_approval.rego`, `platform/infrastructure/audit_repository.py`, `platform/observability/tracing.py`. The pre-W4 refactor (P-1..P-4) already gave us the foundation: Postgres-backed approval store, executors, composition-root wiring. Per AGENTS.md: one task per chat, one commit per task.

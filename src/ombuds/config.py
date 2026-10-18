@@ -27,6 +27,10 @@ OPA_URL = os.environ.get("OPA_URL", "http://localhost:8181")
 OPA_TIMEOUT_SECONDS = float(os.environ.get("OPA_TIMEOUT_SECONDS", "2"))
 PAYOUT_LIMIT_EUR = int(os.environ.get("PAYOUT_LIMIT_EUR", "400"))
 
+# OpenTelemetry (ADR-0017): `none` (default, spans are no-ops), `console` (stderr) or `otlp`. The OTLP endpoint comes
+# from the standard OTEL_EXPORTER_OTLP_ENDPOINT / OTEL_EXPORTER_OTLP_HEADERS variables.
+OTEL_TRACES_EXPORTER = os.environ.get("OTEL_TRACES_EXPORTER", "none")
+
 # Which prompt version is live per feature. Bump here (and in .env.example) after a new version
 # passes evals/datasets/ — never edit an old version's file in place.
 ACTIVE_PROMPT_VERSIONS = {"claims_triage": os.environ.get("CLAIMS_TRIAGE_PROMPT_VERSION", "v4")}

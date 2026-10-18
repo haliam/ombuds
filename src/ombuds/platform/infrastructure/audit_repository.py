@@ -10,6 +10,7 @@ from psycopg.types.json import Jsonb
 
 from ombuds.platform.guardrails.audit_log import AuditEvent, AuditKind
 from ombuds.platform.infrastructure.postgres import Pool
+from ombuds.platform.observability.tracing import current_trace_id
 
 _COLUMNS = "kind, subject, outcome, claim_id, approval_request_id, detail, trace_id"
 
@@ -21,7 +22,7 @@ class PostgresAuditLog:
         self._pool = pool
 
     def record(self, event: AuditEvent) -> None:
-        """Append `event`. Raises on a database error: an action must not proceed unaudited."""
+        """Append `event`, stamped with the active trace id (ADR-0017). Raises on a database error: an action must not proceed unaudited."""
         with self._pool.connection() as conn:
             conn.execute(
                 f"INSERT INTO audit_log ({_COLUMNS}) VALUES (%s, %s, %s, %s, %s, %s, %s)".encode(),
@@ -32,7 +33,7 @@ class PostgresAuditLog:
                     event.claim_id,
                     event.approval_request_id,
                     Jsonb(event.detail),
-                    event.trace_id,
+                    event.trace_id or current_trace_id(),
                 ),
             )
 
