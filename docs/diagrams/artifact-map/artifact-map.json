@@ -1,0 +1,744 @@
+{
+ "schema_version": 1,
+ "diagram_type": "architecture",
+ "meta": {
+  "title": "Claim Artifact Map · v1.0 · 2026-10-19",
+  "output": "docs/diagrams/artifact-map/artifact-map.html",
+  "quality_profile": "showcase",
+  "repository": {
+   "url": "https://github.com/haliam/ombuds.git",
+   "provider": "github",
+   "revision": "38ea6731d950393b975234707487a3879ddbab5d"
+  }
+ },
+ "components": [
+  {
+   "id": "claimant",
+   "type": "external",
+   "label": "Claimant",
+   "sublabel": "claim text (EU261)",
+   "pos": [
+    40,
+    400
+   ],
+   "size": [
+    128,
+    64
+   ],
+   "tag": "invoice + member"
+  },
+  {
+   "id": "api",
+   "type": "backend",
+   "label": "FastAPI",
+   "sublabel": "/triage, /stream",
+   "pos": [
+    246,
+    400
+   ],
+   "size": [
+    128,
+    64
+   ],
+   "tag": "429 on spend cap",
+   "sources": [
+    {
+     "path": "src/ombuds/api_app.py",
+     "line": 56,
+     "end_line": 76
+    },
+    {
+     "path": "src/ombuds/features/claims_triage/api/routes.py",
+     "line": 42,
+     "end_line": 60
+    }
+   ]
+  },
+  {
+   "id": "guards",
+   "type": "security",
+   "label": "Intake guards",
+   "sublabel": "injection + PII redact",
+   "pos": [
+    452,
+    400
+   ],
+   "size": [
+    128,
+    64
+   ],
+   "tag": "intake gate",
+   "sources": [
+    {
+     "path": "src/ombuds/features/claims_triage/application/triage_use_case.py",
+     "line": 154,
+     "end_line": 186
+    },
+    {
+     "path": "src/ombuds/platform/guardrails/injection_detection.py",
+     "line": 146
+    }
+   ]
+  },
+  {
+   "id": "graph",
+   "type": "backend",
+   "label": "LangGraph",
+   "sublabel": "model, tools, finalize",
+   "pos": [
+    658,
+    400
+   ],
+   "size": [
+    128,
+    64
+   ],
+   "tag": "orchestrator",
+   "sources": [
+    {
+     "path": "src/ombuds/features/claims_triage/agent/graph.py",
+     "line": 98,
+     "end_line": 194
+    },
+    {
+     "path": "src/ombuds/features/claims_triage/application/decision.py",
+     "line": 47
+    }
+   ]
+  },
+  {
+   "id": "dispatch",
+   "type": "backend",
+   "label": "Tool dispatch",
+   "sublabel": "guard, audit, trace",
+   "pos": [
+    864,
+    400
+   ],
+   "size": [
+    128,
+    64
+   ],
+   "tag": "tools not trust",
+   "sources": [
+    {
+     "path": "src/ombuds/features/claims_triage/application/runtime.py",
+     "line": 38,
+     "end_line": 60
+    },
+    {
+     "path": "src/ombuds/features/claims_triage/tools/__init__.py",
+     "line": 84
+    }
+   ]
+  },
+  {
+   "id": "prompt",
+   "type": "backend",
+   "label": "Prompt v4",
+   "sublabel": "versioned vN.txt",
+   "pos": [
+    658,
+    160
+   ],
+   "size": [
+    128,
+    64
+   ],
+   "tag": "evals gate bump",
+   "sources": [
+    {
+     "path": "src/ombuds/platform/prompts/claims_triage/v4.txt",
+     "line": 1
+    }
+   ]
+  },
+  {
+   "id": "llm",
+   "type": "cloud",
+   "label": "LLM providers",
+   "sublabel": "Claude, OpenAI backup",
+   "pos": [
+    658,
+    280
+   ],
+   "size": [
+    128,
+    64
+   ],
+   "tag": "line mapper",
+   "sources": [
+    {
+     "path": "src/ombuds/platform/ai/providers/fallback.py",
+     "line": 129,
+     "end_line": 160
+    },
+    {
+     "path": "src/ombuds/platform/ai/providers/budgeted.py",
+     "line": 16
+    }
+   ]
+  },
+  {
+   "id": "rules",
+   "type": "backend",
+   "label": "EU261 rules",
+   "sublabel": "tiers + exemptions",
+   "pos": [
+    864,
+    280
+   ],
+   "size": [
+    128,
+    64
+   ],
+   "tag": "coverage engine",
+   "sources": [
+    {
+     "path": "src/ombuds/features/claims_triage/verticals/airline/rules.py",
+     "line": 90
+    },
+    {
+     "path": "src/ombuds/features/claims_triage/tools/check_eligibility.py",
+     "line": 18
+    }
+   ]
+  },
+  {
+   "id": "kbdocs",
+   "type": "external",
+   "label": "Policy docs",
+   "sublabel": "3 markdown files",
+   "pos": [
+    864,
+    40
+   ],
+   "size": [
+    128,
+    64
+   ],
+   "tag": "policy PDFs",
+   "sources": [
+    {
+     "path": "src/ombuds/features/claims_triage/verticals/airline/kb_seed/eu261_summary.md",
+     "line": 1
+    }
+   ]
+  },
+  {
+   "id": "ingest",
+   "type": "backend",
+   "label": "RAG ingest",
+   "sublabel": "chunk + embed",
+   "pos": [
+    1070,
+    40
+   ],
+   "size": [
+    128,
+    64
+   ],
+   "tag": "offline",
+   "sources": [
+    {
+     "path": "src/ombuds/features/claims_triage/rag/ingest.py",
+     "line": 15,
+     "end_line": 36
+    }
+   ]
+  },
+  {
+   "id": "pgvector",
+   "type": "database",
+   "label": "pgvector",
+   "sublabel": "kb_chunks, HNSW",
+   "pos": [
+    1070,
+    160
+   ],
+   "size": [
+    128,
+    64
+   ],
+   "tag": "rules store",
+   "sources": [
+    {
+     "path": "src/ombuds/platform/infrastructure/migrations/0001_init.sql",
+     "line": 34,
+     "end_line": 42
+    },
+    {
+     "path": "src/ombuds/platform/infrastructure/vector_store.py",
+     "line": 64
+    }
+   ]
+  },
+  {
+   "id": "retriever",
+   "type": "backend",
+   "label": "RAG turn",
+   "sublabel": "search_kb + retriever",
+   "pos": [
+    1070,
+    400
+   ],
+   "size": [
+    128,
+    64
+   ],
+   "tag": "floor 0.35",
+   "sources": [
+    {
+     "path": "src/ombuds/features/claims_triage/rag/retriever.py",
+     "line": 14,
+     "end_line": 31
+    },
+    {
+     "path": "src/ombuds/features/claims_triage/tools/search_kb.py",
+     "line": 51
+    }
+   ]
+  },
+  {
+   "id": "evals",
+   "type": "backend",
+   "label": "Eval harness",
+   "sublabel": "30 gold questions",
+   "pos": [
+    1070,
+    520
+   ],
+   "size": [
+    128,
+    64
+   ],
+   "tag": "hit@k, MRR",
+   "sources": [
+    {
+     "path": "evals/run_evals.py",
+     "line": 28,
+     "end_line": 73
+    }
+   ]
+  },
+  {
+   "id": "approval",
+   "type": "security",
+   "label": "Approval store",
+   "sublabel": "policy-checked submit",
+   "pos": [
+    864,
+    520
+   ],
+   "size": [
+    128,
+    64
+   ],
+   "tag": "risk router",
+   "sources": [
+    {
+     "path": "src/ombuds/platform/guardrails/policy_checked_store.py",
+     "line": 19,
+     "end_line": 47
+    }
+   ]
+  },
+  {
+   "id": "opa",
+   "type": "security",
+   "label": "OPA sidecar",
+   "sublabel": "payout_approval.rego",
+   "pos": [
+    658,
+    520
+   ],
+   "size": [
+    128,
+    64
+   ],
+   "tag": "fails closed",
+   "sources": [
+    {
+     "path": "src/ombuds/platform/guardrails/policies/payout_approval.rego",
+     "line": 11,
+     "end_line": 24
+    },
+    {
+     "path": "src/ombuds/platform/guardrails/policy_engine.py",
+     "line": 43
+    }
+   ]
+  },
+  {
+   "id": "executing",
+   "type": "backend",
+   "label": "Executing store",
+   "sublabel": "executors run once",
+   "pos": [
+    864,
+    640
+   ],
+   "size": [
+    128,
+    64
+   ],
+   "tag": "after approval",
+   "sources": [
+    {
+     "path": "src/ombuds/platform/guardrails/executing_store.py",
+     "line": 27,
+     "end_line": 60
+    },
+    {
+     "path": "src/ombuds/features/claims_triage/application/executors.py",
+     "line": 28
+    }
+   ]
+  },
+  {
+   "id": "human",
+   "type": "external",
+   "label": "Human reviewer",
+   "sublabel": "approvals API",
+   "pos": [
+    658,
+    640
+   ],
+   "size": [
+    128,
+    64
+   ],
+   "tag": "human gate",
+   "sources": [
+    {
+     "path": "src/ombuds/platform/guardrails/api.py",
+     "line": 55,
+     "end_line": 74
+    }
+   ]
+  },
+  {
+   "id": "audit",
+   "type": "database",
+   "label": "audit_log",
+   "sublabel": "append-only",
+   "pos": [
+    1070,
+    640
+   ],
+   "size": [
+    128,
+    64
+   ],
+   "tag": "ADR-0016",
+   "sources": [
+    {
+     "path": "src/ombuds/platform/infrastructure/migrations/0003_audit_log.sql",
+     "line": 5
+    }
+   ]
+  },
+  {
+   "id": "pg",
+   "type": "database",
+   "label": "Postgres tables",
+   "sublabel": "approvals, claims, pay",
+   "pos": [
+    864,
+    760
+   ],
+   "size": [
+    128,
+    64
+   ],
+   "tag": "state",
+   "sources": [
+    {
+     "path": "src/ombuds/platform/infrastructure/migrations/0001_init.sql",
+     "line": 6,
+     "end_line": 32
+    },
+    {
+     "path": "src/ombuds/platform/infrastructure/migrations/0002_payments.sql",
+     "line": 4
+    }
+   ]
+  },
+  {
+   "id": "otel",
+   "type": "external",
+   "label": "OpenTelemetry",
+   "sublabel": "LLM, tool, policy spans",
+   "pos": [
+    452,
+    280
+   ],
+   "size": [
+    128,
+    64
+   ],
+   "tag": "ADR-0017",
+   "sources": [
+    {
+     "path": "src/ombuds/platform/observability/tracing.py",
+     "line": 31,
+     "end_line": 63
+    },
+    {
+     "path": "src/ombuds/platform/observability/traced_dispatcher.py",
+     "line": 17
+    },
+    {
+     "path": "src/ombuds/platform/ai/providers/traced.py",
+     "line": 20
+    }
+   ]
+  },
+  {
+   "id": "mcp",
+   "type": "backend",
+   "label": "MCP server",
+   "sublabel": "stdio, use_mcp client",
+   "pos": [
+    864,
+    160
+   ],
+   "size": [
+    128,
+    64
+   ],
+   "tag": "same tools",
+   "sources": [
+    {
+     "path": "src/ombuds/platform/mcp/server.py",
+     "line": 23,
+     "end_line": 49
+    },
+    {
+     "path": "src/ombuds/platform/mcp/tool_bindings.py",
+     "line": 16
+    },
+    {
+     "path": "src/ombuds/platform/mcp/client.py",
+     "line": 53
+    }
+   ]
+  },
+  {
+   "id": "memory",
+   "type": "database",
+   "label": "Memory",
+   "sublabel": "short + long-term",
+   "pos": [
+    452,
+    520
+   ],
+   "size": [
+    128,
+    64
+   ],
+   "tag": "long_term_memory",
+   "sources": [
+    {
+     "path": "src/ombuds/features/claims_triage/agent/memory/long_term.py",
+     "line": 17,
+     "end_line": 62
+    },
+    {
+     "path": "src/ombuds/features/claims_triage/agent/memory/short_term.py",
+     "line": 13
+    },
+    {
+     "path": "src/ombuds/platform/infrastructure/migrations/0001_init.sql",
+     "line": 28,
+     "end_line": 32
+    }
+   ]
+  }
+ ],
+ "connections": [
+  {
+   "id": "c-claim",
+   "from": "claimant",
+   "to": "api",
+   "label": "claim",
+   "variant": "emphasis"
+  },
+  {
+   "id": "c-text",
+   "from": "api",
+   "to": "guards",
+   "label": "text"
+  },
+  {
+   "id": "c-clean",
+   "from": "guards",
+   "to": "graph",
+   "label": "clean",
+   "variant": "emphasis"
+  },
+  {
+   "id": "c-turn",
+   "from": "graph",
+   "to": "llm",
+   "label": "turn"
+  },
+  {
+   "id": "c-system",
+   "from": "prompt",
+   "to": "llm",
+   "label": "system"
+  },
+  {
+   "id": "c-tools",
+   "from": "graph",
+   "to": "dispatch",
+   "label": "tools",
+   "variant": "emphasis"
+  },
+  {
+   "id": "c-elig",
+   "from": "dispatch",
+   "to": "rules",
+   "label": "check_eligibility"
+  },
+  {
+   "id": "c-search",
+   "from": "dispatch",
+   "to": "retriever",
+   "label": "search"
+  },
+  {
+   "id": "c-cosine",
+   "from": "retriever",
+   "to": "pgvector",
+   "label": "cosine top-k"
+  },
+  {
+   "id": "c-embed",
+   "from": "ingest",
+   "to": "pgvector",
+   "label": "embeddings",
+   "variant": "dashed"
+  },
+  {
+   "id": "c-chunk",
+   "from": "kbdocs",
+   "to": "ingest",
+   "label": "chunks",
+   "variant": "dashed"
+  },
+  {
+   "id": "c-eval",
+   "from": "evals",
+   "to": "retriever",
+   "label": "hit@k",
+   "variant": "dashed"
+  },
+  {
+   "id": "c-submit",
+   "from": "dispatch",
+   "to": "approval",
+   "label": "log_claim submit",
+   "variant": "security"
+  },
+  {
+   "id": "c-policy",
+   "from": "approval",
+   "to": "opa",
+   "label": "check",
+   "variant": "security"
+  },
+  {
+   "id": "c-pending",
+   "from": "approval",
+   "to": "executing",
+   "label": "pending",
+   "variant": "security"
+  },
+  {
+   "id": "c-approve",
+   "from": "human",
+   "to": "executing",
+   "label": "approve",
+   "variant": "security"
+  },
+  {
+   "id": "c-exec",
+   "from": "executing",
+   "to": "pg",
+   "label": "write once",
+   "variant": "emphasis"
+  },
+  {
+   "id": "c-audit",
+   "from": "executing",
+   "to": "audit",
+   "label": "events",
+   "variant": "dashed"
+  },
+  {
+   "id": "c-spans",
+   "from": "llm",
+   "to": "otel",
+   "label": "spans",
+   "variant": "dashed"
+  },
+  {
+   "id": "c-mcp",
+   "from": "mcp",
+   "to": "dispatch",
+   "label": "calls",
+   "fromSide": "left",
+   "toSide": "left",
+   "via": [
+    [
+     825,
+     192
+    ],
+    [
+     825,
+     432
+    ]
+   ]
+  },
+  {
+   "id": "c-memory",
+   "from": "memory",
+   "to": "guards",
+   "label": "recall, save",
+   "variant": "dashed"
+  }
+ ],
+ "cards": [
+  {
+   "dot": "cyan",
+   "title": "Where the brief maps",
+   "items": [
+    "Intake gate, orchestrator, line mapper: guards, LangGraph, LLM",
+    "Coverage engine: EU261 rules code, never the LLM",
+    "Risk router + human gate: OPA, approval store, reviewer",
+    "Rules store + audit: pgvector KB, audit_log"
+   ]
+  },
+  {
+   "dot": "amber",
+   "title": "Not built yet",
+   "items": [
+    "No OCR/vision invoice intake: input is claim text",
+    "No member accumulators or policy versions",
+    "Agent eval dataset (airline_claims) is empty",
+    "MCP and OTel edges are summarised: spans cover dispatch and policy too"
+   ]
+  },
+  {
+   "dot": "rose",
+   "title": "Guardrail rule",
+   "items": [
+    "The agent only submits an approval request",
+    "Execution happens once, after a human approves",
+    "Payouts above PAYOUT_LIMIT_EUR are denied at submit"
+   ]
+  }
+ ]
+}
