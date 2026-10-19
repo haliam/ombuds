@@ -45,7 +45,7 @@ More diagrams: [guardrails pipeline](docs/diagrams/guardrails-pipeline/README.md
 ### How it is built
 
 - **Feature-sliced layout** ([ADR-0002](docs/decisions/0002-feature-sliced-over-clean-layers.md)). `features/claims_triage/` holds everything specific to claims; `platform/` is feature-agnostic (LLM providers, guardrails, MCP, persistence); `domain/` holds shared models. Imports run `features → platform → domain`, never back.
-- **One agent, an explicit graph.** A LangGraph state graph with a bounded tool loop (at most 8 tool turns, 2 repairs); anything that doesn't converge becomes an escalation, not an exception.
+- **One agent, an explicit graph.** A LangGraph state graph with a bounded tool loop (at most 8 tool turns, 2 repairs); anything that doesn't converge becomes an escalation, not an exception. The graph runs only the model/tool loop: eligibility comes from deterministic rules, and approval and execution live outside it, in Postgres ([ADR-0001](docs/decisions/0001-langgraph-over-crewai.md), [ADR-0009](docs/decisions/0009-approval-request-is-the-pending-action.md)). There is no LangGraph checkpointer or `interrupt`.
 - **Tools reach the agent two ways.** In-process by default, or over a real MCP session with the stdio server spawned as a subprocess. The graph cannot tell the difference.
 - **Approvals live in Postgres,** so the API keeps no per-process approval state and a restart loses nothing.
 - **Stack.** Python ≥3.11 · FastAPI · LangGraph · MCP · Anthropic/OpenAI APIs · PostgreSQL + pgvector · Docker Compose · pytest.
@@ -65,7 +65,7 @@ Each row is a real choice between alternatives, with what was given up. The full
 
 | Decision | Chosen | Given up | ADR |
 |---|---|---|---|
-| Agent framework | LangGraph, one agent with an explicit state graph | CrewAI/AutoGen convenience for multi-agent demos; unneeded for one agent making tool calls | [0001](docs/decisions/0001-langgraph-over-crewai.md) |
+| Agent framework | LangGraph for the agent's tool loop only: one agent, an explicit four-node graph. No checkpointer; approval and durable state live in Postgres | CrewAI/AutoGen convenience for multi-agent demos; unneeded for one agent making tool calls. LangGraph checkpointing and `interrupt` | [0001](docs/decisions/0001-langgraph-over-crewai.md) |
 | Code layout | Feature-sliced: `domain/`, `features/`, `platform/` | Crisp horizontal layers. Import direction is enforced by convention, not tooling | [0002](docs/decisions/0002-feature-sliced-over-clean-layers.md) |
 | MCP | A subpackage of the same codebase, spawned over stdio | A real microservice boundary. Extractable later because feature tools never import it | [0003](docs/decisions/0003-mcp-as-subpackage-not-service.md) |
 | Structured output | Prompted JSON plus a client-side verify/repair loop | Server-side guaranteed schema. The repair loop can also carry semantic checks against the rules result | [0005](docs/decisions/0005-prompted-json-with-repair-over-native-structured-output.md) |
