@@ -45,4 +45,4 @@ Each diagram is `MAJOR.MINOR` with a date, shown in the page header and in the d
 
 ## Regenerate an archify diagram
 
-From the repo root: `python docs/diagrams/render_archify.py <slug>` (needs node, the archify skill, google-chrome and Pillow). It runs `archify finalize` and rewrites the `.html` and `.png`. archify writes scratch runs to `.archify/` at the repo root. It is gitignored; delete it freely.
+From the repo root: `python docs/diagrams/render_archify.py <slug>` (needs node, the archify skill, google-chrome and Pillow; Pillow is not a project dependency, so run it as `uv run --with pillow python docs/diagrams/render_archify.py <slug>`). It runs `archify finalize` and rewrites the `.html` and `.png`. archify writes scratch runs to `.archify/` at the repo root. It is gitignored; delete it freely.
