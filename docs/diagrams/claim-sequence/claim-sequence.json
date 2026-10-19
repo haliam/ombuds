@@ -1,0 +1,375 @@
+{
+ "schema_version": 1,
+ "diagram_type": "sequence",
+ "meta": {
+  "title": "Claim Run Sequence · v1.0 · 2026-10-19",
+  "output": "docs/diagrams/claim-sequence/claim-sequence.html",
+  "quality_profile": "showcase",
+  "repository": {
+   "url": "https://github.com/haliam/ombuds.git",
+   "provider": "github",
+   "revision": "38ea6731d950393b975234707487a3879ddbab5d"
+  }
+ },
+ "participants": [
+  {
+   "id": "human",
+   "type": "external",
+   "label": "Reviewer",
+   "sublabel": "human gate",
+   "sources": [
+    {
+     "path": "src/ombuds/platform/guardrails/api.py",
+     "line": 55,
+     "end_line": 74
+    }
+   ]
+  },
+  {
+   "id": "claimant",
+   "type": "external",
+   "label": "Claimant",
+   "sublabel": "claim text",
+   "sources": [
+    {
+     "path": "src/ombuds/features/claims_triage/api/schemas.py",
+     "line": 1
+    }
+   ]
+  },
+  {
+   "id": "api",
+   "type": "backend",
+   "label": "API",
+   "sublabel": "FastAPI + use case",
+   "sources": [
+    {
+     "path": "src/ombuds/features/claims_triage/application/triage_use_case.py",
+     "line": 154,
+     "end_line": 186
+    },
+    {
+     "path": "src/ombuds/features/claims_triage/api/routes.py",
+     "line": 42,
+     "end_line": 60
+    }
+   ]
+  },
+  {
+   "id": "graph",
+   "type": "backend",
+   "label": "LangGraph",
+   "sublabel": "orchestrator",
+   "sources": [
+    {
+     "path": "src/ombuds/features/claims_triage/agent/graph.py",
+     "line": 98,
+     "end_line": 194
+    }
+   ]
+  },
+  {
+   "id": "llm",
+   "type": "cloud",
+   "label": "LLM",
+   "sublabel": "line mapper",
+   "sources": [
+    {
+     "path": "src/ombuds/platform/ai/providers/fallback.py",
+     "line": 141
+    }
+   ]
+  },
+  {
+   "id": "tools",
+   "type": "backend",
+   "label": "Tools",
+   "sublabel": "guard, audit, trace",
+   "sources": [
+    {
+     "path": "src/ombuds/features/claims_triage/tools/__init__.py",
+     "line": 84
+    },
+    {
+     "path": "src/ombuds/features/claims_triage/application/runtime.py",
+     "line": 38,
+     "end_line": 60
+    }
+   ]
+  },
+  {
+   "id": "opa",
+   "type": "security",
+   "label": "OPA",
+   "sublabel": "payout policy",
+   "sources": [
+    {
+     "path": "src/ombuds/platform/guardrails/policy_engine.py",
+     "line": 43
+    }
+   ]
+  },
+  {
+   "id": "pg",
+   "type": "database",
+   "label": "Postgres",
+   "sublabel": "pgvector + state",
+   "sources": [
+    {
+     "path": "src/ombuds/platform/infrastructure/migrations/0001_init.sql",
+     "line": 6,
+     "end_line": 42
+    }
+   ]
+  }
+ ],
+ "segments": [
+  {
+   "from": 142,
+   "to": 766,
+   "label": "Intake + tool loop"
+  },
+  {
+   "from": 744,
+   "to": 1182,
+   "label": "Verdict + submit"
+  },
+  {
+   "from": 1180,
+   "to": 1342,
+   "label": "Approval"
+  }
+ ],
+ "messages": [
+  {
+   "id": "post",
+   "from": "claimant",
+   "to": "api",
+   "y": 160,
+   "label": "POST /triage",
+   "variant": "emphasis",
+   "note": "Guards, claim_id"
+  },
+  {
+   "id": "recall",
+   "from": "api",
+   "to": "pg",
+   "y": 232,
+   "label": "recall facts",
+   "variant": "dashed"
+  },
+  {
+   "id": "run",
+   "from": "api",
+   "to": "graph",
+   "y": 266,
+   "label": "run graph",
+   "variant": "emphasis",
+   "note": "Prompt v4"
+  },
+  {
+   "id": "turn1",
+   "from": "graph",
+   "to": "llm",
+   "y": 338,
+   "label": "model turn",
+   "variant": "default",
+   "note": "Cap, span"
+  },
+  {
+   "id": "calls",
+   "from": "llm",
+   "to": "graph",
+   "y": 410,
+   "label": "tool calls",
+   "variant": "return"
+  },
+  {
+   "id": "elig",
+   "from": "graph",
+   "to": "tools",
+   "y": 444,
+   "label": "check_eligibility",
+   "variant": "default",
+   "note": "Pinned, scrubbed"
+  },
+  {
+   "id": "eligr",
+   "from": "tools",
+   "to": "graph",
+   "y": 516,
+   "label": "EU261 result",
+   "variant": "return",
+   "note": "Rules compute"
+  },
+  {
+   "id": "search",
+   "from": "graph",
+   "to": "tools",
+   "y": 588,
+   "label": "search_kb",
+   "variant": "default"
+  },
+  {
+   "id": "cosine",
+   "from": "tools",
+   "to": "pg",
+   "y": 622,
+   "label": "cosine top-k",
+   "variant": "default",
+   "note": "Floor 0.35"
+  },
+  {
+   "id": "chunks",
+   "from": "pg",
+   "to": "tools",
+   "y": 694,
+   "label": "chunks",
+   "variant": "return"
+  },
+  {
+   "id": "cites",
+   "from": "tools",
+   "to": "graph",
+   "y": 728,
+   "label": "citations",
+   "variant": "return"
+  },
+  {
+   "id": "turn2",
+   "from": "graph",
+   "to": "llm",
+   "y": 762,
+   "label": "next turn",
+   "variant": "default"
+  },
+  {
+   "id": "verdict",
+   "from": "llm",
+   "to": "graph",
+   "y": 796,
+   "label": "verdict JSON",
+   "variant": "return",
+   "note": "Verified, repair"
+  },
+  {
+   "id": "log",
+   "from": "graph",
+   "to": "tools",
+   "y": 868,
+   "label": "log_claim",
+   "variant": "security"
+  },
+  {
+   "id": "eval",
+   "from": "tools",
+   "to": "opa",
+   "y": 902,
+   "label": "evaluate payout",
+   "variant": "security"
+  },
+  {
+   "id": "allow",
+   "from": "opa",
+   "to": "tools",
+   "y": 936,
+   "label": "allow or deny",
+   "variant": "return"
+  },
+  {
+   "id": "submit",
+   "from": "tools",
+   "to": "pg",
+   "y": 970,
+   "label": "submit pending",
+   "variant": "security",
+   "note": "Audit row"
+  },
+  {
+   "id": "pend",
+   "from": "tools",
+   "to": "graph",
+   "y": 1042,
+   "label": "pending id",
+   "variant": "return"
+  },
+  {
+   "id": "dec",
+   "from": "graph",
+   "to": "api",
+   "y": 1076,
+   "label": "decision",
+   "variant": "return"
+  },
+  {
+   "id": "resp",
+   "from": "api",
+   "to": "claimant",
+   "y": 1110,
+   "label": "verdict, pending",
+   "variant": "return"
+  },
+  {
+   "id": "save",
+   "from": "api",
+   "to": "pg",
+   "y": 1144,
+   "label": "save memory",
+   "variant": "dashed"
+  },
+  {
+   "id": "approve",
+   "from": "human",
+   "to": "api",
+   "y": 1198,
+   "label": "POST approve",
+   "variant": "security"
+  },
+  {
+   "id": "exec",
+   "from": "api",
+   "to": "pg",
+   "y": 1232,
+   "label": "APPROVED to EXECUTED",
+   "variant": "security",
+   "note": "Executor once"
+  },
+  {
+   "id": "done",
+   "from": "api",
+   "to": "human",
+   "y": 1304,
+   "label": "executed",
+   "variant": "return"
+  }
+ ],
+ "cards": [
+  {
+   "dot": "cyan",
+   "title": "Order matters",
+   "items": [
+    "Guards run before any model call",
+    "Rules code, not the LLM, computes the amount",
+    "The verdict is verified before it is returned"
+   ]
+  },
+  {
+   "dot": "rose",
+   "title": "Two moments",
+   "items": [
+    "Triage only submits a pending request",
+    "A human approval later runs the executor once",
+    "OPA can deny at submit, so no request exists"
+   ]
+  },
+  {
+   "dot": "amber",
+   "title": "Cross-cutting",
+   "items": [
+    "Every tool call, policy verdict and approval is audited",
+    "OpenTelemetry spans cover LLM turns, tools, policy",
+    "Dashed: memory is optional, needs a claimant id"
+   ]
+  }
+ ]
+}
