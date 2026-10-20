@@ -14,6 +14,7 @@ from PIL import Image
 
 OUT = Path("docs/diagrams")
 ARCHIFY = Path.home() / ".claude/skills/archify/bin/archify.mjs"
+FOLDERS = {"development-overview-v2": "development-overview"}  # boards that share another diagram's folder
 TYPES = {"guardrails-pipeline": "dataflow", "rag-evals-pipeline": "dataflow", "triage-approval-flow": "sequence", "claim-sequence": "sequence"}
 
 
@@ -29,6 +30,7 @@ def crop_to_card(shot: Path, dest: Path) -> None:
 
 def render(name: str) -> None:
     kind = TYPES.get(name, "architecture")
+    folder = OUT / FOLDERS.get(name, name)
     with tempfile.TemporaryDirectory() as tmp:
         html, shot = Path(tmp) / f"{name}.html", Path(tmp) / "full.png"
         subprocess.run(
@@ -37,7 +39,7 @@ def render(name: str) -> None:
                 str(ARCHIFY),
                 "finalize",
                 kind,
-                str(OUT / name / f"{name}.json"),
+                str(folder / f"{name}.json"),
                 str(html),
                 "--repo-root",
                 ".",
@@ -62,8 +64,8 @@ def render(name: str) -> None:
             capture_output=True,
             timeout=120,
         )
-        (OUT / name / f"{name}.html").write_bytes(html.read_bytes())
-        crop_to_card(shot, OUT / name / f"{name}.png")
+        (folder / f"{name}.html").write_bytes(html.read_bytes())
+        crop_to_card(shot, folder / f"{name}.png")
 
 
 if __name__ == "__main__":
