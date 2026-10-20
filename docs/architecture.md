@@ -87,7 +87,7 @@ Diagram: [Prompt Versioning v1.0](diagrams/prompt-versioning/README.md)
 
 ## Development history
 
-Two boards show how the project was built, week by week: [Ombuds Development Board, v1.0](diagrams/development-overview/README.md) (steps and key decisions) and [Ombuds Development Board v2, v1.0](diagrams/development-overview-v2/README.md) (steps only, each linked to its code at a fixed commit).
+Two boards show how the project was built, week by week: [Ombuds Development Board, v1.0](diagrams/development-overview/README.md) (steps and key decisions) and [Ombuds Development Board v2, v1.0](diagrams/development-overview/README.md#version-2-steps-with-code-links) (steps only, each linked to its code at a fixed commit).
 
 ## Not built yet
 
