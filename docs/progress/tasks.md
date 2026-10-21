@@ -50,12 +50,20 @@ Extracted from the "🤖 AI Build" view of the AI Interview Notion database (sna
 
 ## Week 5 — Close the governance holes (mandatory)
 
-Each bullet is one goal: one branch, one chat, as many commits as it needs. Detail lives in [backlog.md](backlog.md).
+Each bullet is one goal: one branch, one chat, as many commits as it needs. Detail lives in [backlog.md](backlog.md). Review notes: [w4_review_pre_w5_plan_rev2.md](w4_review_pre_w5_plan_rev2.md). Do them in the order listed (the ports and DB-default tasks both edit `docker-compose.yml`).
 
+- [ ] Make `make lint` green again: wrap the two over-long docstring lines (`api/routes.py:76`, `audit_repository.py:25`)
 - [ ] Lock down network exposure: bind db, OPA and API ports to `127.0.0.1`, add an OPA healthcheck so `api` waits on it
 - [ ] Make approved-but-failed requests recoverable: clear error from `approve` instead of a 500, plus `POST /approvals/{id}/execute`
+  - Put `execute_approved` on a second small protocol (not `ApprovalStore`), implemented by `ExecutingApprovalStore` and delegated by the two decorators; `ApprovalGate` stays unchanged
+  - Map `ToolExecutionError` to a JSON body with the request id and `status: approved`; let other exceptions propagate, logged with the request id
+  - Test through the real decorator stack with a failing executor
 - [ ] Authenticate the API: bearer tokens that fail closed, separate credentials for triage vs approve/deny, `approver` taken from config (ADR)
+  - One module with `require_triage_token` / `require_approver_token`, reading settings through an overridable function (not import-time constants) so tests can cover the unset-token case
+  - Attach to the routers, not the app: compose's healthcheck uses `/openapi.json`; say in the ADR that the docs pages stay public
+  - Remove `approver` from the request body; put the `GET /approvals*` reads behind the approver token too
 - [ ] Remove the weak `ombuds:ombuds` DB default: require `DATABASE_URL` / `POSTGRES_PASSWORD` from `.env` unless an explicit dev flag is set
+  - One `POSTGRES_PASSWORD` source in compose (`${POSTGRES_PASSWORD:?…}`); raise at point of use in `config.py`, not at import; keep `make db-up`, `ingest`, `eval` and the integration conftest working
 - [ ] Reconcile docs with W4 and W5: README limitations and status, `architecture.md`, affected diagrams
 
 ## Week 6 — Guardrails, measurement and cleanup
@@ -66,7 +74,8 @@ Same rule: one bullet, one branch, one chat. Order is by importance.
 - [ ] Complete the audit trail: record out-of-scope tool calls and injection escalations (migration 0004), span the approvals routes, fix the "must not proceed unaudited" docstring
 - [ ] Agent-level eval: 15–25 claims in `evals/datasets/airline_claims.jsonl` plus a runner (report only, never fails CI)
 - [ ] Give the MCP subprocess its configuration: explicit `env` (`DATABASE_URL`, `OPA_*`, `PAYOUT_LIMIT_EUR`, `OTEL_*`)
-- [ ] Configurable `ANTHROPIC_MAX_TOKENS` (default 4096)
+- [ ] Raise the `ANTHROPIC_MAX_TOKENS` default from 1024 to 4096 (already configurable since ADR-0018)
+- [ ] Pin the two ADR-0018 claims with unit tests: a `BudgetExceededError` does not fail over to the fallback model, and `process_budget()` returns one shared ledger
 - [ ] Repo tidy-up: delete the dead stubs (`db_models.py`, `application/policies.py`), pin the `uv` image and `@scalar/api-reference`, fix the `compare_providers.py` run line
 - [ ] Final manual checks: skim `docs/diagrams/*.html` for internal paths, confirm provider spend limits
 
