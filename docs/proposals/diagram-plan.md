@@ -1,6 +1,6 @@
 # Plan: archify diagrams for the hard-to-grasp parts of ombuds
 
-**Status: done (2026-10-18).** Step 0, all eight diagrams and their plain-language explanations shipped, one commit each. Every diagram has its own page in `docs/diagrams/` (see its README); the "Where it lives" links below point there.
+**Status: done (2026-10-18).** Step 0, all eight diagrams and their plain-language explanations shipped, one commit each. Every diagram has its own page in `docs/diagrams/` (see its README); the "Where it lives" links below point there. This plan is history; the living rules for adding a diagram are in the `add-diagram` skill (`.claude/skills/add-diagram/SKILL.md`).
 
 | # | Diagram | Tool | Where it lives |
 |---|---|---|---|
