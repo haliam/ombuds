@@ -11,7 +11,7 @@ Python ≥3.11 · FastAPI · LangGraph · MCP · PostgreSQL + pgvector (or Chrom
 ## Commands
 Keep this section accurate or delete a stale line — a wrong command here is worse than no command.
 **Status (2026-10-15):** `make test-policy`, `make opa-up`, `make test`, `make lint`, `make format`, `make db-up`/`db-down`, `make test-integration`, `make ingest`, `make eval`, `make up` and `make down` are wired. Add a command here only once it actually works.
-- Developer guide (run, debug, commands, working rules): `docs/developer-guide.md`; `make help` lists the targets. Also wired: `make logs`, `make ps`, `make run` (API with reload, outside Docker) and `make db-reset` (destructive: deletes the Postgres volume).
+- Developer guide (run, debug, commands, working rules): `docs/guide/developer-guide.md`; `make help` lists the targets. Also wired: `make logs`, `make ps`, `make run` (API with reload, outside Docker) and `make db-reset` (destructive: deletes the Postgres volume).
 - `make test` → `make lint` then `uv run pytest tests/unit` (uv creates `.venv` and installs deps on first run)
 - `make lint` → `ruff check` + `ruff format --check` + `mypy`; `make format` → ruff auto-fix. Config in `pyproject.toml`
 - `make db-up` → `docker compose up -d --wait db` (Postgres + pgvector on host port 5433); `make test-integration` starts it and runs `tests/integration`

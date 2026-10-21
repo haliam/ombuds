@@ -211,7 +211,7 @@ All open items are also in `docs/progress/backlog.md`.
 
 ### P-2 — Lock down the compose ports and OPA
 - **Description:** Loopback-bind published ports so OPA's unauthenticated API is not reachable off-host (F-02), and make `api` wait for a healthy OPA if a working healthcheck can be found (from F-08).
-- **Files/modules likely affected:** `docker-compose.yml`, ADR-0015 (a short "network exposure" note), `docs/developer-guide.md` if a port changes.
+- **Files/modules likely affected:** `docker-compose.yml`, ADR-0015 (a short "network exposure" note), `docs/guide/developer-guide.md` if a port changes.
 - **Reason:** The payout policy can currently be rewritten by anyone who can reach the port.
 - **Acceptance criteria:**
   - No service is reachable from outside the host by default.

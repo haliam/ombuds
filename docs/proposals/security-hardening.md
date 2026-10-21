@@ -32,7 +32,7 @@ One task per chat, one commit per task (AGENTS.md). Cheapest and most exposed fi
 
 ### 4. Remove the weak default DB credential
 - `config.py`: require `DATABASE_URL` unless the dev flag is set.
-- `docker-compose.yml`: take `POSTGRES_PASSWORD` and the container `DATABASE_URL` from `.env`; update `.env.example` and `docs/developer-guide.md`.
+- `docker-compose.yml`: take `POSTGRES_PASSWORD` and the container `DATABASE_URL` from `.env`; update `.env.example` and `docs/guide/developer-guide.md`.
 
 ### 5. Housekeeping
 - Skim `docs/diagrams/*.html` for internal paths or hostnames (the scan found only false positives).
