@@ -48,6 +48,28 @@ Extracted from the "🤖 AI Build" view of the AI Interview Notion database (sna
 - [x] Build audit trail — log every tool call + decision — [ADR-0016](../decisions/0016-append-only-postgres-audit-log-at-the-governance-seams.md), [summary](task_summaries.md#build-audit-trail--log-every-tool-call--decision)
 - [x] Write architecture diagram + README (problem, design, trade-offs) — [summary](task_summaries.md#write-architecture-diagram--readme-problem-design-trade-offs)
 
+## Week 5 — Close the governance holes (mandatory)
+
+Each bullet is one goal: one branch, one chat, as many commits as it needs. Detail lives in [backlog.md](backlog.md).
+
+- [ ] Lock down network exposure: bind db, OPA and API ports to `127.0.0.1`, add an OPA healthcheck so `api` waits on it
+- [ ] Make approved-but-failed requests recoverable: clear error from `approve` instead of a 500, plus `POST /approvals/{id}/execute`
+- [ ] Authenticate the API: bearer tokens that fail closed, separate credentials for triage vs approve/deny, `approver` taken from config (ADR)
+- [ ] Remove the weak `ombuds:ombuds` DB default: require `DATABASE_URL` / `POSTGRES_PASSWORD` from `.env` unless an explicit dev flag is set
+- [ ] Reconcile docs with W4 and W5: README limitations and status, `architecture.md`, tick the W4 OpenTelemetry task (ADR-0017), `task_summaries.md`, affected diagrams
+
+## Week 6 — Guardrails, measurement and cleanup
+
+Same rule: one bullet, one branch, one chat. Order is by importance.
+
+- [ ] Automated guards: CI workflow (`make lint` + unit tests, integration job with pgvector and OPA), gitleaks in CI and pre-commit, GitHub push protection
+- [ ] Complete the audit trail: record out-of-scope tool calls and injection escalations (migration 0004), span the approvals routes, fix the "must not proceed unaudited" docstring
+- [ ] Agent-level eval: 15–25 claims in `evals/datasets/airline_claims.jsonl` plus a runner (report only, never fails CI)
+- [ ] Give the MCP subprocess its configuration: explicit `env` (`DATABASE_URL`, `OPA_*`, `PAYOUT_LIMIT_EUR`, `OTEL_*`)
+- [ ] Configurable `ANTHROPIC_MAX_TOKENS` (default 4096)
+- [ ] Repo tidy-up: delete the dead stubs (`db_models.py`, `application/policies.py`), pin the `uv` image and `@scalar/api-reference`, fix the `compare_providers.py` run line
+- [ ] Final manual checks: skim `docs/diagrams/*.html` for internal paths, confirm provider spend limits
+
 ---
 
 Tool names follow ADR-0004 (EU261 tool set, not generic helpdesk tools). Last synced with Notion 2026-09-24.
