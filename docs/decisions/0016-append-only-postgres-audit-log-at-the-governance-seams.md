@@ -27,3 +27,5 @@ AGENTS.md calls ombuds "governed and observable", and the W4 task is "log every 
 - **Structured logs only:** cheap, but not queryable per claim, not tamper-resistant, and PII hygiene depends on every call site.
 - **Audit inside each tool / store method:** every new tool would have to remember it. Decorators cover MCP and in-process callers uniformly.
 - **Event sourcing the approvals table:** stronger, but a rewrite of ADR-0009's compare-and-set design for this task's benefit.
+
+Diagram: [Claim Artifact Map v1.0](../diagrams/artifact-map/README.md)

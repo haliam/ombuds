@@ -29,3 +29,5 @@ The passenger's `claim_text` is the only untrusted free text that reaches the mo
 Diagram: [Injection Detection Internals v1.0](../diagrams/injection-detection/README.md)
 
 Diagram: [Guardrails and Tool Scoping Pipeline v1.0](../diagrams/guardrails-pipeline/README.md)
+
+Diagram: [Claim Run Sequence v1.0](../diagrams/claim-sequence/README.md)

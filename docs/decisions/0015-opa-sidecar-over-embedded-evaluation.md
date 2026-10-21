@@ -27,3 +27,7 @@ Open choices: how Rego is evaluated, what a denial means, and where the check si
 - **OPA as a Wasm module or CLI per call:** process or runtime overhead per check, and more moving parts than an HTTP call.
 - **The rule in Python:** simplest, but it is the thing AGENTS.md asks to keep as policy-as-code, and it would sit with the business rules rather than the governance layer.
 - **Escalate instead of deny above the limit:** the payment would still be approvable by whoever sees the queue. Revisit if the business wants a second, senior approval path.
+
+Diagram: [Claim Artifact Map v1.0](../diagrams/artifact-map/README.md)
+
+Diagram: [Claim Run Sequence v1.0](../diagrams/claim-sequence/README.md)

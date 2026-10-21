@@ -31,6 +31,8 @@ One triage and the later human approval are two separate moments: the agent only
 
 Diagram: [Triage and Approval Flow v1.0](diagrams/triage-approval-flow/README.md)
 
+For the same run seen as a numbered sequence with the governance checks in place, see Diagram: [Claim Run Sequence v1.0](diagrams/claim-sequence/README.md). Where every artifact the run produces ends up: Diagram: [Claim Artifact Map v1.0](diagrams/artifact-map/README.md).
+
 ## MCP process boundary
 
 ![MCP process boundary](diagrams/mcp-boundary/mcp-boundary.png)

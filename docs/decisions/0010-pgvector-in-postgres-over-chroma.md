@@ -18,6 +18,8 @@ Store embeddings in a `kb_chunks` table using pgvector in the same Postgres as t
 
 Diagram: [Postgres Data Model v1.0](../diagrams/data-model/README.md)
 
+Diagram: [Claim Artifact Map v1.0](../diagrams/artifact-map/README.md)
+
 ## Alternatives considered
 - **Chroma as a separate service** — simple API, but a second container, no transactional link to claim data, and a second persistence story to test and back up.
 - **SQLAlchemy 2 + Alembic** — conventional and autogenerates migrations, but adds an abstraction layer over the few explicit statements this schema needs.

@@ -43,6 +43,10 @@ Along with this:
 
 Diagram: [Approval Request Lifecycle v1.0](../diagrams/approval-lifecycle/README.md)
 
+Diagram: [Claim Artifact Map v1.0](../diagrams/artifact-map/README.md)
+
+Diagram: [Claim Run Sequence v1.0](../diagrams/claim-sequence/README.md)
+
 ## Addendum (2026-10-15): executors and the transaction model
 
 W3 left the approval path unfinished (W3 review F-01): the Postgres store existed but nothing executed an approved request. The pre-W4 refactor (P-1, P-2) completes it.
