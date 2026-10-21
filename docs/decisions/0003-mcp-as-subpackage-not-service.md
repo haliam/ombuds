@@ -21,3 +21,5 @@ Expose tools over MCP from `platform/mcp/server.py`, runnable standalone (`pytho
 Diagram: [Layering and Composition Roots v1.0](../diagrams/layering/README.md)
 
 Diagram: [MCP Process Boundary v1.0](../diagrams/mcp-boundary/README.md)
+
+Diagram: [Claim Artifact Map v1.0](../diagrams/artifact-map/README.md)

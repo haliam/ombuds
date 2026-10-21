@@ -20,3 +20,5 @@ W4 asks for a span per LLM call and per tool call. The seams already exist as de
 ## Alternatives considered
 - **Instrument inside tools and providers:** every new one would need to remember it.
 - **Auto-instrumentation packages for Anthropic/OpenAI:** they capture prompts and completions by default, which conflicts with the no-PII rule.
+
+Diagram: [Claim Artifact Map v1.0](../diagrams/artifact-map/README.md)

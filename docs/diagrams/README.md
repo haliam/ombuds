@@ -18,7 +18,7 @@ Each diagram is `MAJOR.MINOR` with a date, shown in the page header and in the d
 
 | Diagram | Ver | Date | Tool | Decisions |
 |---|---|---|---|---|
-| [Ombuds Claims Triage](architecture/README.md) | 1.0 | 2026-10-18 | archify | ADR-0001, 0002, 0009 |
+| [Ombuds Claims Triage](architecture/README.md) | 1.1 | 2026-10-21 | archify | ADR-0001, 0002, 0009, 0015, 0016, 0017 |
 | [Triage and Approval Flow](triage-approval-flow/README.md) | 1.0 | 2026-10-18 | archify | ADR-0009, 0014 |
 | [Guardrails and Tool Scoping Pipeline](guardrails-pipeline/README.md) | 1.0 | 2026-10-18 | archify | ADR-0013, 0014 |
 | [RAG Ingest, Retrieval and Evals](rag-evals-pipeline/README.md) | 1.0 | 2026-10-18 | archify | ADR-0010, 0011, 0012 |

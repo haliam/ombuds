@@ -1,6 +1,6 @@
 # Plan: archify diagrams for the hard-to-grasp parts of ombuds
 
-**Status: done (2026-10-16).** Step 0 and all eight diagrams shipped, one commit each. Since 2026-10-18 every diagram has its own page in `docs/diagrams/` (see its README); the "Where it lives" links below point there.
+**Status: done (2026-10-18).** Step 0, all eight diagrams and their plain-language explanations shipped, one commit each. Every diagram has its own page in `docs/diagrams/` (see its README); the "Where it lives" links below point there. This plan is history; the living rules for adding a diagram are in the `add-diagram` skill (`.claude/skills/add-diagram/SKILL.md`).
 
 | # | Diagram | Tool | Where it lives |
 |---|---|---|---|
@@ -13,7 +13,7 @@
 | 7 | Provider fallback and SSE order | Mermaid | [provider-fallback](../diagrams/provider-fallback/README.md), [sse-event-order](../diagrams/sse-event-order/README.md) |
 | 8 | MCP process boundary | archify | [page](../diagrams/mcp-boundary/README.md) |
 
-Added later (2026-10-17): Docker Compose startup, memory flow, prompt versioning and injection-detection internals (ADR-0014). Not drawn yet (needs the code first): Week 4 tracing, Rego payout policy and audit trail; an end-to-end agent eval flow. Plain-language explanations of each diagram: each diagram's own page in [`docs/diagrams/`](../diagrams/README.md) (plan: [diagram-explanations-plan.md](diagram-explanations-plan.md)). The original plan follows for reference.
+Added later (2026-10-17): Docker Compose startup, memory flow, prompt versioning and injection-detection internals (ADR-0014). Not drawn yet (needs the code first): Week 4 tracing, Rego payout policy and audit trail; an end-to-end agent eval flow. Plain-language explanations of each diagram are covered in the last section. The original plan follows for reference.
 
 ## Context
 `docs/diagrams/` already has `architecture` (components), `triage-approval-flow` (sequence) and two `development-overview` timelines (each as .json/.html/.png, built with the archify skill). The dynamic mechanisms that the glossary and ADRs explain only in prose are not drawn: loops, turns, state machines, RAG, evals, memory. Goal: add a small, prioritized set of diagrams, wire them into the docs, and draw unbuilt Week-4 parts (policy engine/Rego, tracing, audit) as dashed "planned" boxes.
@@ -65,3 +65,6 @@ Eight diagrams is a lot; per the "one chat per task" preference, suggest doing #
 - Each diagram's states/edges are spot-checked against the cited source lines (e.g. `MAX_TOOL_TURNS=8`, `MAX_REPAIR_ATTEMPTS=2`, floor 0.35, status set pending/approved/denied/executed).
 - Mermaid blocks render on GitHub preview/VS Code; #2 matches `draw_mermaid()` output node-for-node.
 - Markdown image links resolve; `make lint` still passes; pre-commit large-file hook passes.
+
+## Plain-language explanations (merged from the former diagram-explanations-plan.md)
+Every content diagram (not the development boards) carries a child text, an interviewer text and a likely follow-up on its own page, so one page serves a child and a candidate in an interview for the AI/Agentic Engineer role this capstone prepares for. The first draft was a single `explained.md`; it was split per diagram and deleted. The layout and word ranges are in [`_template.md`](../diagrams/_template.md); the sourcing and honesty rules are in the `add-diagram` skill.

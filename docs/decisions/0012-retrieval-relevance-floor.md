@@ -22,3 +22,5 @@ Set `DEFAULT_MIN_SCORE` to 0.35: the highest floor that costs no recall on the e
 - **Keep 0.2:** rejects almost nothing, so the floor was decorative.
 
 Diagram: [RAG Ingest, Retrieval and Evals v1.0](../diagrams/rag-evals-pipeline/README.md)
+
+Diagram: [Claim Run Sequence v1.0](../diagrams/claim-sequence/README.md)
