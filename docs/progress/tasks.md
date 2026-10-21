@@ -43,7 +43,7 @@ Extracted from the "🤖 AI Build" view of the AI Interview Notion database (sna
 
 ## Week 4 — Observability, Governance, Polish
 
-- [ ] Add OpenTelemetry tracing (span per LLM/tool call)
+- [x] Add OpenTelemetry tracing (span per LLM/tool call) — [ADR-0017](../decisions/0017-opentelemetry-spans-at-the-existing-seams.md), [summary](task_summaries.md#add-opentelemetry-tracing-span-per-llmtool-call)
 - [x] Write one OPA/Rego policy (block auto-payout above €X) — [ADR-0015](../decisions/0015-opa-sidecar-over-embedded-evaluation.md), [summary](task_summaries.md#write-one-oparego-policy-block-auto-payout-above-x)
 - [x] Build audit trail — log every tool call + decision — [ADR-0016](../decisions/0016-append-only-postgres-audit-log-at-the-governance-seams.md), [summary](task_summaries.md#build-audit-trail--log-every-tool-call--decision)
 - [x] Write architecture diagram + README (problem, design, trade-offs) — [summary](task_summaries.md#write-architecture-diagram--readme-problem-design-trade-offs)
@@ -56,7 +56,7 @@ Each bullet is one goal: one branch, one chat, as many commits as it needs. Deta
 - [ ] Make approved-but-failed requests recoverable: clear error from `approve` instead of a 500, plus `POST /approvals/{id}/execute`
 - [ ] Authenticate the API: bearer tokens that fail closed, separate credentials for triage vs approve/deny, `approver` taken from config (ADR)
 - [ ] Remove the weak `ombuds:ombuds` DB default: require `DATABASE_URL` / `POSTGRES_PASSWORD` from `.env` unless an explicit dev flag is set
-- [ ] Reconcile docs with W4 and W5: README limitations and status, `architecture.md`, tick the W4 OpenTelemetry task (ADR-0017), `task_summaries.md`, affected diagrams
+- [ ] Reconcile docs with W4 and W5: README limitations and status, `architecture.md`, affected diagrams
 
 ## Week 6 — Guardrails, measurement and cleanup
 

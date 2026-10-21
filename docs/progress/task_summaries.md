@@ -582,7 +582,29 @@ Template — copy this block per finished task, filling in the fields (omit **De
 
 **Decisions/trade-offs:** decorators at existing seams rather than calls inside tools; immutability enforced by DB triggers; audit insert is a separate transaction from the state change (documented gap); fail closed on audit write errors. See ADR-0016.
 **Verified:** `make test` (lint + 334 unit tests), `make test-integration` (46 passed, including the full lifecycle trail, a policy denial with no request, and immutability).
-**Follow-up:** record the pre-model injection escalation; add a read endpoint; make the audit write atomic with the state change if needed; tracing fills `trace_id`; redraw diagrams when W4 lands.
+**Follow-up:** record the pre-model injection escalation; add a read endpoint; make the audit write atomic with the state change if needed; redraw diagrams when W4 lands. (`trace_id` is now filled, see the tracing entry.)
+
+---
+
+### Add OpenTelemetry tracing (span per LLM/tool call)
+
+**Week:** W4
+**Goal:** One claim is one trace: a span per LLM turn, tool call and policy check, with no claim content in any attribute, and every audit row linked to its trace.
+**Source:** ADR-0017
+
+**Files & responsibilities:**
+- `platform/observability/tracing.py` — `configure_tracing` (`none` | `console` | `otlp`), `start_span`, `trace_stream` for SSE; no-op by default.
+- `platform/ai/providers/traced.py` — `TracedProvider` wraps each concrete adapter (`llm.turn`); a failover shows as two sibling spans.
+- `platform/observability/traced_dispatcher.py` — `TracedDispatcher` outside `AuditedDispatcher` (`tool.<name>`).
+- `policy_checked_store.py` — `policy.check` span; `triage_use_case.py` — `triage.run` root span for sync and streaming.
+- `audit_repository.py` — stamps `trace_id` from the active span on every audit row.
+- `api_app.py`, `platform/mcp/server.py` — the two composition roots call `configure_tracing(config.OTEL_TRACES_EXPORTER)`; `.env.example`, `pyproject.toml`.
+
+**Notable libraries:** `opentelemetry-api` / `-sdk` / OTLP exporter (new glossary entry).
+
+**Decisions/trade-offs:** spans carry ids, model, stop reason, counts and verdicts only, never prompts, arguments or results, and an exception sets the status to its type, not its message, so the backend needs no PII handling. Decorators at the existing seams, as for audit. `trace_stream` makes the span current only while the source produces an event, because FastAPI resumes sync generators on different threads. See ADR-0017.
+**Verified:** `make test` (355 unit tests at the time of this update), in-memory exporter assertions for spans, provider failover and the audit `trace_id`.
+**Follow-up:** the MCP stdio subprocess starts its own traces (no context propagation); no HTTP request spans, token-usage attributes or collector in compose; approvals routes open no span (audit rows from approve/deny have a null `trace_id`).
 
 ---
 
