@@ -17,11 +17,11 @@ One or two sentences.
 
 ## Like I'm 5
 
-One analogy, short sentences, no acronyms.
+About 70-100 words. One everyday analogy, short sentences, no acronyms, no code names.
 
 ## For an interviewer
 
-What it is, the trade-off, and an honest "not built yet" gap. Under one printed page.
+About 130-170 words, plain text. The problem, the design choice and why, the trade-off, and an honest "not built yet" gap. Under one printed page.
 
 ## Likely follow-up
 

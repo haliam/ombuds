@@ -67,13 +67,4 @@ Eight diagrams is a lot; per the "one chat per task" preference, suggest doing #
 - Markdown image links resolve; `make lint` still passes; pre-commit large-file hook passes.
 
 ## Plain-language explanations (merged from the former diagram-explanations-plan.md)
-Every content diagram (not the two development-history boards) gets two plain-text explanations plus a follow-up, so the same page serves a child and a candidate in an interview for the AI/Agentic Engineer role this capstone prepares for.
-
-- **Where:** on each diagram's own page, `docs/diagrams/<slug>.md`. The first draft was a single `docs/diagrams/explained.md`; it was split per diagram and deleted.
-- **Shape of each explanation:**
-  - **Like I'm 5** (~120-150 words): one everyday analogy, no jargon, no code names.
-  - **For an interviewer** (~200-250 words): the problem, the design choice and why, trade-offs, and what is NOT built (an honest gap).
-  - **Likely follow-up:** one question with a one-line answer.
-- **Facts, not guesses:** every claim comes from `docs/architecture.md`, the ADRs (Decision and Consequences) and the diagram JSON `cards`; numbers (8 turns, 2 repairs, 0.35 floor, 1536 dims, 30 eval questions) are copied from those docs, not re-derived from code.
-- **Honest gaps to name:** policy engine/Rego, tracing, audit trail, end-to-end agent eval, long-term memory not wired to the HTTP API, no import-linter.
-- **Checks:** word counts via `wc -w` per section, every link and anchor resolves, each "not built" claim matches the current stubs.
+Every content diagram (not the development boards) carries a child text, an interviewer text and a likely follow-up on its own page, so one page serves a child and a candidate in an interview for the AI/Agentic Engineer role this capstone prepares for. The first draft was a single `explained.md`; it was split per diagram and deleted. The layout and word ranges are in [`_template.md`](../diagrams/_template.md); the sourcing and honesty rules are in the `add-diagram` skill.
