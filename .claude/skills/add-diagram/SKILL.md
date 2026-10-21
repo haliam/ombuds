@@ -22,11 +22,12 @@ Every diagram is built the same way. The structure rules live in `docs/code-styl
 Copy `_template.md`, then fill every section. Sections are not optional:
 - Header: title, version `1.0` for new, date, tool, type, pinned commit (`git rev-parse --short HEAD`), decisions, source paths.
 - **What it shows**: one or two sentences.
-- **Like I'm 5**: ~120-150 words, one everyday analogy, short sentences, no acronyms, no code names.
-- **For an interviewer**: ~200-250 words, plain text: the problem, the design choice and why, the trade-off, and an honest "not built yet" gap. Under one printed page.
+- **Like I'm 5**: ~70-100 words, one everyday analogy, short sentences, no acronyms, no code names.
+- **For an interviewer**: ~130-170 words, plain text: the problem, the design choice and why, the trade-off, and an honest "not built yet" gap. Under one printed page.
 - **Likely follow-up**: one question, one-line answer.
 - **Regenerate** and **Change log**.
-- Check word counts with `wc -w` on each text.
+- Check word counts with `wc -w` on each text. These ranges match the existing pages; stay inside them.
+- `development-overview` is a two-board page and is exempt from the single-header template; don't copy its shape.
 
 ## 4. Wire it in (same commit)
 - Add a row to the index table in `docs/diagrams/README.md` (title, version, date, tool, decisions).
