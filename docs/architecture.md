@@ -6,7 +6,7 @@ Ombuds triages airline EU261 claims with an LLM agent, but the LLM never owns th
 
 ![Ombuds component architecture](diagrams/architecture/architecture.png)
 
-Diagram: [Ombuds Claims Triage v1.0](diagrams/architecture/README.md) (interactive HTML, source and regeneration steps are on that page). Each component's source lines are cited in its JSON.
+Diagram: [Ombuds Claims Triage v1.1](diagrams/architecture/README.md) (interactive HTML, source and regeneration steps are on that page). Each component's source lines are cited in its JSON.
 
 | Component | What it does | Code |
 |---|---|---|
@@ -93,4 +93,4 @@ Two boards show how the project was built, week by week: [Ombuds Development Boa
 
 ## Not built yet
 
-OpenTelemetry tracing is Week 4 work and exists as a stub. The audit trail is built ([ADR-0016](decisions/0016-append-only-postgres-audit-log-at-the-governance-seams.md)): an append-only `audit_log` table fed by decorators on tool dispatch, the policy check and the approval store. The OPA/Rego payout policy is built ([ADR-0015](decisions/0015-opa-sidecar-over-embedded-evaluation.md)): an `opa` service the approval store consults on submit. The diagram does not draw any of the three yet.
+The Week 4 pieces are built and drawn: OpenTelemetry spans ([ADR-0017](decisions/0017-opentelemetry-spans-at-the-existing-seams.md)), the append-only audit trail ([ADR-0016](decisions/0016-append-only-postgres-audit-log-at-the-governance-seams.md)) and the OPA/Rego payout policy ([ADR-0015](decisions/0015-opa-sidecar-over-embedded-evaluation.md)). Still not built: an end-to-end agent eval (`evals/datasets/airline_claims.jsonl` is empty), so prompt and model changes are only measured on retrieval.
