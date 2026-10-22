@@ -36,7 +36,7 @@ _SCALAR_HTML = """<!doctype html>
 @asynccontextmanager
 async def _postgres_lifespan(app: FastAPI) -> AsyncIterator[None]:
     """Own the Postgres pool for the life of the app: open it, build the runtime over it, close it on shutdown."""
-    pool = create_pool(config.DATABASE_URL, config.DATABASE_POOL_MAX_SIZE)
+    pool = create_pool(config.database_url(), config.DATABASE_POOL_MAX_SIZE)
     runtime = build_runtime(
         pool, OpaHttpPolicyEngine(config.OPA_URL, config.OPA_TIMEOUT_SECONDS), config.PAYOUT_LIMIT_EUR
     )

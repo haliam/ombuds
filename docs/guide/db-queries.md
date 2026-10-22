@@ -1,6 +1,6 @@
 # Useful queries for the ombuds database
 
-Read-only queries to inspect the Postgres data from DBeaver or `psql`. Connection: `localhost:5433`, database, user and password all `ombuds` (see `docs/guide/developer-guide.md`). Run them as a read-only connection: `audit_log` rejects updates and deletes, and nothing else here should be edited by hand.
+Read-only queries to inspect the Postgres data from DBeaver or `psql`. Connection: `localhost:5433`, database and user `ombuds`, password from `POSTGRES_PASSWORD` in `.env` (see `docs/guide/developer-guide.md`). Run them as a read-only connection: `audit_log` rejects updates and deletes, and nothing else here should be edited by hand.
 
 Tables: `approval_requests` (the human-approval queue), `claims` and `payments` (what approvals executed), `audit_log` (append-only trail), `kb_chunks` (RAG), `long_term_memory`.
 

@@ -14,7 +14,7 @@ Keep this section accurate or delete a stale line — a wrong command here is wo
 - Developer guide (run, debug, commands, working rules): `docs/guide/developer-guide.md`; `make help` lists the targets. Also wired: `make logs`, `make ps`, `make run` (API with reload, outside Docker) and `make db-reset` (destructive: deletes the Postgres volume).
 - `make test` → `make lint` then `uv run pytest tests/unit` (uv creates `.venv` and installs deps on first run)
 - `make lint` → `ruff check` + `ruff format --check` + `mypy`; `make format` → ruff auto-fix. Config in `pyproject.toml`
-- `make db-up` → `docker compose up -d --wait db` (Postgres + pgvector on host port 5433); `make test-integration` starts it and runs `tests/integration`
+- `make db-up` → `docker compose up -d --wait db` (Postgres + pgvector on host port 5433); needs `POSTGRES_PASSWORD` and `DATABASE_URL` in `.env` (no default password; `OMBUDS_ALLOW_DEV_DEFAULTS=1` opts in to a dev URL for the app); `make test-integration` starts it and runs `tests/integration`
 - `make ingest` → starts the db, then chunks + embeds `verticals/airline/kb_seed/*.md` into pgvector (needs `OPENAI_API_KEY`); safe to re-run
 - `make test-policy` → `opa check` + Rego unit tests (`*_test.rego`) in the OPA container; `make opa-up` starts the OPA server on :8181 (`make test-integration` does it too; `make up` includes it). `PAYOUT_LIMIT_EUR` (default 400) is the payout ceiling
 - `OTEL_TRACES_EXPORTER=console` (or `otlp` + `OTEL_EXPORTER_OTLP_ENDPOINT`) → emit spans for LLM turns, tool calls and policy checks (ADR-0017); default `none`

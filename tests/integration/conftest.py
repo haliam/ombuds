@@ -16,7 +16,7 @@ _TABLES = "payments, approval_requests, claims, long_term_memory, kb_chunks"
 def pool() -> Iterator[Pool]:
     """Pool against a migrated database; skips the whole suite with a hint if Postgres isn't reachable."""
     try:
-        db_pool = create_pool(config.DATABASE_URL, max_size=10)
+        db_pool = create_pool(config.database_url(), max_size=10)
         db_pool.wait(timeout=5)
     except (psycopg.OperationalError, PoolTimeout) as exc:
         pytest.skip(f"Postgres not reachable ({exc}); run `docker compose up -d --wait db`")

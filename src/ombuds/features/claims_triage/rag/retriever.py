@@ -36,5 +36,5 @@ def default_retriever() -> Retriever:
     Lazy so that building the tool registry (and importing this module) needs neither a database nor an
     API key; the pool lives for the life of the process.
     """
-    pool = create_pool(config.DATABASE_URL, config.DATABASE_POOL_MAX_SIZE)
+    pool = create_pool(config.database_url(), config.DATABASE_POOL_MAX_SIZE)
     return Retriever(OpenAIEmbedder(config.EMBEDDING_MODEL), PgVectorStore(pool))

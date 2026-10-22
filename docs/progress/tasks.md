@@ -62,7 +62,7 @@ Each bullet is one goal: one branch, one chat, as many commits as it needs. Deta
   - One module with `require_triage_token` / `require_approver_token`, reading settings through an overridable function (not import-time constants) so tests can cover the unset-token case
   - Attach to the routers, not the app: compose's healthcheck uses `/openapi.json`; say in the ADR that the docs pages stay public
   - Remove `approver` from the request body; put the `GET /approvals*` reads behind the approver token too
-- [ ] Remove the weak `ombuds:ombuds` DB default: require `DATABASE_URL` / `POSTGRES_PASSWORD` from `.env` unless an explicit dev flag is set
+- [x] Remove the weak `ombuds:ombuds` DB default: require `DATABASE_URL` / `POSTGRES_PASSWORD` from `.env` unless an explicit dev flag is set
   - One `POSTGRES_PASSWORD` source in compose (`${POSTGRES_PASSWORD:?…}`); raise at point of use in `config.py`, not at import; keep `make db-up`, `ingest`, `eval` and the integration conftest working
 - [ ] Reconcile docs with W4 and W5: README limitations and status, `architecture.md`, affected diagrams
 

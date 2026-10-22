@@ -35,7 +35,7 @@ def ingest_directory(directory: Path, embedder: Embedder, store: VectorStore) ->
 
 def main() -> None:
     """Ingest the airline KB seed documents using the configured Postgres and embedding model."""
-    pool = create_pool(config.DATABASE_URL, config.DATABASE_POOL_MAX_SIZE)
+    pool = create_pool(config.database_url(), config.DATABASE_POOL_MAX_SIZE)
     try:
         apply_migrations(pool)
         counts = ingest_directory(KB_SEED_DIR, OpenAIEmbedder(config.EMBEDDING_MODEL), PgVectorStore(pool))
