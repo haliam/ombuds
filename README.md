@@ -81,7 +81,7 @@ Each row is a real choice between alternatives, with what was given up. The full
 - **Tracing and audit are not built.** OpenTelemetry tracing and the audit trail are Week 4 work and exist as stubs. The OPA payout policy is built, but policy decisions are not yet persisted, and `log_claim` still requires a human.
 - **Payments are simulated.** `issue_payment` writes a record to a local table; there is no payment rail and no real airline or claims vendor behind the tools.
 - **One vertical.** Only airline EU261 exists. The seam for a second vertical is structural, not yet exercised by a second implementation.
-- **No authentication on `/approvals`.** The approver name is a caller-supplied string.
+- **Shared static tokens.** The API uses one bearer token for triage and one for approve/deny (ADR-0019). All approvers share one token and recorded name; there is no per-person identity or TLS.
 - **PII and injection defences are heuristics.** See the trade-off rows above for what they miss.
 - **Retrieval is measured, not tuned.** `make eval` reports retrieval quality; there is no end-to-end answer-quality eval yet.
 

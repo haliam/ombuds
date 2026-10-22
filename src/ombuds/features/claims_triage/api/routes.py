@@ -23,10 +23,11 @@ from ombuds.platform.ai.budget import BudgetExceededError
 from ombuds.platform.ai.providers.base import ProviderUnavailableError
 from ombuds.platform.ai.streaming import ToolCallDelta, ToolResultEvent
 from ombuds.platform.ai.tool_loop import ToolDispatcher
+from ombuds.platform.guardrails.api_auth import require_triage_token
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/claims", tags=["claims"])
+router = APIRouter(prefix="/claims", tags=["claims"], dependencies=[Depends(require_triage_token)])
 
 
 def get_registry(request: Request) -> ToolDispatcher:

@@ -53,12 +53,12 @@ Extracted from the "🤖 AI Build" view of the AI Interview Notion database (sna
 Each bullet is one goal: one branch, one chat, as many commits as it needs. Detail lives in [backlog.md](backlog.md). Review notes: [w4_review_pre_w5_plan_rev2.md](w4_review_pre_w5_plan_rev2.md). Do them in the order listed (the ports and DB-default tasks both edit `docker-compose.yml`).
 
 - [x] Make `make lint` green again: wrap the two over-long docstring lines (`api/routes.py:76`, `audit_repository.py:25`)
-- [ ] Lock down network exposure: bind db, OPA and API ports to `127.0.0.1`, add an OPA healthcheck so `api` waits on it
+- [x] Lock down network exposure: bind db, OPA and API ports to `127.0.0.1`, add an OPA healthcheck so `api` waits on it
 - [x] Make approved-but-failed requests recoverable: clear error from `approve` instead of a 500, plus `POST /approvals/{id}/execute`
   - Put `execute_approved` on a second small protocol (not `ApprovalStore`), implemented by `ExecutingApprovalStore` and delegated by the two decorators; `ApprovalGate` stays unchanged
   - Map `ToolExecutionError` to a JSON body with the request id and `status: approved`; let other exceptions propagate, logged with the request id
   - Test through the real decorator stack with a failing executor
-- [ ] Authenticate the API: bearer tokens that fail closed, separate credentials for triage vs approve/deny, `approver` taken from config (ADR)
+- [x] Authenticate the API: bearer tokens that fail closed, separate credentials for triage vs approve/deny, `approver` taken from config (ADR)
   - One module with `require_triage_token` / `require_approver_token`, reading settings through an overridable function (not import-time constants) so tests can cover the unset-token case
   - Attach to the routers, not the app: compose's healthcheck uses `/openapi.json`; say in the ADR that the docs pages stay public
   - Remove `approver` from the request body; put the `GET /approvals*` reads behind the approver token too

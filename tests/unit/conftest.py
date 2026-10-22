@@ -8,6 +8,8 @@ from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import SimpleSpanProcessor
 from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanExporter
 
+from tests.api_auth import configure_api_auth
+
 _EXPORTER = InMemorySpanExporter()
 _provider = TracerProvider()
 _provider.add_span_processor(SimpleSpanProcessor(_EXPORTER))
@@ -22,3 +24,9 @@ def spans() -> Iterator[InMemorySpanExporter]:
     _EXPORTER.clear()
     yield _EXPORTER
     _EXPORTER.clear()
+
+
+@pytest.fixture(autouse=True)
+def api_auth_env(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Every API test starts with the credentials configured; tests of the unset case remove them."""
+    configure_api_auth(monkeypatch)

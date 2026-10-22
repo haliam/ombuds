@@ -4,7 +4,7 @@ How to run, debug and work on ombuds day to day. Run `make help` for the live li
 
 ## First-time setup
 
-1. `cp .env.example .env`, then fill in `ANTHROPIC_API_KEY` and `OPENAI_API_KEY` (OpenAI is used for embeddings) and replace `change-me` with a password of your choice in both `POSTGRES_PASSWORD` and `DATABASE_URL` (URL-safe characters only). There is no default: compose refuses to start without `POSTGRES_PASSWORD`, and the app refuses to start without `DATABASE_URL`. `OMBUDS_ALLOW_DEV_DEFAULTS=1` opts in to a throwaway `ombuds:ombuds` URL for the app only. The password is applied when the Postgres volume is first created, so after changing it run `make db-reset`.
+1. `cp .env.example .env`, then fill in `ANTHROPIC_API_KEY` and `OPENAI_API_KEY` (OpenAI is used for embeddings) and replace `change-me` with a password of your choice in both `POSTGRES_PASSWORD` and `DATABASE_URL` (URL-safe characters only). There is no default: compose refuses to start without `POSTGRES_PASSWORD`, and the app refuses to start without `DATABASE_URL`. `OMBUDS_ALLOW_DEV_DEFAULTS=1` opts in to a throwaway `ombuds:ombuds` URL for the app only. Also set `OMBUDS_TRIAGE_TOKEN`, `OMBUDS_APPROVER_TOKEN` (different values) and `OMBUDS_APPROVER`; with any unset the API answers 503 (ADR-0019). The password is applied when the Postgres volume is first created, so after changing it run `make db-reset`.
 2. `uv sync` installs dependencies (`make` targets also do this on first run).
 3. `uv run pre-commit install` runs the same checks on every commit.
 
@@ -21,12 +21,12 @@ Typical dev loop: `make opa-up`, `make ingest` (once), then `make run`. State-ch
 | `make logs` / `make ps` | Follow the API logs / show running containers. |
 | `uv run python -m ombuds.platform.mcp.server` | Standalone MCP server over stdio. Needs the db up. |
 
-Once the API is up:
+Once the API is up (`/claims*` needs `Authorization: Bearer $OMBUDS_TRIAGE_TOKEN`, `/approvals*` needs `$OMBUDS_APPROVER_TOKEN`; set both and `OMBUDS_APPROVER` in `.env`, see ADR-0019; the docs pages below are public):
 
 | URL | What |
 |---|---|
 | `POST /claims/triage` | Triage a claim: body `{"claim_text": "..."}`. `/claims/triage/stream` is the streaming variant. |
-| `/approvals` | List pending approvals; `GET /{id}`, `POST /{id}/approve`, `POST /{id}/deny`, `POST /{id}/execute` (retry an approved request whose executor failed; `approve` returns 502 in that case). A human approval is what executes a state-changing action. |
+| `/approvals` | List pending approvals; `GET /{id}`, `POST /{id}/approve`, `POST /{id}/deny`, `POST /{id}/execute` (the approver is `OMBUDS_APPROVER`, not a body field; retry an approved request whose executor failed; `approve` returns 502 in that case). A human approval is what executes a state-changing action. |
 | `/scalar` | Scalar API reference (loads its script from a CDN, so it needs internet) |
 | `/docs` | Swagger UI |
 | `/redoc` | ReDoc |
