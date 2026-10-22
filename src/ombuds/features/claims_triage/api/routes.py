@@ -71,10 +71,11 @@ def _to_response(result: TriageResult) -> TriageResponse:
 
 
 def _to_sse(events: Iterator[TriageStreamEvent]) -> Iterator[str]:
-    """Format each event as one `data: <json>\\n\\n` SSE frame, ending in an `error` frame if the provider fails.
+    """Format each event as one `data: <json>\\n\\n` SSE frame.
 
-    Only `ProviderUnavailableError` and `BudgetExceededError` become error frames: once streaming has started the HTTP status is
-    already 200, so this is the only way to tell the client. Anything else is a bug and propagates.
+    Ends in an `error` frame if the provider fails. Only `ProviderUnavailableError` and `BudgetExceededError` become
+    error frames: once streaming has started the HTTP status is already 200, so this is the only way to tell the
+    client. Anything else is a bug and propagates.
     """
     try:
         for event in events:

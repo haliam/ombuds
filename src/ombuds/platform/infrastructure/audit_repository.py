@@ -22,7 +22,10 @@ class PostgresAuditLog:
         self._pool = pool
 
     def record(self, event: AuditEvent) -> None:
-        """Append `event`, stamped with the active trace id (ADR-0017). Raises on a database error: an action must not proceed unaudited."""
+        """Append `event`, stamped with the active trace id (ADR-0017).
+
+        Raises on a database error: an action must not proceed unaudited.
+        """
         with self._pool.connection() as conn:
             conn.execute(
                 f"INSERT INTO audit_log ({_COLUMNS}) VALUES (%s, %s, %s, %s, %s, %s, %s)".encode(),
