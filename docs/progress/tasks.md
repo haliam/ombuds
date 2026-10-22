@@ -54,7 +54,7 @@ Each bullet is one goal: one branch, one chat, as many commits as it needs. Deta
 
 - [x] Make `make lint` green again: wrap the two over-long docstring lines (`api/routes.py:76`, `audit_repository.py:25`)
 - [ ] Lock down network exposure: bind db, OPA and API ports to `127.0.0.1`, add an OPA healthcheck so `api` waits on it
-- [ ] Make approved-but-failed requests recoverable: clear error from `approve` instead of a 500, plus `POST /approvals/{id}/execute`
+- [x] Make approved-but-failed requests recoverable: clear error from `approve` instead of a 500, plus `POST /approvals/{id}/execute`
   - Put `execute_approved` on a second small protocol (not `ApprovalStore`), implemented by `ExecutingApprovalStore` and delegated by the two decorators; `ApprovalGate` stays unchanged
   - Map `ToolExecutionError` to a JSON body with the request id and `status: approved`; let other exceptions propagate, logged with the request id
   - Test through the real decorator stack with a failing executor

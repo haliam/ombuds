@@ -608,4 +608,21 @@ Template — copy this block per finished task, filling in the fields (omit **De
 
 ---
 
+### Make approved-but-failed requests recoverable
+
+**Week:** W5
+**Goal:** Give the ADR-0009 "failed executor is recoverable" guarantee a reachable code path.
+**Source:** `w4_review_pre_w5_plan_rev2.md` (F-01); ADR-0009 addendum
+
+**Files & responsibilities:**
+- `approval_gate.py` — `ExecutableApprovalStore(ApprovalStore)` adds `execute_approved`; `ApprovalGate` is unchanged.
+- `policy_checked_store.py` — delegates `execute_approved`; `ExecutingApprovalStore` implements it. `build_runtime` and `create_app` type `approvals` as the new protocol.
+- `platform/guardrails/api.py` — `approve` maps an executor `ToolExecutionError` to a 502 body `{detail, request_id, status: approved}`; new `POST /approvals/{id}/execute` retries (409 for a non-approved request). Other exceptions propagate as 500s, logged with the request id.
+
+**Decisions/trade-offs:** 502 rather than 409 so a state conflict (already decided) stays distinguishable from a failed downstream effect. No automatic retry.
+**Verified:** `make lint`, unit tests through the real policy → executing → audited stack with a failing executor, and an integration test over Postgres (payment for an unlogged claim → 502, log the claim, `/execute` → one `payments` row, audit trail shows approved then executed).
+**Follow-up:** the `/approvals` routes are still unauthenticated (next W5 task).
+
+---
+
 Library/framework/stdlib-concept entries live in [`glossary.md`](glossary.md) — append there, not here, whenever a summary's **Notable libraries** introduces something not already listed.

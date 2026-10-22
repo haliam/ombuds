@@ -80,6 +80,15 @@ class ApprovalStore(Protocol):
     def claim_for_execution(self, request_id: str) -> ApprovalRequest: ...
 
 
+class ExecutableApprovalStore(ApprovalStore, Protocol):
+    """An `ApprovalStore` that can also run an `APPROVED` request's executor (the recovery path, ADR-0009).
+
+    Separate from `ApprovalStore` because the in-memory `ApprovalGate` has no executors to run.
+    """
+
+    def execute_approved(self, request_id: str) -> ApprovalRequest: ...
+
+
 def _redacted(note: str | None) -> str | None:
     """An approver's free-text note, with PII removed: it's stored and listed by `/approvals`."""
     return None if note is None else redact(note).text

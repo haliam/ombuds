@@ -11,7 +11,7 @@ from ombuds.features.claims_triage.application.executors import build_executors
 from ombuds.features.claims_triage.rag.retriever import Retriever, default_retriever
 from ombuds.features.claims_triage.tools import build_tool_registry
 from ombuds.platform.ai.tool_loop import ToolDispatcher
-from ombuds.platform.guardrails.approval_gate import ApprovalStore
+from ombuds.platform.guardrails.approval_gate import ExecutableApprovalStore
 from ombuds.platform.guardrails.audited_dispatcher import AuditedDispatcher
 from ombuds.platform.guardrails.audited_store import AuditedApprovalStore
 from ombuds.platform.guardrails.executing_store import ExecutingApprovalStore
@@ -31,7 +31,7 @@ from ombuds.platform.observability.traced_dispatcher import TracedDispatcher
 class ClaimsTriageRuntime:
     """What a process needs to serve claims triage: where approvals go, and the tools that submit to them."""
 
-    approvals: ApprovalStore
+    approvals: ExecutableApprovalStore
     registry: ToolDispatcher
 
 

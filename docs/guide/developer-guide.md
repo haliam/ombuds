@@ -26,7 +26,7 @@ Once the API is up:
 | URL | What |
 |---|---|
 | `POST /claims/triage` | Triage a claim: body `{"claim_text": "..."}`. `/claims/triage/stream` is the streaming variant. |
-| `/approvals` | List pending approvals; `GET /{id}`, `POST /{id}/approve`, `POST /{id}/deny`. A human approval is what executes a state-changing action. |
+| `/approvals` | List pending approvals; `GET /{id}`, `POST /{id}/approve`, `POST /{id}/deny`, `POST /{id}/execute` (retry an approved request whose executor failed; `approve` returns 502 in that case). A human approval is what executes a state-changing action. |
 | `/scalar` | Scalar API reference (loads its script from a CDN, so it needs internet) |
 | `/docs` | Swagger UI |
 | `/redoc` | ReDoc |

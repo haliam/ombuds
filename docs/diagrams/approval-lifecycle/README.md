@@ -14,7 +14,7 @@ stateDiagram-v2
     PENDING --> PENDING: same payload again<br/>(deduped onto this request)
     PENDING --> APPROVED: approve()<br/>compare-and-set, one winner
     PENDING --> DENIED: deny()
-    APPROVED --> APPROVED: executor fails or crash<br/>execute_approved() retries
+    APPROVED --> APPROVED: executor fails or crash<br/>POST /execute retries
     APPROVED --> EXECUTED: claim_for_execution()<br/>after the idempotent executor write
     DENIED --> [*]
     EXECUTED --> [*]
@@ -30,7 +30,7 @@ Think of a permission slip for a school trip. It starts as "waiting". A teacher 
 
 ## For an interviewer
 
-An approval request has four states: pending, approved, denied and executed. Submitting dedupes on action plus payload, so the same payload returns the existing request and changed facts create a new one. Every transition is a compare-and-set update that only succeeds if the row is still in the expected status, so two concurrent approvals cannot both win, and a second approve, or a deny after approval, raises a state error that the API returns as 409. Approving wins pending to approved, runs the executor registered for the action, then wins approved to executed. The executor write is idempotent, using insert on conflict do nothing, and runs before the final transition. The transaction model is idempotent write, then claim, instead of one database transaction, which keeps the store protocol free of connection handling and works for effects outside Postgres. Trade-off: a crash in between leaves the request approved, and execute_approved is the recovery path. Honest gap: nothing calls that recovery automatically yet, so a failed execution surfaces as an error from approve.
+An approval request has four states: pending, approved, denied and executed. Submitting dedupes on action plus payload, so the same payload returns the existing request and changed facts create a new one. Every transition is a compare-and-set update that only succeeds if the row is still in the expected status, so two concurrent approvals cannot both win, and a second approve, or a deny after approval, raises a state error that the API returns as 409. Approving wins pending to approved, runs the executor registered for the action, then wins approved to executed. The executor write is idempotent, using insert on conflict do nothing, and runs before the final transition. The transaction model is idempotent write, then claim, instead of one database transaction, which keeps the store protocol free of connection handling and works for effects outside Postgres. Trade-off: a crash in between leaves the request approved, and execute_approved is the recovery path. Over HTTP, a failed execution returns a 502 from approve and the request stays approved, and a POST to /approvals/{id}/execute retries it. Honest gap: nothing retries automatically.
 
 ## Likely follow-up
 

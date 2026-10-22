@@ -3,9 +3,9 @@
 `ExecutingApprovalStore` decorates any `ApprovalStore`: approving a request runs the executor registered for
 its action, then wins the single-use `APPROVED -> EXECUTED` transition. The executor's write is idempotent
 and runs *before* that transition, so a crash between the two leaves the request `APPROVED` with the effect
-recorded at most once; `execute_approved` re-runs it safely. Only one `approve` can win the
-`PENDING -> APPROVED` compare-and-set, so concurrent approvals trigger one execution, and a second approval
-or claim attempt raises `ApprovalStateError` and writes nothing.
+recorded at most once; `execute_approved` re-runs it safely (`POST /approvals/{id}/execute`). Only one
+`approve` can win the `PENDING -> APPROVED` compare-and-set, so concurrent approvals trigger one execution,
+and a second approval or claim attempt raises `ApprovalStateError` and writes nothing.
 """
 
 from collections.abc import Callable, Mapping

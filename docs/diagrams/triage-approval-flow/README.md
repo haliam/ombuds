@@ -22,7 +22,7 @@ This sequence shows one triage and then the later approval, which are two separa
 
 ## Likely follow-up
 
-What if the executor fails after approval? The request stays approved, the write is idempotent, and execute_approved can be re-run safely, although nothing calls it automatically yet.
+What if the executor fails after approval? The request stays approved, the write is idempotent, and POST /approvals/{id}/execute re-runs it safely, although nothing retries automatically.
 
 ## Regenerate
 

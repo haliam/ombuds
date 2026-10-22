@@ -9,6 +9,7 @@ from ombuds.platform.guardrails.audit_log import AuditKind
 from ombuds.platform.guardrails.policy_checked_store import PolicyCheckedApprovalStore
 from ombuds.platform.guardrails.policy_engine import PolicyDecision
 from tests.unit.platform.guardrails.audit_fakes import RecordingAuditLog
+from tests.unit.platform.guardrails.store_fakes import executing
 
 _PAYMENT: dict[str, JsonValue] = {"claim_id": "c-1", "amount_eur": 250}
 
@@ -27,7 +28,11 @@ def _store(
     decision: PolicyDecision, audit: RecordingAuditLog | None = None
 ) -> tuple[PolicyCheckedApprovalStore, ApprovalGate, _FakeEngine]:
     gate, engine = ApprovalGate(), _FakeEngine(decision)
-    return PolicyCheckedApprovalStore(gate, engine, {"max_payout_eur": 400}, audit or RecordingAuditLog()), gate, engine
+    return (
+        PolicyCheckedApprovalStore(executing(gate), engine, {"max_payout_eur": 400}, audit or RecordingAuditLog()),
+        gate,
+        engine,
+    )
 
 
 def test_an_allowed_submission_becomes_a_pending_request() -> None:
@@ -67,7 +72,7 @@ def test_approving_and_denying_do_not_consult_the_policy() -> None:
     second = store.submit(GuardedAction.LOG_CLAIM, {"claim_id": "c-2"})
     engine.inputs.clear()
 
-    assert store.approve(first.id, "alice").status is ApprovalStatus.APPROVED
+    assert store.approve(first.id, "alice").status is ApprovalStatus.EXECUTED
     assert store.deny(second.id, "alice").status is ApprovalStatus.DENIED
     assert engine.inputs == []
 
@@ -105,3 +110,13 @@ def test_policy_check_is_a_span_carrying_the_verdict(spans) -> None:
         "policy.decision": "deny",
         "policy.version": "v1",
     }
+
+
+def test_execute_approved_delegates_without_consulting_the_policy() -> None:
+    store, gate, engine = _store(PolicyDecision(allow=True))
+    request = store.submit(GuardedAction.ISSUE_PAYMENT, _PAYMENT)
+    gate.approve(request.id, "alice")
+    engine.inputs.clear()
+
+    assert store.execute_approved(request.id).status is ApprovalStatus.EXECUTED
+    assert engine.inputs == []
