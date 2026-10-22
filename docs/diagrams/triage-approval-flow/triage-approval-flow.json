@@ -2,7 +2,7 @@
  "schema_version": 1,
  "diagram_type": "sequence",
  "meta": {
-  "title": "Triage and Approval Flow · v1.0 · 2026-10-18",
+  "title": "Triage and Approval Flow · v1.1 · 2026-10-22",
   "output": "docs/diagrams/triage-approval-flow/triage-approval-flow.html",
   "column_fit": "spread",
   "quality_profile": "showcase",
@@ -280,7 +280,8 @@
    "dot": "emerald",
    "title": "Exactly once",
    "items": [
-    "Executor runs after approval, then APPROVED to EXECUTED is won atomically"
+    "Executor runs after approval, then APPROVED to EXECUTED is won atomically",
+    "Approve, deny and execute need the approver bearer token, separate from the triage token (ADR-0019)"
    ]
   },
   {

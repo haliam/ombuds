@@ -1,7 +1,7 @@
 # Triage and Approval Flow
 
-**Version** 1.0 · **Date** 2026-10-18 · **Tool** archify · **Type** sequence · **Pinned commit** `7342b6c`
-**Decisions** [ADR-0009](../../decisions/0009-approval-request-is-the-pending-action.md), [ADR-0014](../../decisions/0014-heuristic-injection-detection-escalates.md)
+**Version** 1.1 · **Date** 2026-10-22 · **Tool** archify · **Type** sequence · **Pinned commit** `7342b6c`
+**Decisions** [ADR-0009](../../decisions/0009-approval-request-is-the-pending-action.md), [ADR-0014](../../decisions/0014-heuristic-injection-detection-escalates.md), [ADR-0019](../../decisions/0019-static-bearer-tokens-per-router.md)
 **Source** `triage_use_case.py`, `agent/graph.py`, `platform/guardrails/approval_gate.py`, `executing_store.py`
 
 ![triage-approval-flow](triage-approval-flow.png)
@@ -18,7 +18,7 @@ Think of ordering something from a shop with a parent. You tell the shop what yo
 
 ## For an interviewer
 
-This sequence shows one triage and then the later approval, which are two separate moments. In the first, the API screens the claim for prompt injection and redacts personal data, then the agent loop runs. The only state-changing tool the agent has, log_claim, does not write anything. It submits a payload-bound approval request. The payload is derived from the rules engine, never from model text, and the claim identifier is issued by the server, so the model cannot choose it. In the second moment, a human calls the approvals API. Approving runs an executor registered for that action, which writes to Postgres, and the request moves to executed exactly once. This is the decision in ADR-0009. The alternative, a LangGraph interrupt with a checkpointer, ties approvals to graph checkpoints and does not cover external MCP clients, so it was rejected for now. The cost is that the agent cannot tell the passenger the final outcome in the same run. Honest gap: until the Rego policy exists, log_claim also needs a human, though the target is to auto-approve it by policy.
+This sequence shows one triage and then the later approval, which are two separate moments. In the first, the API screens the claim for prompt injection and redacts personal data, then the agent loop runs. The only state-changing tool the agent has, log_claim, does not write anything. It submits a payload-bound approval request. The payload is derived from the rules engine, never from model text, and the claim identifier is issued by the server, so the model cannot choose it. In the second moment, a human calls the approvals API. Approving runs an executor registered for that action, which writes to Postgres, and the request moves to executed exactly once. This is the decision in ADR-0009. The alternative, a LangGraph interrupt with a checkpointer, ties approvals to graph checkpoints and does not cover external MCP clients, so it was rejected for now. The cost is that the agent cannot tell the passenger the final outcome in the same run. Both halves are behind bearer tokens: the triage token for the claim, and a different approver token for approve, deny and the pending list, with the approver name taken from config, not the request body (ADR-0019). The OPA policy refuses an oversized payout at submit, but log_claim still always needs a human; letting low-risk logging auto-approve by policy is not built.
 
 ## Likely follow-up
 
@@ -37,3 +37,4 @@ This runs `archify finalize sequence` and rewrites the `.html` and `.png` next t
 ## Change log
 
 - 1.0 (2026-10-18): first versioned release; title, version and date added to the diagram itself.
+- 1.1 (2026-10-22): approver token noted on the human step (ADR-0019); stale "Rego policy does not exist" gap removed.

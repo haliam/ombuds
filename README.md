@@ -33,7 +33,7 @@ A claim comes in — for example, a flight cancellation compensation claim. Ombu
 3. **Retrieves policy** via RAG (`search_kb`) — policy documents from pgvector, cited, not invented, and dropped below a relevance floor.
 4. **Checks eligibility** against a deterministic rules engine (`check_eligibility`, EU261 tiers and exemptions) — the LLM can *ask* for this fact, it can never *decide* it.
 5. **Verifies the verdict.** The model's decision is re-checked against the rules result. A mismatch triggers up to two repair turns, then escalates to a human.
-6. **Gates risky actions behind a human.** A state-changing tool call (`log_claim` today; `issue_payment`, which the agent is never offered) only *submits* a payload-bound approval request, made of server-issued and rules-derived values, never model-authored ones. It does this whatever the model's confidence. An OPA/Rego policy (ADR-0015) is checked at submit and refuses any payout above `PAYOUT_LIMIT_EUR` outright, so it never reaches the human queue; if OPA is down it denies. Letting low-risk logging auto-execute is still not built.
+6. **Gates risky actions behind a human.** A state-changing tool call (`log_claim` today; `issue_payment`, which the agent is never offered) only *submits* a payload-bound approval request, made of server-issued and rules-derived values, never model-authored ones. It does this whatever the model's confidence. An OPA/Rego policy (ADR-0015) is checked at submit and refuses any payout above `PAYOUT_LIMIT_EUR` outright, so it never reaches the human queue; if OPA is down it denies. `log_claim` always waits for a human; letting low-risk logging auto-execute is not built. If the executor fails after approval, the request stays approved and `POST /approvals/{id}/execute` retries it (nothing retries automatically).
 7. **Executes only after approval.** Once a human approves, the action runs exactly once against Postgres, which the LLM never owns ([ADR-0009](docs/decisions/0009-approval-request-is-the-pending-action.md)): `log_claim` writes the `claims` row, and `issue_payment` writes a *simulated* payout record to `payments` (there is no real payment rail) and requires a logged claim with a matching amount.
 
 ![Triage and approval sequence](docs/diagrams/triage-approval-flow/triage-approval-flow.png)
@@ -54,7 +54,7 @@ More diagrams: [guardrails pipeline](docs/diagrams/guardrails-pipeline/README.md
 
 | Command | Does |
 |---|---|
-| `make up` / `make down` | Full stack: db, migrations + KB ingest, API on `localhost:8000` (needs `OPENAI_API_KEY` and `ANTHROPIC_API_KEY` in `.env`) |
+| `make up` / `make down` | Full stack: db, migrations + KB ingest, API on `localhost:8000` (needs `POSTGRES_PASSWORD`, `DATABASE_URL`, `OMBUDS_TRIAGE_TOKEN`, `OMBUDS_APPROVER_TOKEN`, `OMBUDS_APPROVER`, `OPENAI_API_KEY` and `ANTHROPIC_API_KEY` in `.env`; see `.env.example`) |
 | `make test` | Lint (ruff, mypy strict), then unit tests |
 | `make test-integration` | Real Postgres/pgvector and a real MCP round-trip, LLM mocked |
 | `make eval` | Retrieval hit@k / MRR over `evals/datasets/` (needs `OPENAI_API_KEY`; prints a report, never fails) |
@@ -78,10 +78,11 @@ Each row is a real choice between alternatives, with what was given up. The full
 
 ### Known limitations
 
-- **Tracing and audit are not built.** OpenTelemetry tracing and the audit trail are Week 4 work and exist as stubs. The OPA payout policy is built, but policy decisions are not yet persisted, and `log_claim` still requires a human.
+- **Tracing and audit are built, with gaps.** OpenTelemetry spans (off unless an exporter is set) and an append-only audit log cover tool calls, policy verdicts and approval transitions. Out-of-scope tool calls and injection escalations are not audited yet, and `log_claim` still requires a human.
+- **Local-demo deployment.** Ports bind to `127.0.0.1`, and secrets (the database password and both API tokens) come from a local `.env` with no secret manager and no TLS. The MCP subprocess is not given explicit configuration. There is no CI workflow or secret scanning yet.
 - **Payments are simulated.** `issue_payment` writes a record to a local table; there is no payment rail and no real airline or claims vendor behind the tools.
 - **One vertical.** Only airline EU261 exists. The seam for a second vertical is structural, not yet exercised by a second implementation.
-- **Shared static tokens.** The API uses one bearer token for triage and one for approve/deny (ADR-0019). All approvers share one token and recorded name; there is no per-person identity or TLS.
+- **Shared static tokens.** The API uses one bearer token for triage and one for approve/deny (ADR-0019), and fails closed when they are unset. All approvers share one token and recorded name; there is no per-person identity or TLS.
 - **PII and injection defences are heuristics.** See the trade-off rows above for what they miss.
 - **Retrieval is measured, not tuned.** `make eval` reports retrieval quality; there is no end-to-end answer-quality eval yet.
 
@@ -102,9 +103,9 @@ The architecture is deliberately domain-agnostic underneath: `features/claims_tr
 - Not integrated with a real airline/claims vendor — tools are mocked against a local Postgres, proving the *pattern* (agent → MCP → deterministic backend), not a vendor integration.
 - Not multi-agent — one LangGraph agent, one tool set.
 
-## Status: Weeks 1–3 built, pre-W4 refactor done
+## Status: Weeks 1–5 built, Week 6 next
 
-The agent, RAG, Postgres-backed approvals and execution, MCP server, Docker Compose stack and PII/injection guardrails work. This README and the diagrams are the first Week 4 deliverable; the OPA payout policy is built; observability and the audit trail are not.
+The agent, RAG, Postgres-backed approvals and execution, MCP server, Docker Compose stack, PII/injection guardrails, OPA payout policy, audit trail and OpenTelemetry spans work. Week 5 closed the governance holes: authenticated API, loopback ports, no default DB credential and a retry route for failed executions. Week 6 adds CI and secret scanning, a fuller audit trail, an agent-level eval and cleanup.
 
 | Week | Focus |
 |---|---|
@@ -112,5 +113,7 @@ The agent, RAG, Postgres-backed approvals and execution, MCP server, Docker Comp
 | 2 | LangGraph agent, MCP server, agent memory, human-approval gate |
 | 3 | RAG pipeline, Postgres + vector store, Docker Compose, PII/injection guardrails |
 | 4 | Observability (OpenTelemetry), OPA/Rego policy, audit trail, architecture docs |
+| 5 | Governance holes: API auth, network exposure, DB credential, recoverable approvals |
+| 6 | CI and secret scanning, complete audit trail, agent-level eval, cleanup (planned) |
 
 Design decisions: [`docs/decisions/`](docs/decisions). Architecture detail: [`docs/architecture.md`](docs/architecture.md).

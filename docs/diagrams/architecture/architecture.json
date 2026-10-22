@@ -2,7 +2,7 @@
   "schema_version": 1,
   "diagram_type": "architecture",
   "meta": {
-    "title": "Ombuds Claims Triage · v1.1 · 2026-10-21",
+    "title": "Ombuds Claims Triage · v1.2 · 2026-10-22",
     "output": "docs/diagrams/architecture/architecture.html",
     "quality_profile": "showcase",
     "repository": {
@@ -31,7 +31,7 @@
       "id": "api",
       "type": "backend",
       "label": "FastAPI app",
-      "sublabel": "create_app · /claims",
+      "sublabel": "bearer auth · /claims",
       "pos": [
         250,
         40
@@ -560,9 +560,9 @@
       "dot": "cyan",
       "title": "Deployed with Docker Compose",
       "items": [
-        "db: pgvector/pgvector:pg16",
+        "db: pgvector/pgvector:pg16, opa: policy server",
         "migrate-ingest: one-shot migrations + KB ingest",
-        "api: FastAPI on :8000, MCP spawned over stdio"
+        "api: FastAPI on 127.0.0.1:8000, MCP spawned over stdio"
       ]
     },
     {
@@ -572,6 +572,15 @@
         "OPA/Rego payout policy denies at submit, fails closed (ADR-0015)",
         "Append-only audit log at dispatch, policy and approvals (ADR-0016)",
         "OpenTelemetry spans, exporter off by default (ADR-0017)"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Hardened in Week 5",
+      "items": [
+        "Separate triage and approver bearer tokens; approver comes from config (ADR-0019)",
+        "Ports bind to 127.0.0.1 and the DB password has no default",
+        "A failed execution stays approved; POST /approvals/{id}/execute retries it"
       ]
     }
   ]
