@@ -74,7 +74,7 @@ def main() -> None:
     """Run the retrieval eval against the configured Postgres and embedding model and print the report."""
     questions = load_questions()
     gold = {q.id: resolve_gold(q, KB_SEED_DIR) for q in questions}
-    pool = create_pool(config.DATABASE_URL, config.DATABASE_POOL_MAX_SIZE)
+    pool = create_pool(config.database_url(), config.DATABASE_POOL_MAX_SIZE)
     try:
         retriever = Retriever(OpenAIEmbedder(config.EMBEDDING_MODEL), PgVectorStore(pool), min_score=0.0)
         print(report(questions, collect_hits(retriever, questions), gold))

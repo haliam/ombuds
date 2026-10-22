@@ -8,7 +8,7 @@ Commands and URLs come from the [developer guide](developer-guide.md); queries f
 
 - `.env` has `ANTHROPIC_API_KEY` and `OPENAI_API_KEY`.
 - `make up` and wait for it to finish (db, migrate + ingest, OPA, API). Check with `make ps`.
-- Open `http://localhost:8000/scalar` in a browser and a DBeaver/`psql` connection to `localhost:5433` (db/user/password `ombuds`).
+- Open `http://localhost:8000/scalar` in a browser and a DBeaver/`psql` connection to `localhost:5433` (db and user `ombuds`, password from `.env`).
 - Optional: `OTEL_TRACES_EXPORTER=console` in `.env` to show spans in `make logs`.
 
 ## 1. The problem (1 min)

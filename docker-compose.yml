@@ -4,7 +4,7 @@ services:
     image: pgvector/pgvector:pg16
     environment:
       POSTGRES_USER: ombuds
-      POSTGRES_PASSWORD: ombuds
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env (see .env.example)}
       POSTGRES_DB: ombuds
     ports:
       - "127.0.0.1:5433:5432"
@@ -40,7 +40,7 @@ services:
     restart: "no"
     env_file: .env
     environment:
-      DATABASE_URL: postgresql://ombuds:ombuds@db:5432/ombuds
+      DATABASE_URL: postgresql://ombuds:${POSTGRES_PASSWORD}@db:5432/ombuds
     depends_on:
       db:
         condition: service_healthy
@@ -54,7 +54,7 @@ services:
       - "127.0.0.1:8000:8000"
     env_file: .env
     environment:
-      DATABASE_URL: postgresql://ombuds:ombuds@db:5432/ombuds
+      DATABASE_URL: postgresql://ombuds:${POSTGRES_PASSWORD}@db:5432/ombuds
       OPA_URL: http://opa:8181
     depends_on:
       db:

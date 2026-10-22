@@ -29,7 +29,7 @@ def build_server(registry: ToolDispatcher) -> Server:
 
 async def _run() -> None:
     # The same Postgres-backed runtime the API uses, so an approval submitted here is visible to `/approvals`.
-    pool = create_pool(config.DATABASE_URL, config.DATABASE_POOL_MAX_SIZE)
+    pool = create_pool(config.database_url(), config.DATABASE_POOL_MAX_SIZE)
     try:
         engine = OpaHttpPolicyEngine(config.OPA_URL, config.OPA_TIMEOUT_SECONDS)
         server = build_server(build_runtime(pool, engine, config.PAYOUT_LIMIT_EUR).registry)

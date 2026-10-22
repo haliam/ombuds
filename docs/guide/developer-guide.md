@@ -4,7 +4,7 @@ How to run, debug and work on ombuds day to day. Run `make help` for the live li
 
 ## First-time setup
 
-1. `cp .env.example .env`, then fill in `ANTHROPIC_API_KEY` and `OPENAI_API_KEY` (OpenAI is used for embeddings).
+1. `cp .env.example .env`, then fill in `ANTHROPIC_API_KEY` and `OPENAI_API_KEY` (OpenAI is used for embeddings) and replace `change-me` with a password of your choice in both `POSTGRES_PASSWORD` and `DATABASE_URL` (URL-safe characters only). There is no default: compose refuses to start without `POSTGRES_PASSWORD`, and the app refuses to start without `DATABASE_URL`. `OMBUDS_ALLOW_DEV_DEFAULTS=1` opts in to a throwaway `ombuds:ombuds` URL for the app only. The password is applied when the Postgres volume is first created, so after changing it run `make db-reset`.
 2. `uv sync` installs dependencies (`make` targets also do this on first run).
 3. `uv run pre-commit install` runs the same checks on every commit.
 
@@ -36,7 +36,7 @@ Once the API is up:
 
 - `OTEL_TRACES_EXPORTER=console` prints spans for LLM turns, tool calls and policy checks to stderr (`otlp` plus `OTEL_EXPORTER_OTLP_ENDPOINT` ships them to a collector; ADR-0017).
 - Every triage response carries `tool_results`, the list of each tool call the agent made.
-- The append-only `audit_log` table in Postgres records every tool call and approval event. See [db-queries.md](db-queries.md) for read-only queries (`localhost:5433`, db/user/password `ombuds`).
+- The append-only `audit_log` table in Postgres records every tool call and approval event. See [db-queries.md](db-queries.md) for read-only queries (`localhost:5433`, database and user `ombuds`, password from `POSTGRES_PASSWORD` in `.env`).
 - One test with the debugger: `uv run pytest tests/unit/<file> -k <name> -x --pdb`.
 - VS Code: there is no `launch.json` yet. To step through the API, add a launch config running uvicorn with `ombuds.api_app:create_app` and the `--factory` flag.
 - If startup or ingest fails: `docker compose logs migrate-ingest`. OPA listens on `:8181`, Postgres on host port `5433`.

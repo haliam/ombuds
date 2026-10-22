@@ -28,8 +28,9 @@ LLM_UNKNOWN_PRICE_USD_PER_MTOK = (15.0, 75.0)
 # Embeddings for RAG. text-embedding-3-small emits 1536 dims, matching `kb_chunks.embedding vector(1536)`.
 EMBEDDING_MODEL = os.environ.get("EMBEDDING_MODEL", "text-embedding-3-small")
 
-# Postgres (relational + pgvector, ADR-0010). The default matches the `db` service in docker-compose.yml.
-DATABASE_URL = os.environ.get("DATABASE_URL") or "postgresql://ombuds:ombuds@localhost:5433/ombuds"
+# Postgres (relational + pgvector, ADR-0010). There is no credential default: `database_url()` raises unless
+# DATABASE_URL is set, or OMBUDS_ALLOW_DEV_DEFAULTS=1 opts in to the throwaway local one below.
+_DEV_DATABASE_URL = "postgresql://ombuds:ombuds@localhost:5433/ombuds"
 DATABASE_POOL_MAX_SIZE = int(os.environ.get("DATABASE_POOL_MAX_SIZE", "10"))
 
 # OPA policy server (ADR-0015) and the payout ceiling it enforces. Payments above the limit are denied at submit.
@@ -45,6 +46,18 @@ OTEL_TRACES_EXPORTER = os.environ.get("OTEL_TRACES_EXPORTER", "none")
 # Which prompt version is live per feature. Bump here (and in .env.example) after a new version
 # passes evals/datasets/ — never edit an old version's file in place.
 ACTIVE_PROMPT_VERSIONS = {"claims_triage": os.environ.get("CLAIMS_TRIAGE_PROMPT_VERSION", "v4")}
+
+
+def database_url() -> str:
+    """The Postgres connection string. Read at the point of use, so importing `config` never needs a database."""
+    if url := os.environ.get("DATABASE_URL"):
+        return url
+    if os.environ.get("OMBUDS_ALLOW_DEV_DEFAULTS") == "1":
+        return _DEV_DATABASE_URL
+    raise RuntimeError(
+        "DATABASE_URL is not set. Copy .env.example to .env and set POSTGRES_PASSWORD and DATABASE_URL "
+        "(or set OMBUDS_ALLOW_DEV_DEFAULTS=1 for a throwaway local database)."
+    )
 
 
 def load_prompt(feature: str) -> str:
