@@ -7,7 +7,7 @@ services:
       POSTGRES_PASSWORD: ombuds
       POSTGRES_DB: ombuds
     ports:
-      - "5433:5432"
+      - "127.0.0.1:5433:5432"
     volumes:
       - db-data:/var/lib/postgresql/data
     healthcheck:
@@ -21,9 +21,15 @@ services:
     image: openpolicyagent/opa:1.4.2
     command: ["run", "--server", "--addr=0.0.0.0:8181", "--ignore=*_test.rego", "/policies"]
     ports:
-      - "8181:8181"
+      - "127.0.0.1:8181:8181"
     volumes:
       - ./src/ombuds/platform/guardrails/policies:/policies:ro
+    # The image has no shell or curl, so the probe is an `opa eval` that GETs the server's own /health.
+    healthcheck:
+      test: ["CMD", "/opa", "eval", "--fail", "http.send({\"method\": \"get\", \"url\": \"http://localhost:8181/health\"}).status_code == 200"]
+      interval: 2s
+      timeout: 3s
+      retries: 20
 
   # One-shot: apply migrations, then chunk + embed the KB seed docs. Idempotent, so safe on every `up`.
   # The API never migrates on its own, so it waits for this to finish.
@@ -45,7 +51,7 @@ services:
     build: .
     image: ombuds
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"
     env_file: .env
     environment:
       DATABASE_URL: postgresql://ombuds:ombuds@db:5432/ombuds
@@ -54,7 +60,7 @@ services:
       db:
         condition: service_healthy
       opa:
-        condition: service_started
+        condition: service_healthy
       migrate-ingest:
         condition: service_completed_successfully
     healthcheck:
