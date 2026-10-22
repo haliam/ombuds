@@ -4,28 +4,33 @@ Feature-agnostic (mirrors `approval_gate.py` itself) — mounted directly by the
 (`api_app.py`), not by a feature's `api/routes.py`.
 """
 
+import logging
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ConfigDict, Field
 
+from ombuds.domain.errors import ToolExecutionError
 from ombuds.platform.guardrails.approval_gate import (
     ApprovalNotFoundError,
     ApprovalRequest,
     ApprovalStateError,
-    ApprovalStore,
+    ExecutableApprovalStore,
 )
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/approvals", tags=["approvals"])
 
 
-def get_approval_store(request: Request) -> ApprovalStore:
-    """The `ApprovalStore` the composition root put on `app.state` (`api_app.create_app`)."""
-    store: ApprovalStore = request.app.state.approvals
+def get_approval_store(request: Request) -> ExecutableApprovalStore:
+    """The `ExecutableApprovalStore` the composition root put on `app.state` (`api_app.create_app`)."""
+    store: ExecutableApprovalStore = request.app.state.approvals
     return store
 
 
-Approvals = Annotated[ApprovalStore, Depends(get_approval_store)]
+Approvals = Annotated[ExecutableApprovalStore, Depends(get_approval_store)]
 
 
 class ApprovalDecisionRequest(BaseModel):
@@ -52,15 +57,63 @@ def get_request(request_id: str, approvals: Approvals) -> ApprovalRequest:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
-@router.post("/{request_id}/approve", response_model=ApprovalRequest)
-def approve(request_id: str, body: ApprovalDecisionRequest, approvals: Approvals) -> ApprovalRequest:
-    """Approve a pending request. The approved payload is executed at most once, by its executor (ADR-0009)."""
+def _execution_failed(request_id: str, approvals: ExecutableApprovalStore, exc: ToolExecutionError) -> JSONResponse:
+    """The executor refused an approved request: it stays `APPROVED`, so say so and point at the retry route."""
+    return JSONResponse(
+        status_code=502,
+        content={
+            "detail": f"approved, but executing it failed: {exc}. Fix the cause, then retry with "
+            f"POST /approvals/{request_id}/execute",
+            "request_id": request_id,
+            "status": approvals.get(request_id).status,
+        },
+    )
+
+
+@router.post(
+    "/{request_id}/approve",
+    response_model=ApprovalRequest,
+    responses={502: {"description": "Approved, but its executor failed"}},
+)
+def approve(request_id: str, body: ApprovalDecisionRequest, approvals: Approvals) -> ApprovalRequest | JSONResponse:
+    """Approve a pending request. The approved payload is executed at most once, by its executor (ADR-0009).
+
+    If the executor fails the request stays `APPROVED` and the response is a 502 naming it; retry with `/execute`.
+    """
     try:
         return approvals.approve(request_id, body.approver, body.note)
     except ApprovalNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except ApprovalStateError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except ToolExecutionError as exc:
+        return _execution_failed(request_id, approvals, exc)
+    except Exception:
+        logger.exception("executing approved request %s failed unexpectedly", request_id)
+        raise
+
+
+@router.post(
+    "/{request_id}/execute",
+    response_model=ApprovalRequest,
+    responses={502: {"description": "Its executor failed again"}},
+)
+def execute(request_id: str, approvals: Approvals) -> ApprovalRequest | JSONResponse:
+    """Re-run an `APPROVED` request whose executor failed or was interrupted; it ends `EXECUTED`, once (ADR-0009).
+
+    409 for a request in any other status, and nothing is written.
+    """
+    try:
+        return approvals.execute_approved(request_id)
+    except ApprovalNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except ApprovalStateError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except ToolExecutionError as exc:
+        return _execution_failed(request_id, approvals, exc)
+    except Exception:
+        logger.exception("executing approved request %s failed unexpectedly", request_id)
+        raise
 
 
 @router.post("/{request_id}/deny", response_model=ApprovalRequest)

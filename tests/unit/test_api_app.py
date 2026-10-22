@@ -7,6 +7,8 @@ from ombuds.features.claims_triage.application.runtime import ClaimsTriageRuntim
 from ombuds.platform.ai.budget import BudgetExceededError
 from ombuds.platform.ai.tool_loop import ToolRegistry
 from ombuds.platform.guardrails.approval_gate import ApprovalGate
+from ombuds.platform.guardrails.executing_store import ExecutingApprovalStore
+from tests.unit.platform.guardrails.store_fakes import executing
 
 
 class _FakePool:
@@ -23,11 +25,13 @@ def test_the_default_app_builds_its_runtime_at_startup_and_closes_its_pool_at_sh
     pool = _FakePool()
     monkeypatch.setenv("DATABASE_URL", "postgresql://u:p@localhost/db")
     monkeypatch.setattr(api_app, "create_pool", lambda *_: pool)
-    monkeypatch.setattr(api_app, "build_runtime", lambda *_: ClaimsTriageRuntime(ApprovalGate(), ToolRegistry()))
+    monkeypatch.setattr(
+        api_app, "build_runtime", lambda *_: ClaimsTriageRuntime(executing(ApprovalGate()), ToolRegistry())
+    )
     app = api_app.create_app()
 
     with TestClient(app):
-        assert isinstance(app.state.approvals, ApprovalGate)
+        assert isinstance(app.state.approvals, ExecutingApprovalStore)
         assert isinstance(app.state.registry, ToolRegistry)
         assert not pool.closed
 
@@ -36,14 +40,14 @@ def test_the_default_app_builds_its_runtime_at_startup_and_closes_its_pool_at_sh
 
 def test_an_injected_store_is_used_as_given_and_opens_no_pool(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(api_app, "create_pool", lambda *_: pytest.fail("no pool should be opened"))
-    gate = ApprovalGate()
+    gate = executing(ApprovalGate())
 
     with TestClient(api_app.create_app(gate)) as client:
         assert client.get("/approvals").json() == []
 
 
 def test_the_scalar_api_reference_is_served_and_points_at_the_openapi_schema() -> None:
-    with TestClient(api_app.create_app(ApprovalGate())) as client:
+    with TestClient(api_app.create_app(executing(ApprovalGate()))) as client:
         response = client.get("/scalar")
 
     assert response.status_code == 200
@@ -57,7 +61,7 @@ def test_a_spent_llm_budget_is_a_429_not_a_500(monkeypatch: pytest.MonkeyPatch) 
 
     monkeypatch.setattr(claims_routes, "run_triage", refuse)
 
-    with TestClient(api_app.create_app(ApprovalGate(), ToolRegistry())) as client:
+    with TestClient(api_app.create_app(executing(ApprovalGate()), ToolRegistry())) as client:
         response = client.post("/claims/triage", json={"claim_text": "my flight was cancelled"})
 
     assert response.status_code == 429

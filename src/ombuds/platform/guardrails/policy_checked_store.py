@@ -10,17 +10,17 @@ from collections.abc import Mapping
 from pydantic import JsonValue
 
 from ombuds.domain.errors import PolicyDeniedError
-from ombuds.platform.guardrails.approval_gate import ApprovalRequest, ApprovalStore, GuardedAction
+from ombuds.platform.guardrails.approval_gate import ApprovalRequest, ExecutableApprovalStore, GuardedAction
 from ombuds.platform.guardrails.audit_log import AuditEvent, AuditKind, AuditLog
 from ombuds.platform.guardrails.policy_engine import PolicyEngine
 from ombuds.platform.observability.tracing import start_span
 
 
 class PolicyCheckedApprovalStore:
-    """Decorates an `ApprovalStore`; `submit` raises `PolicyDeniedError` when the policy denies the action."""
+    """Decorates an `ExecutableApprovalStore`; `submit` raises `PolicyDeniedError` when the policy denies the action."""
 
     def __init__(
-        self, inner: ApprovalStore, engine: PolicyEngine, limits: Mapping[str, JsonValue], audit: AuditLog
+        self, inner: ExecutableApprovalStore, engine: PolicyEngine, limits: Mapping[str, JsonValue], audit: AuditLog
     ) -> None:
         self._inner = inner
         self._engine = engine
@@ -60,3 +60,6 @@ class PolicyCheckedApprovalStore:
 
     def claim_for_execution(self, request_id: str) -> ApprovalRequest:
         return self._inner.claim_for_execution(request_id)
+
+    def execute_approved(self, request_id: str) -> ApprovalRequest:
+        return self._inner.execute_approved(request_id)

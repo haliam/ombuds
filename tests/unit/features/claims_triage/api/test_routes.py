@@ -18,8 +18,9 @@ from ombuds.platform.ai.schemas.tool_calls import ToolCall, ToolResult
 from ombuds.platform.ai.streaming import ToolCallDelta, ToolResultEvent
 from ombuds.platform.ai.tool_loop import ToolRegistry
 from ombuds.platform.guardrails.approval_gate import ApprovalGate
+from tests.unit.platform.guardrails.store_fakes import executing
 
-client = TestClient(create_app(ApprovalGate(), ToolRegistry()))
+client = TestClient(create_app(executing(ApprovalGate()), ToolRegistry()))
 
 
 def test_triage_endpoint_returns_the_use_case_result(monkeypatch) -> None:

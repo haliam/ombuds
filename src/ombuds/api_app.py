@@ -12,7 +12,7 @@ from ombuds.features.claims_triage.application.runtime import build_runtime
 from ombuds.platform.ai.budget import BudgetExceededError
 from ombuds.platform.ai.tool_loop import ToolDispatcher
 from ombuds.platform.guardrails.api import router as approvals_router
-from ombuds.platform.guardrails.approval_gate import ApprovalStore
+from ombuds.platform.guardrails.approval_gate import ExecutableApprovalStore
 from ombuds.platform.guardrails.policy_engine import OpaHttpPolicyEngine
 from ombuds.platform.infrastructure.postgres import create_pool
 from ombuds.platform.observability.logging import configure_logging
@@ -53,7 +53,7 @@ def _budget_exceeded(request: Request, exc: Exception) -> JSONResponse:
     return JSONResponse(status_code=429, content={"detail": str(exc)})
 
 
-def create_app(approvals: ApprovalStore | None = None, registry: ToolDispatcher | None = None) -> FastAPI:
+def create_app(approvals: ExecutableApprovalStore | None = None, registry: ToolDispatcher | None = None) -> FastAPI:
     """Build the FastAPI app: the claims-triage feature's routes plus the platform-level approvals routes.
 
     The approval store and tool registry are chosen here, the composition root, and reached by routes through
