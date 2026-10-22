@@ -1,6 +1,7 @@
 """Config: environment-backed settings and the versioned-prompt loader (see AGENTS.md "Prompt versioning")."""
 
 import os
+from dataclasses import dataclass
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -43,6 +44,9 @@ PAYOUT_LIMIT_EUR = int(os.environ.get("PAYOUT_LIMIT_EUR", "400"))
 # from the standard OTEL_EXPORTER_OTLP_ENDPOINT / OTEL_EXPORTER_OTLP_HEADERS variables.
 OTEL_TRACES_EXPORTER = os.environ.get("OTEL_TRACES_EXPORTER", "none")
 
+# API authentication (ADR-0019): a bearer token for triage, another for approve/deny, and the name recorded as the
+# approver. No defaults: `api_auth()` is read per request, and any unset value makes the API refuse requests.
+
 # Which prompt version is live per feature. Bump here (and in .env.example) after a new version
 # passes evals/datasets/ — never edit an old version's file in place.
 ACTIVE_PROMPT_VERSIONS = {"claims_triage": os.environ.get("CLAIMS_TRIAGE_PROMPT_VERSION", "v4")}
@@ -57,6 +61,24 @@ def database_url() -> str:
     raise RuntimeError(
         "DATABASE_URL is not set. Copy .env.example to .env and set POSTGRES_PASSWORD and DATABASE_URL "
         "(or set OMBUDS_ALLOW_DEV_DEFAULTS=1 for a throwaway local database)."
+    )
+
+
+@dataclass(frozen=True)
+class ApiAuth:
+    """The API's credentials. An empty string means unset, which the API treats as "refuse everything"."""
+
+    triage_token: str
+    approver_token: str
+    approver: str
+
+
+def api_auth() -> ApiAuth:
+    """The API credentials from the environment. Read at the point of use, so tests and restarts see current values."""
+    return ApiAuth(
+        triage_token=os.environ.get("OMBUDS_TRIAGE_TOKEN", ""),
+        approver_token=os.environ.get("OMBUDS_APPROVER_TOKEN", ""),
+        approver=os.environ.get("OMBUDS_APPROVER", ""),
     )
 
 

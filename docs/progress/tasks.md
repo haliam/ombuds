@@ -58,7 +58,7 @@ Each bullet is one goal: one branch, one chat, as many commits as it needs. Deta
   - Put `execute_approved` on a second small protocol (not `ApprovalStore`), implemented by `ExecutingApprovalStore` and delegated by the two decorators; `ApprovalGate` stays unchanged
   - Map `ToolExecutionError` to a JSON body with the request id and `status: approved`; let other exceptions propagate, logged with the request id
   - Test through the real decorator stack with a failing executor
-- [ ] Authenticate the API: bearer tokens that fail closed, separate credentials for triage vs approve/deny, `approver` taken from config (ADR)
+- [x] Authenticate the API: bearer tokens that fail closed, separate credentials for triage vs approve/deny, `approver` taken from config (ADR)
   - One module with `require_triage_token` / `require_approver_token`, reading settings through an overridable function (not import-time constants) so tests can cover the unset-token case
   - Attach to the routers, not the app: compose's healthcheck uses `/openapi.json`; say in the ADR that the docs pages stay public
   - Remove `approver` from the request body; put the `GET /approvals*` reads behind the approver token too

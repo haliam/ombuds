@@ -12,6 +12,7 @@ from ombuds.platform.guardrails.audited_store import AuditedApprovalStore
 from ombuds.platform.guardrails.executing_store import ExecutingApprovalStore
 from ombuds.platform.guardrails.policy_checked_store import PolicyCheckedApprovalStore
 from ombuds.platform.guardrails.policy_engine import PolicyDecision
+from tests.api_auth import APPROVER, APPROVER_HEADERS
 from tests.unit.platform.guardrails.audit_fakes import RecordingAuditLog
 from tests.unit.platform.guardrails.store_fakes import executing
 
@@ -26,7 +27,7 @@ def gate() -> ApprovalGate:
 
 @pytest.fixture
 def client(gate: ApprovalGate) -> TestClient:
-    return TestClient(create_app(executing(gate)))
+    return TestClient(create_app(executing(gate)), headers=APPROVER_HEADERS)
 
 
 def test_list_pending_shows_each_request_with_its_payload(client: TestClient, gate: ApprovalGate) -> None:
@@ -60,19 +61,19 @@ def test_get_returns_one_request_in_any_status(client: TestClient, gate: Approva
 def test_approve_resolves_the_request(client: TestClient, gate: ApprovalGate) -> None:
     pending = gate.submit(GuardedAction.ISSUE_PAYMENT, _PAYLOAD)
 
-    response = client.post(f"/approvals/{pending.id}/approve", json={"approver": "ops-lead", "note": "verified"})
+    response = client.post(f"/approvals/{pending.id}/approve", json={"note": "verified"})
 
     assert response.status_code == 200
     body = response.json()
     assert body["status"] == "executed"
-    assert body["approver"] == "ops-lead"
+    assert body["approver"] == APPROVER
     assert gate.list_pending() == ()
 
 
 def test_deny_resolves_the_request(client: TestClient, gate: ApprovalGate) -> None:
     pending = gate.submit(GuardedAction.ISSUE_PAYMENT, _PAYLOAD)
 
-    response = client.post(f"/approvals/{pending.id}/deny", json={"approver": "ops-lead"})
+    response = client.post(f"/approvals/{pending.id}/deny")
 
     assert response.status_code == 200
     assert response.json()["status"] == "denied"
@@ -82,7 +83,7 @@ def test_approving_an_already_resolved_request_returns_409(client: TestClient, g
     pending = gate.submit(GuardedAction.ISSUE_PAYMENT, _PAYLOAD)
     gate.deny(pending.id, approver="ops-lead")
 
-    response = client.post(f"/approvals/{pending.id}/approve", json={"approver": "someone-else"})
+    response = client.post(f"/approvals/{pending.id}/approve")
 
     assert response.status_code == 409
 
@@ -91,7 +92,7 @@ def test_approving_an_already_resolved_request_returns_409(client: TestClient, g
     "path", ["/approvals/no-such-id/approve", "/approvals/no-such-id/deny", "/approvals/no-such-id/execute"]
 )
 def test_resolving_an_unknown_request_returns_404(client: TestClient, path: str) -> None:
-    response = client.post(path, json={"approver": "ops-lead"})
+    response = client.post(path)
 
     assert response.status_code == 404
 
@@ -131,7 +132,7 @@ def _app_over_real_stack(
         AuditedApprovalStore(gate, audit), {action: executor for action in GuardedAction}
     )
     approvals = PolicyCheckedApprovalStore(executing_store, _AllowAll(), {"max_payout_eur": 400}, audit)
-    return TestClient(create_app(approvals), raise_server_exceptions=raise_server_exceptions)
+    return TestClient(create_app(approvals), raise_server_exceptions=raise_server_exceptions, headers=APPROVER_HEADERS)
 
 
 def test_a_failed_executor_is_a_502_naming_the_request_and_it_stays_approved() -> None:
@@ -140,7 +141,7 @@ def test_a_failed_executor_is_a_502_naming_the_request_and_it_stays_approved() -
     client = _app_over_real_stack(gate, executor, audit)
     pending = gate.submit(GuardedAction.ISSUE_PAYMENT, _PAYLOAD)
 
-    response = client.post(f"/approvals/{pending.id}/approve", json={"approver": "ops-lead"})
+    response = client.post(f"/approvals/{pending.id}/approve")
 
     assert response.status_code == 502
     body = response.json()
@@ -157,7 +158,7 @@ def test_execute_runs_the_executor_once_after_the_cause_is_fixed_and_the_audit_t
     executor = _FlakyExecutor(ToolExecutionError("claim c-1 has not been logged"))
     client = _app_over_real_stack(gate, executor, audit)
     pending = gate.submit(GuardedAction.ISSUE_PAYMENT, _PAYLOAD)
-    client.post(f"/approvals/{pending.id}/approve", json={"approver": "ops-lead"})
+    client.post(f"/approvals/{pending.id}/approve")
     executor.heal()
 
     response = client.post(f"/approvals/{pending.id}/execute")
@@ -174,7 +175,7 @@ def test_execute_that_fails_again_is_a_502_and_the_request_stays_approved() -> N
     gate, audit = ApprovalGate(), RecordingAuditLog()
     client = _app_over_real_stack(gate, _FlakyExecutor(ToolExecutionError("still not logged")), audit)
     pending = gate.submit(GuardedAction.ISSUE_PAYMENT, _PAYLOAD)
-    client.post(f"/approvals/{pending.id}/approve", json={"approver": "ops-lead"})
+    client.post(f"/approvals/{pending.id}/approve")
 
     response = client.post(f"/approvals/{pending.id}/execute")
 
@@ -211,7 +212,7 @@ def test_an_unexpected_executor_error_still_propagates_and_is_logged_with_the_re
     pending = gate.submit(GuardedAction.ISSUE_PAYMENT, _PAYLOAD)
 
     with caplog.at_level(logging.ERROR):
-        response = client.post(f"/approvals/{pending.id}/approve", json={"approver": "ops-lead"})
+        response = client.post(f"/approvals/{pending.id}/approve")
 
     assert response.status_code == 500
     assert pending.id in caplog.text

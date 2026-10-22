@@ -8,6 +8,7 @@ from ombuds.platform.ai.budget import BudgetExceededError
 from ombuds.platform.ai.tool_loop import ToolRegistry
 from ombuds.platform.guardrails.approval_gate import ApprovalGate
 from ombuds.platform.guardrails.executing_store import ExecutingApprovalStore
+from tests.api_auth import APPROVER_HEADERS, TRIAGE_HEADERS
 from tests.unit.platform.guardrails.store_fakes import executing
 
 
@@ -43,7 +44,7 @@ def test_an_injected_store_is_used_as_given_and_opens_no_pool(monkeypatch: pytes
     gate = executing(ApprovalGate())
 
     with TestClient(api_app.create_app(gate)) as client:
-        assert client.get("/approvals").json() == []
+        assert client.get("/approvals", headers=APPROVER_HEADERS).json() == []
 
 
 def test_the_scalar_api_reference_is_served_and_points_at_the_openapi_schema() -> None:
@@ -62,7 +63,7 @@ def test_a_spent_llm_budget_is_a_429_not_a_500(monkeypatch: pytest.MonkeyPatch) 
     monkeypatch.setattr(claims_routes, "run_triage", refuse)
 
     with TestClient(api_app.create_app(executing(ApprovalGate()), ToolRegistry())) as client:
-        response = client.post("/claims/triage", json={"claim_text": "my flight was cancelled"})
+        response = client.post("/claims/triage", json={"claim_text": "my flight was cancelled"}, headers=TRIAGE_HEADERS)
 
     assert response.status_code == 429
     assert "spend cap" in response.json()["detail"]

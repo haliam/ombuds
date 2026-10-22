@@ -9,9 +9,10 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict
 
 from ombuds.domain.errors import ToolExecutionError
+from ombuds.platform.guardrails.api_auth import Approver, require_approver_token
 from ombuds.platform.guardrails.approval_gate import (
     ApprovalNotFoundError,
     ApprovalRequest,
@@ -21,7 +22,7 @@ from ombuds.platform.guardrails.approval_gate import (
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/approvals", tags=["approvals"])
+router = APIRouter(prefix="/approvals", tags=["approvals"], dependencies=[Depends(require_approver_token)])
 
 
 def get_approval_store(request: Request) -> ExecutableApprovalStore:
@@ -34,12 +35,14 @@ Approvals = Annotated[ExecutableApprovalStore, Depends(get_approval_store)]
 
 
 class ApprovalDecisionRequest(BaseModel):
-    """Body for approving or denying a pending request."""
+    """Body for approving or denying a pending request. The approver is not here: it comes from config (ADR-0019)."""
 
-    model_config = ConfigDict(frozen=True)
+    model_config = ConfigDict(frozen=True, extra="forbid")
 
-    approver: str = Field(min_length=1)
     note: str | None = None
+
+
+_NO_NOTE = ApprovalDecisionRequest()
 
 
 @router.get("", response_model=tuple[ApprovalRequest, ...])
@@ -75,13 +78,15 @@ def _execution_failed(request_id: str, approvals: ExecutableApprovalStore, exc: 
     response_model=ApprovalRequest,
     responses={502: {"description": "Approved, but its executor failed"}},
 )
-def approve(request_id: str, body: ApprovalDecisionRequest, approvals: Approvals) -> ApprovalRequest | JSONResponse:
+def approve(
+    request_id: str, approver: Approver, approvals: Approvals, body: ApprovalDecisionRequest = _NO_NOTE
+) -> ApprovalRequest | JSONResponse:
     """Approve a pending request. The approved payload is executed at most once, by its executor (ADR-0009).
 
     If the executor fails the request stays `APPROVED` and the response is a 502 naming it; retry with `/execute`.
     """
     try:
-        return approvals.approve(request_id, body.approver, body.note)
+        return approvals.approve(request_id, approver, body.note)
     except ApprovalNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except ApprovalStateError as exc:
@@ -117,10 +122,12 @@ def execute(request_id: str, approvals: Approvals) -> ApprovalRequest | JSONResp
 
 
 @router.post("/{request_id}/deny", response_model=ApprovalRequest)
-def deny(request_id: str, body: ApprovalDecisionRequest, approvals: Approvals) -> ApprovalRequest:
+def deny(
+    request_id: str, approver: Approver, approvals: Approvals, body: ApprovalDecisionRequest = _NO_NOTE
+) -> ApprovalRequest:
     """Deny a pending request."""
     try:
-        return approvals.deny(request_id, body.approver, body.note)
+        return approvals.deny(request_id, approver, body.note)
     except ApprovalNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except ApprovalStateError as exc:

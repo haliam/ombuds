@@ -12,6 +12,7 @@ from ombuds.platform.ai.tool_loop import ToolRegistry
 from ombuds.platform.guardrails.approval_gate import ApprovalStateError, ApprovalStatus, GuardedAction
 from ombuds.platform.infrastructure.postgres import Pool
 from ombuds.platform.infrastructure.repositories import PostgresApprovalStore
+from tests.api_auth import APPROVER_HEADERS
 from tests.integration.policy_fakes import PAYOUT_LIMIT_EUR, AllowAllPolicy
 
 _LOG: dict[str, JsonValue] = {
@@ -92,17 +93,17 @@ def test_approving_a_payment_for_an_unlogged_claim_fails_and_writes_nothing(pool
 
 def test_a_failed_approval_is_recoverable_over_http_once_the_claim_is_logged(pool: Pool) -> None:
     approvals = build_runtime(pool, AllowAllPolicy(), PAYOUT_LIMIT_EUR).approvals
-    client = TestClient(create_app(approvals, ToolRegistry()))
+    client = TestClient(create_app(approvals, ToolRegistry()), headers=APPROVER_HEADERS)
     payment = approvals.submit(GuardedAction.ISSUE_PAYMENT, _PAY)
     log = approvals.submit(GuardedAction.LOG_CLAIM, _LOG)
 
-    failed = client.post(f"/approvals/{payment.id}/approve", json={"approver": "alice"})
+    failed = client.post(f"/approvals/{payment.id}/approve")
 
     assert failed.status_code == 502
     assert failed.json()["status"] == "approved"
     assert _count(pool, "payments") == 0
 
-    assert client.post(f"/approvals/{log.id}/approve", json={"approver": "alice"}).status_code == 200
+    assert client.post(f"/approvals/{log.id}/approve").status_code == 200
     recovered = client.post(f"/approvals/{payment.id}/execute")
 
     assert recovered.status_code == 200

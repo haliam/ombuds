@@ -8,6 +8,7 @@ from psycopg_pool import PoolTimeout
 
 from ombuds import config
 from ombuds.platform.infrastructure.postgres import Pool, apply_migrations, create_pool
+from tests.api_auth import configure_api_auth
 
 _TABLES = "payments, approval_requests, claims, long_term_memory, kb_chunks"
 
@@ -40,3 +41,9 @@ def pytest_collection_modifyitems(items: list[pytest.Item]) -> None:
     for item in items:
         if "tests/integration" in item.nodeid:
             item.add_marker(pytest.mark.integration)
+
+
+@pytest.fixture(autouse=True)
+def api_auth_env(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Every API test starts with the credentials configured."""
+    configure_api_auth(monkeypatch)

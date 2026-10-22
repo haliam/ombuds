@@ -20,6 +20,7 @@ from ombuds.platform.ai.providers.base import ProviderTurn
 from ombuds.platform.ai.schemas.tool_calls import ToolCall
 from ombuds.platform.infrastructure.postgres import Pool
 from ombuds.platform.infrastructure.vector_store import PgVectorStore
+from tests.api_auth import APPROVER_HEADERS, TRIAGE_HEADERS
 from tests.fakes import FakeEmbedder, ScriptedProvider
 from tests.integration.policy_fakes import PAYOUT_LIMIT_EUR, AllowAllPolicy
 
@@ -62,7 +63,7 @@ def app_client(pool: Pool, monkeypatch: pytest.MonkeyPatch) -> Iterator[TestClie
     ingest_directory(KB_SEED_DIR, embedder, store)
     # min_score=0: FakeEmbedder similarities are low in absolute terms; the real KB is what is under test.
     runtime = build_runtime(pool, AllowAllPolicy(), PAYOUT_LIMIT_EUR, lambda: Retriever(embedder, store, min_score=0.0))
-    yield TestClient(create_app(runtime.approvals, runtime.registry))
+    yield TestClient(create_app(runtime.approvals, runtime.registry), headers=TRIAGE_HEADERS)
 
 
 def _script(monkeypatch: pytest.MonkeyPatch, *turns: ProviderTurn) -> ScriptedProvider:
@@ -108,7 +109,7 @@ def test_triage_submits_log_claim_for_approval_bound_to_the_server_issued_claim_
     assert body["escalated"] is False
     logged = json.loads(body["tool_results"][1]["content"])
     assert logged["status"] == "pending"
-    pending = app_client.get("/approvals").json()
+    pending = app_client.get("/approvals", headers=APPROVER_HEADERS).json()
     assert [request["id"] for request in pending] == [logged["approval_request_id"]]
     assert pending[0]["action"] == "log_claim"
     assert pending[0]["payload"]["claim_id"] == body["claim_id"] != _MODEL_CLAIM_ID
@@ -140,7 +141,7 @@ def test_triage_escalates_an_injection_without_calling_the_model(
     assert body["escalated"] is True
     assert body["decision"] is None
     assert provider.calls == 0
-    assert app_client.get("/approvals").json() == []
+    assert app_client.get("/approvals", headers=APPROVER_HEADERS).json() == []
 
 
 def test_triage_escalates_when_the_model_keeps_contradicting_the_rules_engine(
