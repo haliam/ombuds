@@ -33,5 +33,4 @@ Full detail in [`w4_review_pre_w5_plan_rev2.md`](w4_review_pre_w5_plan_rev2.md).
 
 | Item | Origin | Status in code |
 |---|---|---|
-| `make lint` fails on two E501 lines | rev2 F-01 | `api/routes.py:76`, `audit_repository.py:25` |
 | Tests for ADR-0018: no failover on `BudgetExceededError`, one shared `process_budget()` | rev2 F-06 | Neither claim has a test |
