@@ -621,7 +621,7 @@ Template — copy this block per finished task, filling in the fields (omit **De
 
 **Decisions/trade-offs:** 502 rather than 409 so a state conflict (already decided) stays distinguishable from a failed downstream effect. No automatic retry.
 **Verified:** `make lint`, unit tests through the real policy → executing → audited stack with a failing executor, and an integration test over Postgres (payment for an unlogged claim → 502, log the claim, `/execute` → one `payments` row, audit trail shows approved then executed).
-**Follow-up:** the `/approvals` routes are still unauthenticated (next W5 task).
+**Follow-up:** the `/approvals` routes were unauthenticated at the time; closed by ADR-0019.
 
 ---
 

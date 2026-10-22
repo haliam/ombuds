@@ -18,21 +18,21 @@ Each diagram is `MAJOR.MINOR` with a date, shown in the page header and in the d
 
 | Diagram | Ver | Date | Tool | Decisions |
 |---|---|---|---|---|
-| [Ombuds Claims Triage](architecture/README.md) | 1.1 | 2026-10-21 | archify | ADR-0001, 0002, 0009, 0015, 0016, 0017 |
-| [Triage and Approval Flow](triage-approval-flow/README.md) | 1.0 | 2026-10-18 | archify | ADR-0009, 0014 |
-| [Guardrails and Tool Scoping Pipeline](guardrails-pipeline/README.md) | 1.0 | 2026-10-18 | archify | ADR-0013, 0014 |
+| [Ombuds Claims Triage](architecture/README.md) | 1.2 | 2026-10-22 | archify | ADR-0001, 0002, 0009, 0015, 0016, 0017, 0019 |
+| [Triage and Approval Flow](triage-approval-flow/README.md) | 1.1 | 2026-10-22 | archify | ADR-0009, 0014, 0019 |
+| [Guardrails and Tool Scoping Pipeline](guardrails-pipeline/README.md) | 1.1 | 2026-10-22 | archify | ADR-0013, 0014, 0015 |
 | [RAG Ingest, Retrieval and Evals](rag-evals-pipeline/README.md) | 1.0 | 2026-10-18 | archify | ADR-0010, 0011, 0012 |
 | [MCP Process Boundary](mcp-boundary/README.md) | 1.0 | 2026-10-18 | archify | ADR-0003 |
 | [Claim Artifact Map](artifact-map/README.md) | 1.0 | 2026-10-19 | archify | ADR-0003, 0009, 0010, 0015, 0016, 0017 |
 | [Claim Run Sequence](claim-sequence/README.md) | 1.0 | 2026-10-19 | archify | ADR-0009, 0012, 0014, 0015 |
 | [Ombuds Development Board](development-overview/README.md) (v1 decisions, v2 code links) | 1.0 | 2026-10-18 | archify | all |
-| [Postgres Data Model](data-model/README.md) | 1.0 | 2026-10-18 | Mermaid | ADR-0009, 0010 |
+| [Postgres Data Model](data-model/README.md) | 1.1 | 2026-10-22 | Mermaid | ADR-0009, 0010, 0016 |
 | [Layering and Composition Roots](layering/README.md) | 1.0 | 2026-10-18 | Mermaid | ADR-0002, 0003 |
 | [Approval Request Lifecycle](approval-lifecycle/README.md) | 1.0 | 2026-10-18 | Mermaid | ADR-0009 |
 | [LangGraph Triage Loop](triage-graph/README.md) | 1.0 | 2026-10-18 | Mermaid | ADR-0001, 0005 |
 | [Provider Retry and Fallback](provider-fallback/README.md) | 1.0 | 2026-10-18 | Mermaid | ADR-0006, 0007 |
 | [SSE Event Order](sse-event-order/README.md) | 1.0 | 2026-10-18 | Mermaid | ADR-0007 |
-| [Docker Compose Startup](compose-startup/README.md) | 1.0 | 2026-10-18 | Mermaid | none |
+| [Docker Compose Startup](compose-startup/README.md) | 1.1 | 2026-10-22 | Mermaid | ADR-0015 |
 | [Memory Flow](memory-flow/README.md) | 1.0 | 2026-10-18 | Mermaid | ADR-0009 |
 | [Prompt Versioning](prompt-versioning/README.md) | 1.0 | 2026-10-18 | Mermaid | none |
 | [Injection Detection Internals](injection-detection/README.md) | 1.0 | 2026-10-18 | Mermaid | ADR-0014 |

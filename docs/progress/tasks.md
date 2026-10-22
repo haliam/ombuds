@@ -64,7 +64,7 @@ Each bullet is one goal: one branch, one chat, as many commits as it needs. Deta
   - Remove `approver` from the request body; put the `GET /approvals*` reads behind the approver token too
 - [x] Remove the weak `ombuds:ombuds` DB default: require `DATABASE_URL` / `POSTGRES_PASSWORD` from `.env` unless an explicit dev flag is set
   - One `POSTGRES_PASSWORD` source in compose (`${POSTGRES_PASSWORD:?…}`); raise at point of use in `config.py`, not at import; keep `make db-up`, `ingest`, `eval` and the integration conftest working
-- [ ] Reconcile docs with W4 and W5: README limitations and status, `architecture.md`, affected diagrams
+- [x] Reconcile docs with W4 and W5: README limitations and status, `architecture.md`, affected diagrams
 
 ## Week 6 — Guardrails, measurement and cleanup
 

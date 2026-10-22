@@ -2,7 +2,7 @@
  "schema_version": 1,
  "diagram_type": "dataflow",
  "meta": {
-  "title": "Guardrails and Tool Scoping Pipeline · v1.0 · 2026-10-18",
+  "title": "Guardrails and Tool Scoping Pipeline · v1.1 · 2026-10-22",
   "output": "docs/diagrams/guardrails-pipeline/guardrails-pipeline.html",
   "quality_profile": "showcase",
   "repository": {
@@ -256,14 +256,14 @@
    "items": [
     "The agent is offered search_kb, check_eligibility and log_claim only; issue_payment stays operator-only over MCP",
     "Any claim_id the model passes is overwritten with the server-issued one",
-    "log_claim recomputes eligibility with the rules engine and only submits a payload-bound approval request; nothing executes until a human approves"
+    "log_claim recomputes eligibility with the rules engine and only submits a payload-bound approval request; nothing executes until a human approves",
+    "An OPA/Rego policy checks every submit and refuses a payout above the cap; if OPA is down it denies (ADR-0015)"
    ]
   },
   {
    "dot": "orange",
    "title": "Not built yet",
    "items": [
-    "No OPA/Rego policy check sits before the approval request (policy_engine.py is a stub, Week 4)",
     "Streamed tool-call arguments are redacted per event (_redact_event)"
    ]
   }

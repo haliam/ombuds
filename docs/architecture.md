@@ -6,11 +6,11 @@ Ombuds triages airline EU261 claims with an LLM agent, but the LLM never owns th
 
 ![Ombuds component architecture](diagrams/architecture/architecture.png)
 
-Diagram: [Ombuds Claims Triage v1.1](diagrams/architecture/README.md) (interactive HTML, source and regeneration steps are on that page). Each component's source lines are cited in its JSON.
+Diagram: [Ombuds Claims Triage v1.2](diagrams/architecture/README.md) (interactive HTML, source and regeneration steps are on that page). Each component's source lines are cited in its JSON.
 
 | Component | What it does | Code |
 |---|---|---|
-| FastAPI app | Composition root: opens the Postgres pool, builds the approval store and tool registry, mounts the routes | `api_app.py`, `features/claims_triage/api/routes.py` |
+| FastAPI app | Composition root: opens the Postgres pool, builds the approval store and tool registry, mounts the routes. `/claims/*` needs the triage bearer token (ADR-0019) | `api_app.py`, `features/claims_triage/api/routes.py` |
 | Triage use case | Issues a server-side `claim_id`, screens and redacts the claim, then runs the graph | `features/claims_triage/application/triage_use_case.py` |
 | Input guardrails | Injection heuristics escalate to a human with no model call (ADR-0014); PII is redacted before the model sees it (ADR-0013) | `platform/guardrails/injection_detection.py`, `pii_filter.py` |
 | LangGraph agent | Tool-calling loop, then checks the final verdict against the latest `check_eligibility` result; repairs or escalates. It does not own eligibility, approval or payment, and has no checkpointer (ADR-0001) | `features/claims_triage/agent/graph.py`, `application/decision.py` |
@@ -20,7 +20,7 @@ Diagram: [Ombuds Claims Triage v1.1](diagrams/architecture/README.md) (interacti
 | `search_kb` | RAG over policy docs in pgvector, relevance floor 0.35, cited results | `features/claims_triage/tools/search_kb.py`, `rag/` |
 | `check_eligibility` | Deterministic EU261 rules: distance tiers, notice, exemptions | `features/claims_triage/verticals/airline/rules.py` |
 | Approval gate | State-changing tools only submit a payload-bound request; a human approves it and the executor then runs once (ADR-0009) | `platform/guardrails/approval_gate.py`, `executing_store.py`, `application/executors.py` |
-| Approvals API | Lists, approves and denies pending requests | `platform/guardrails/api.py` |
+| Approvals API | Lists, approves and denies pending requests, and retries an approved one whose executor failed (`POST /approvals/{id}/execute`). Needs the approver bearer token, a different credential from the triage one; the approver name comes from config (ADR-0019) | `platform/guardrails/api.py`, `api_auth.py` |
 | PostgreSQL + pgvector | One database for claims, payments, approvals and KB embeddings (ADR-0010) | `platform/infrastructure/` |
 
 ## Triage and approval flow
@@ -29,7 +29,7 @@ Diagram: [Ombuds Claims Triage v1.1](diagrams/architecture/README.md) (interacti
 
 One triage and the later human approval are two separate moments: the agent only submits `log_claim`, and only after a human approves does the executor write to Postgres.
 
-Diagram: [Triage and Approval Flow v1.0](diagrams/triage-approval-flow/README.md)
+Diagram: [Triage and Approval Flow v1.1](diagrams/triage-approval-flow/README.md)
 
 For the same run seen as a numbered sequence with the governance checks in place, see Diagram: [Claim Run Sequence v1.0](diagrams/claim-sequence/README.md). Where every artifact the run produces ends up: Diagram: [Claim Artifact Map v1.0](diagrams/artifact-map/README.md).
 
@@ -47,7 +47,7 @@ Diagram: [MCP Process Boundary v1.0](diagrams/mcp-boundary/README.md)
 
 Where untrusted text is screened and redacted, and where the model's authority ends. Decisions: [ADR-0013](decisions/0013-regex-pii-redaction-at-the-trust-boundaries.md), [ADR-0014](decisions/0014-heuristic-injection-detection-escalates.md).
 
-Diagram: [Guardrails and Tool Scoping Pipeline v1.0](diagrams/guardrails-pipeline/README.md)
+Diagram: [Guardrails and Tool Scoping Pipeline v1.1](diagrams/guardrails-pipeline/README.md)
 
 ## RAG and evals
 
@@ -59,9 +59,9 @@ Diagram: [RAG Ingest, Retrieval and Evals v1.0](diagrams/rag-evals-pipeline/READ
 
 ## Data model
 
-Five tables in one Postgres database: approvals, claims, payments, long-term memory and the knowledge base.
+Six tables in one Postgres database: approvals, claims, payments, the append-only audit log, long-term memory and the knowledge base.
 
-Diagram: [Postgres Data Model v1.0](diagrams/data-model/README.md)
+Diagram: [Postgres Data Model v1.1](diagrams/data-model/README.md)
 
 ## Layering
 
@@ -71,9 +71,9 @@ Diagram: [Layering and Composition Roots v1.0](diagrams/layering/README.md)
 
 ## Deployment
 
-`docker compose up` (via `make up`) runs three services: `db`, a one-shot `migrate-ingest`, and `api` on port 8000. The API keeps no approval state in process, because approvals live in Postgres.
+`docker compose up` (via `make up`) runs four services: `db`, `opa` (the policy server), a one-shot `migrate-ingest`, and `api` on port 8000, which waits for `db`, `opa` and the migration. Every port binds to `127.0.0.1`, and compose refuses to start without `POSTGRES_PASSWORD` (the app likewise needs `DATABASE_URL`; there is no default credential). The API keeps no approval state in process, because approvals live in Postgres. Credentials, including the two API tokens, come from `.env`; there is no TLS.
 
-Diagram: [Docker Compose Startup v1.0](diagrams/compose-startup/README.md)
+Diagram: [Docker Compose Startup v1.1](diagrams/compose-startup/README.md)
 
 ## Memory
 
@@ -93,4 +93,6 @@ Two boards show how the project was built, week by week: [Ombuds Development Boa
 
 ## Not built yet
 
-The Week 4 pieces are built and drawn: OpenTelemetry spans ([ADR-0017](decisions/0017-opentelemetry-spans-at-the-existing-seams.md)), the append-only audit trail ([ADR-0016](decisions/0016-append-only-postgres-audit-log-at-the-governance-seams.md)) and the OPA/Rego payout policy ([ADR-0015](decisions/0015-opa-sidecar-over-embedded-evaluation.md)). Still not built: an end-to-end agent eval (`evals/datasets/airline_claims.jsonl` is empty), so prompt and model changes are only measured on retrieval.
+The Week 4 pieces are built and drawn: OpenTelemetry spans ([ADR-0017](decisions/0017-opentelemetry-spans-at-the-existing-seams.md)), the append-only audit trail ([ADR-0016](decisions/0016-append-only-postgres-audit-log-at-the-governance-seams.md)) and the OPA/Rego payout policy ([ADR-0015](decisions/0015-opa-sidecar-over-embedded-evaluation.md)). So are the Week 5 governance fixes: API bearer tokens ([ADR-0019](decisions/0019-static-bearer-tokens-per-router.md)), loopback ports, no default DB password and a retry route for approved-but-failed requests.
+
+Still not built, and planned for Week 6: an end-to-end agent eval (`evals/datasets/airline_claims.jsonl` is empty), so prompt and model changes are only measured on retrieval; CI and secret scanning; auditing out-of-scope tool calls and injection escalations; explicit configuration for the MCP subprocess. Nothing retries a failed execution automatically, and approvers share one token and one recorded name.
