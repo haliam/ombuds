@@ -51,7 +51,7 @@ W4's four tasks were assessed in the 2026-10-18 review and the code has not chan
 | Previous item | Status |
 |---|---|
 | P-1 Recoverable approved-but-failed requests | Open. W5 task 2. |
-| P-2 Loopback ports, OPA healthcheck | Open. W5 task 1. |
+| P-2 Loopback ports, OPA healthcheck | Done (W5 network exposure). |
 | P-3 Auth on `/approvals` | Open. W5 task 3, now widened to the triage routes. |
 | P-4 Docs reconciliation | Partly done: `tasks.md`, task summaries, `architecture.md` and diagrams. **README still open** (W5 task 5). |
 | O-1 Agent-level eval | Open. W6. |

@@ -8,7 +8,6 @@ The three stage reviews (`w1_review_pre_w2_plan.md`, `w2_review_pre_w3_plan.md`,
 | Agent-level eval dataset (claim text → expected eligibility/escalation) | W3 F-07, W1 F-11 | `evals/datasets/airline_claims.jsonl` is empty; only retrieval is evaluated |
 | CI (lint + unit; integration with a pgvector service) | W3 F-10, W2 O-4 | No `.github/workflows` |
 | Raise the `ANTHROPIC_MAX_TOKENS` default to 4096 | W2 O-5, W1 F-09 | Configurable since ADR-0018; the default is still 1024, and truncation means escalation |
-| Bind the compose API port to localhost | W2 O-6 | `docker-compose.yml` publishes `8000:8000` |
 | Delete dead stubs (`db_models.py`, `application/policies.py`) | W3 F-11 | Still one-line stubs; `tests/e2e/*` are placeholders for the compose smoke test |
 | Pin the `uv` image tag in the Dockerfile | W3 F-11 | `ghcr.io/astral-sh/uv:latest` |
 | Fix `scripts/compare_providers.py` run line | W3 F-11 | Says `--group scripts`; no such group in `pyproject.toml` |
