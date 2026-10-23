@@ -2,13 +2,13 @@
  "schema_version": 1,
  "diagram_type": "architecture",
  "meta": {
-  "title": "Claim Artifact Map · v1.0 · 2026-10-19",
+  "title": "Claim Artifact Map · v1.1 · 2026-10-23",
   "output": "docs/diagrams/artifact-map/artifact-map.html",
   "quality_profile": "showcase",
   "repository": {
    "url": "https://github.com/haliam/ombuds.git",
    "provider": "github",
-   "revision": "38ea6731d950393b975234707487a3879ddbab5d"
+   "revision": "6a738dcf9453680e7e84e4da5e932e167a2ae974"
   }
  },
  "components": [
@@ -727,7 +727,7 @@
    "items": [
     "No OCR/vision invoice intake: input is claim text",
     "No member accumulators or policy versions",
-    "Agent eval dataset (airline_claims) is empty",
+    "Agent eval (make eval-agent) is manual and never gates CI",
     "MCP and OTel edges are summarised: spans cover dispatch and policy too"
    ]
   },

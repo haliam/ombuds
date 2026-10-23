@@ -23,7 +23,7 @@ Each diagram is `MAJOR.MINOR` with a date, shown in the page header and in the d
 | [Guardrails and Tool Scoping Pipeline](guardrails-pipeline/README.md) | 1.1 | 2026-10-22 | archify | ADR-0013, 0014, 0015 |
 | [RAG Ingest, Retrieval and Evals](rag-evals-pipeline/README.md) | 1.1 | 2026-10-23 | archify | ADR-0010, 0011, 0012 |
 | [MCP Process Boundary](mcp-boundary/README.md) | 1.0 | 2026-10-18 | archify | ADR-0003 |
-| [Claim Artifact Map](artifact-map/README.md) | 1.0 | 2026-10-19 | archify | ADR-0003, 0009, 0010, 0015, 0016, 0017 |
+| [Claim Artifact Map](artifact-map/README.md) | 1.1 | 2026-10-23 | archify | ADR-0003, 0009, 0010, 0015, 0016, 0017 |
 | [Claim Run Sequence](claim-sequence/README.md) | 1.0 | 2026-10-19 | archify | ADR-0009, 0012, 0014, 0015 |
 | [Ombuds Development Board](development-overview/README.md) (v1 decisions, v2 code links) | 1.0 | 2026-10-18 | archify | all |
 | [Postgres Data Model](data-model/README.md) | 1.1 | 2026-10-22 | Mermaid | ADR-0009, 0010, 0016 |
