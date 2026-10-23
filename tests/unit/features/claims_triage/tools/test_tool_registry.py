@@ -7,7 +7,9 @@ from ombuds.features.claims_triage.tools.log_claim import LOG_CLAIM_TOOL
 from ombuds.features.claims_triage.tools.search_kb import SEARCH_KB_TOOL
 from ombuds.platform.ai.schemas.tool_calls import ToolCall, ToolDefinition, ToolResult
 from ombuds.platform.guardrails.approval_gate import ApprovalGate
+from ombuds.platform.guardrails.audit_log import AuditKind
 from tests.fakes import InMemoryClaims
+from tests.unit.platform.guardrails.audit_fakes import RecordingAuditLog
 
 
 def test_build_tool_registry_registers_exactly_the_four_claims_triage_tools() -> None:
@@ -74,3 +76,35 @@ def test_scope_for_agent_leaves_other_tools_arguments_untouched() -> None:
     )
 
     assert inner.calls[0].arguments == {"distance_km": 1200}
+
+
+def test_scope_for_agent_audits_a_refused_call_with_redacted_arguments() -> None:
+    audit = RecordingAuditLog()
+
+    scope_for_agent(_RecordingDispatcher(), "CLM-SERVER", audit).dispatch_all(
+        [
+            ToolCall(id="c1", name=ISSUE_PAYMENT_TOOL.name, arguments={"claim_id": "CLM-MODEL", "note": "a@b.com"}),
+            ToolCall(id="c2", name=CHECK_ELIGIBILITY_TOOL.name, arguments={}),
+        ]
+    )
+
+    (event,) = audit.events
+    assert (event.kind, event.subject, event.outcome, event.claim_id) == (
+        AuditKind.TOOL_REFUSED,
+        ISSUE_PAYMENT_TOOL.name,
+        "refused",
+        "CLM-SERVER",
+    )
+    assert event.detail["call_id"] == "c1"
+    assert event.detail["reason"] == "out_of_scope"
+    assert "a@b.com" not in str(event.detail)
+
+
+def test_scope_for_agent_audits_nothing_when_every_call_is_in_scope() -> None:
+    audit = RecordingAuditLog()
+
+    scope_for_agent(_RecordingDispatcher(), "CLM-SERVER", audit).dispatch_all(
+        [ToolCall(id="c1", name=CHECK_ELIGIBILITY_TOOL.name, arguments={})]
+    )
+
+    assert audit.events == []

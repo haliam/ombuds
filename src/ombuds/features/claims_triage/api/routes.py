@@ -24,6 +24,7 @@ from ombuds.platform.ai.providers.base import ProviderUnavailableError
 from ombuds.platform.ai.streaming import ToolCallDelta, ToolResultEvent
 from ombuds.platform.ai.tool_loop import ToolDispatcher
 from ombuds.platform.guardrails.api_auth import require_triage_token
+from ombuds.platform.guardrails.audit_log import AuditLog
 
 logger = logging.getLogger(__name__)
 
@@ -36,27 +37,34 @@ def get_registry(request: Request) -> ToolDispatcher:
     return registry
 
 
+def get_audit(request: Request) -> AuditLog | None:
+    """The audit sink the composition root put on `app.state`, or `None` when it wired none (unit tests)."""
+    audit: AuditLog | None = getattr(request.app.state, "audit", None)
+    return audit
+
+
 Registry = Annotated[ToolDispatcher, Depends(get_registry)]
+Audit = Annotated[AuditLog | None, Depends(get_audit)]
 
 
 @router.post("/triage", response_model=TriageResponse)
-def triage(request: TriageRequest, registry: Registry) -> TriageResponse:
+def triage(request: TriageRequest, registry: Registry, audit: Audit) -> TriageResponse:
     """Run the claims-triage tool-use loop over one claim and return its answer plus every tool call made.
 
     The `claim_id` is always issued by the server (ADR-0009) and returned so the caller can follow up on it.
     """
-    return _to_response(run_triage(request.claim_text, registry=registry))
+    return _to_response(run_triage(request.claim_text, registry=registry, audit=audit))
 
 
 @router.post("/triage/stream")
-def triage_stream(request: TriageRequest, registry: Registry) -> StreamingResponse:
+def triage_stream(request: TriageRequest, registry: Registry, audit: Audit) -> StreamingResponse:
     """Run the same triage as `/triage`, streaming progress over Server-Sent Events (ADR-0007).
 
     Frames, one JSON object each: `tool_call` and `tool_result` as they happen, then exactly one `final`
     carrying the same fields as `/triage`'s response — or an `error` frame if the LLM provider is unavailable.
     Unverified model text is never streamed (see `stream_triage`).
     """
-    events = stream_triage(request.claim_text, registry=registry)
+    events = stream_triage(request.claim_text, registry=registry, audit=audit)
     return StreamingResponse(_to_sse(events), media_type="text/event-stream")
 
 

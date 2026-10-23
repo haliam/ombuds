@@ -24,6 +24,8 @@ from ombuds.features.claims_triage.verticals.airline.evidence_schema import Flig
 from ombuds.platform.ai.schemas.tool_calls import ToolCall, ToolDefinition, ToolResult
 from ombuds.platform.ai.tool_loop import ToolDispatcher, ToolRegistry
 from ombuds.platform.guardrails.approval_gate import ApprovalStore
+from ombuds.platform.guardrails.audit_log import AuditEvent, AuditKind, AuditLog
+from ombuds.platform.guardrails.pii_filter import redact_value
 
 # Imported with a distinct name (`as _..._impl`) rather than the tool's own name, deliberately: binding
 # a name identical to the submodule (`check_eligibility`/`log_claim`) here in this package's namespace
@@ -40,19 +42,25 @@ def _check_eligibility(args: BaseModel) -> BaseModel:
 
 AGENT_TOOL_NAMES = frozenset({SEARCH_KB_TOOL.name, CHECK_ELIGIBILITY_TOOL.name, LOG_CLAIM_TOOL.name})
 CLAIM_SCOPED_TOOLS = frozenset({LOG_CLAIM_TOOL.name, ISSUE_PAYMENT_TOOL.name})
+MAX_REFUSED_NAME_CHARS = 100
+"""Cap on the stored name of a refused tool: the model chose it, so it is untrusted text."""
 
 
 class _AgentScopedDispatcher:
     """A `ToolDispatcher` limited to the triage agent's tools, with claim-scoped calls pinned to one claim."""
 
-    def __init__(self, inner: ToolDispatcher, claim_id: str) -> None:
+    def __init__(self, inner: ToolDispatcher, claim_id: str, audit: AuditLog | None) -> None:
         self._inner = inner
         self._claim_id = claim_id
+        self._audit = audit
 
     def definitions(self) -> Sequence[ToolDefinition]:
         return [definition for definition in self._inner.definitions() if definition.name in AGENT_TOOL_NAMES]
 
     def dispatch_all(self, calls: list[ToolCall]) -> list[ToolResult]:
+        for call in calls:
+            if call.name not in AGENT_TOOL_NAMES:
+                self._record_refusal(call)
         allowed = [self._bind(call) for call in calls if call.name in AGENT_TOOL_NAMES]
         dispatched = iter(self._inner.dispatch_all(allowed))
         return [
@@ -62,23 +70,41 @@ class _AgentScopedDispatcher:
             for call in calls
         ]
 
+    def _record_refusal(self, call: ToolCall) -> None:
+        """Audit a call the agent may not make: the one tool-call event that never reaches `AuditedDispatcher`."""
+        if self._audit is None:
+            return
+        arguments = redact_value(call.arguments)
+        assert isinstance(arguments, dict)
+        self._audit.record(
+            AuditEvent(
+                kind=AuditKind.TOOL_REFUSED,
+                subject=call.name[:MAX_REFUSED_NAME_CHARS],
+                outcome="refused",
+                claim_id=self._claim_id,
+                detail={"call_id": call.id, "reason": "out_of_scope", "arguments": arguments},
+            )
+        )
+
     def _bind(self, call: ToolCall) -> ToolCall:
         if call.name not in CLAIM_SCOPED_TOOLS:
             return call
         return call.model_copy(update={"arguments": {**call.arguments, "claim_id": self._claim_id}})
 
 
-def scope_for_agent(dispatcher: ToolDispatcher, claim_id: str) -> ToolDispatcher:
+def scope_for_agent(dispatcher: ToolDispatcher, claim_id: str, audit: AuditLog | None = None) -> ToolDispatcher:
     """Wrap `dispatcher` into exactly what the triage agent may do in one run (ADR-0009).
 
     - Only `AGENT_TOOL_NAMES` are offered, and a call to any other tool comes back as an error result
       without being dispatched: `issue_payment` stays available over MCP for operators, never to the agent.
+      With `audit`, the refusal is recorded as a `tool_refused` event (ADR-0016): the call never reaches the
+      audited dispatcher inside, so this is the only place it can be seen.
     - Any `claim_id` the model passes to a claim-scoped tool is replaced with the run's server-issued
       `claim_id`, the key approvals and, from W3, persistence dedupe on.
 
     Works over any `ToolDispatcher`, so the in-process registry and the MCP client path are scoped the same way.
     """
-    return _AgentScopedDispatcher(dispatcher, claim_id)
+    return _AgentScopedDispatcher(dispatcher, claim_id, audit)
 
 
 def build_tool_registry(

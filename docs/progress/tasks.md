@@ -71,7 +71,7 @@ Each bullet is one goal: one branch, one chat, as many commits as it needs. Deta
 Same rule: one bullet, one branch, one chat. Order is by importance.
 
 - [x] Automated guards: CI workflow (`make lint` + unit tests, integration job with pgvector and OPA), gitleaks in CI and pre-commit, GitHub push protection
-- [ ] Complete the audit trail: record out-of-scope tool calls and injection escalations (migration 0004), span the approvals routes, fix the "must not proceed unaudited" docstring
+- [x] Complete the audit trail: record out-of-scope tool calls and injection escalations (migration 0004), span the approvals routes, fix the "must not proceed unaudited" docstring — [ADR-0016](../decisions/0016-append-only-postgres-audit-log-at-the-governance-seams.md), [summary](task_summaries.md#complete-the-audit-trail)
 - [ ] Agent-level eval: 15–25 claims in `evals/datasets/airline_claims.jsonl` plus a runner (report only, never fails CI)
 - [ ] Give the MCP subprocess its configuration: explicit `env` (`DATABASE_URL`, `OPA_*`, `PAYOUT_LIMIT_EUR`, `OTEL_*`)
 - [ ] Raise the `ANTHROPIC_MAX_TOKENS` default from 1024 to 4096 (already configurable since ADR-0018)

@@ -12,6 +12,7 @@ from ombuds.features.claims_triage.rag.retriever import Retriever, default_retri
 from ombuds.features.claims_triage.tools import build_tool_registry
 from ombuds.platform.ai.tool_loop import ToolDispatcher
 from ombuds.platform.guardrails.approval_gate import ExecutableApprovalStore
+from ombuds.platform.guardrails.audit_log import AuditLog
 from ombuds.platform.guardrails.audited_dispatcher import AuditedDispatcher
 from ombuds.platform.guardrails.audited_store import AuditedApprovalStore
 from ombuds.platform.guardrails.executing_store import ExecutingApprovalStore
@@ -33,6 +34,8 @@ class ClaimsTriageRuntime:
 
     approvals: ExecutableApprovalStore
     registry: ToolDispatcher
+    audit: AuditLog
+    """The sink the use case writes its own events to (refusals, injection escalations)."""
 
 
 def build_runtime(
@@ -57,4 +60,4 @@ def build_runtime(
     )
     approvals = PolicyCheckedApprovalStore(executing, policy_engine, {"max_payout_eur": payout_limit_eur}, audit)
     registry = TracedDispatcher(AuditedDispatcher(build_tool_registry(approvals, claims, retriever_factory), audit))
-    return ClaimsTriageRuntime(approvals=approvals, registry=registry)
+    return ClaimsTriageRuntime(approvals=approvals, registry=registry, audit=audit)

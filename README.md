@@ -78,7 +78,7 @@ Each row is a real choice between alternatives, with what was given up. The full
 
 ### Known limitations
 
-- **Tracing and audit are built, with gaps.** OpenTelemetry spans (off unless an exporter is set) and an append-only audit log cover tool calls, policy verdicts and approval transitions. Out-of-scope tool calls and injection escalations are not audited yet, and `log_claim` still requires a human.
+- **Tracing and audit are built, with gaps.** OpenTelemetry spans (off unless an exporter is set) and an append-only audit log cover tool calls, policy verdicts and approval transitions. Out-of-scope tool calls and injection escalations are audited too, and `log_claim` still requires a human.
 - **Local-demo deployment.** Ports bind to `127.0.0.1`, and secrets (the database password and both API tokens) come from a local `.env` with no secret manager and no TLS. The MCP subprocess is not given explicit configuration. There is no CI workflow or secret scanning yet.
 - **Payments are simulated.** `issue_payment` writes a record to a local table; there is no payment rail and no real airline or claims vendor behind the tools.
 - **One vertical.** Only airline EU261 exists. The seam for a second vertical is structural, not yet exercised by a second implementation.

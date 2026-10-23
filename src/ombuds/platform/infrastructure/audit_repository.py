@@ -24,7 +24,8 @@ class PostgresAuditLog:
     def record(self, event: AuditEvent) -> None:
         """Append `event`, stamped with the active trace id (ADR-0017).
 
-        Raises on a database error: an action must not proceed unaudited.
+        Raises on a database error, so the caller sees the failure instead of a silent gap. The insert is its
+        own transaction, after the effect it records: a failed insert does not undo it (ADR-0016).
         """
         with self._pool.connection() as conn:
             conn.execute(
