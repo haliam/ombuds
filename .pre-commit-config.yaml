@@ -11,6 +11,10 @@ repos:
       - id: check-added-large-files
         args: ["--maxkb=1000"]
       - id: detect-private-key
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.24.2
+    hooks:
+      - id: gitleaks
   - repo: local
     hooks:
       - id: ruff-check

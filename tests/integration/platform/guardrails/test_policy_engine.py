@@ -1,5 +1,6 @@
 """The real payout policy, evaluated by a real OPA server (docker compose `opa` service, or `OPA_URL`)."""
 
+import os
 import urllib.error
 import urllib.request
 
@@ -15,7 +16,10 @@ def engine() -> OpaHttpPolicyEngine:
     try:
         urllib.request.urlopen(f"{config.OPA_URL}/health", timeout=2)  # noqa: S310
     except urllib.error.URLError as exc:
-        pytest.skip(f"OPA not reachable ({exc}); run `make opa-up`")
+        unreachable = f"OPA not reachable ({exc}); run `make opa-up`"
+        if os.environ.get("CI"):
+            pytest.fail(unreachable)  # a silent skip would let CI pass without testing anything
+        pytest.skip(unreachable)
     return OpaHttpPolicyEngine(config.OPA_URL)
 
 
