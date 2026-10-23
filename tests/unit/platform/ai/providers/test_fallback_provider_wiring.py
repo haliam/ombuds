@@ -8,7 +8,7 @@ caught the configured timeout/max-retries silently going nowhere.
 from ombuds import config
 from ombuds.platform.ai.providers.anthropic import AnthropicProvider
 from ombuds.platform.ai.providers.budgeted import BudgetedProvider
-from ombuds.platform.ai.providers.fallback import FallbackProvider, build_default_provider
+from ombuds.platform.ai.providers.fallback import FallbackProvider, build_default_provider, process_budget
 from ombuds.platform.ai.providers.traced import TracedProvider
 
 
@@ -37,3 +37,22 @@ def test_build_default_provider_passes_configured_model_timeout_and_retries(monk
     assert primary._client.max_retries == 4
     assert fallback._client.timeout == 12.5
     assert fallback._client.max_retries == 4
+
+
+def test_process_budget_is_one_shared_ledger() -> None:
+    """ADR-0018: `run_triage` builds a provider per request, so the cap only holds if the ledger is shared."""
+    assert process_budget() is process_budget()
+
+
+def test_default_providers_charge_the_process_budget(monkeypatch) -> None:
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "test-key")
+
+    providers = [build_default_provider(), build_default_provider()]
+    assert all(isinstance(provider, FallbackProvider) for provider in providers)
+
+    budgets = {
+        id(traced._inner._budget)  # private, no public getter
+        for provider in providers
+        for traced in (provider._primary, provider._fallback)  # type: ignore[attr-defined]
+    }
+    assert budgets == {id(process_budget())}
