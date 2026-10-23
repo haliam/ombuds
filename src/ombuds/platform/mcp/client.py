@@ -13,6 +13,7 @@ that with an `anyio` blocking portal: a background thread runs the session's eve
 
 from __future__ import annotations
 
+import os
 import sys
 from collections.abc import AsyncGenerator, Sequence
 from contextlib import ExitStack, asynccontextmanager
@@ -63,7 +64,9 @@ class McpToolClient:
         command: str = sys.executable,
         args: Sequence[str] = ("-m", "ombuds.platform.mcp.server"),
     ) -> None:
-        self._params = StdioServerParameters(command=command, args=list(args))
+        # The SDK's default child environment is a small allowlist (PATH, HOME, ...), which would drop
+        # DATABASE_URL, OPA_URL and the rest of the config. The server is our own code, so it inherits it all.
+        self._params = StdioServerParameters(command=command, args=list(args), env=dict(os.environ))
         self._portal_cm = anyio.from_thread.start_blocking_portal()
         self._session: ClientSession | None = None
         self._stack: ExitStack | None = None
