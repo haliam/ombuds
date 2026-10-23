@@ -25,8 +25,10 @@ from ombuds.platform.ai.schemas.tool_calls import ToolCall, ToolDefinition
 from ombuds.platform.ai.streaming import StreamEvent, TextDelta, ToolCallDelta, ToolResultEvent, TurnDone
 from ombuds.platform.ai.tool_loop import ToolDispatcher, ToolRegistry
 from ombuds.platform.guardrails.approval_gate import ApprovalGate, ApprovalStore
+from ombuds.platform.guardrails.audit_log import AuditKind
 from ombuds.platform.guardrails.injection_detection import detect
 from tests.fakes import InMemoryClaims
+from tests.unit.platform.guardrails.audit_fakes import RecordingAuditLog
 
 _DECISION_JSON = (
     '{"eligible": true, "compensation_amount_eur": 250, "reason_codes": ["eligible"], '
@@ -638,3 +640,47 @@ def test_run_triage_refuses_issue_payment_even_when_an_injection_slips_past_dete
     (tool_result,) = result.tool_results
     assert tool_result.is_error
     assert not gate.list_pending()
+
+
+def test_run_triage_audits_an_injection_escalation_inside_a_span(spans) -> None:
+    audit = RecordingAuditLog()
+
+    run_triage(_INJECTION_CLAIM, claim_id="CLM-1", provider=_FakeProvider([]), audit=audit)
+
+    (event,) = audit.events
+    assert (event.kind, event.subject, event.outcome, event.claim_id) == (
+        AuditKind.INJECTION_ESCALATION,
+        "claim_text",
+        "escalated",
+        "CLM-1",
+    )
+    assert event.detail["findings"]
+    assert [span.name for span in spans.get_finished_spans()] == ["triage.injection_escalation"]
+
+
+def test_stream_triage_audits_an_injection_escalation() -> None:
+    audit = RecordingAuditLog()
+
+    list(stream_triage(_INJECTION_CLAIM, claim_id="CLM-1", provider=_FakeProvider([]), audit=audit))
+
+    assert [e.kind for e in audit.events] == [AuditKind.INJECTION_ESCALATION]
+
+
+def test_run_triage_audits_a_model_call_to_a_tool_outside_the_agent_set() -> None:
+    audit = RecordingAuditLog()
+    provider = _FakeProvider(
+        [
+            ProviderTurn(
+                text="",
+                tool_calls=(ToolCall(id="call-1", name="issue_payment", arguments={"claim_id": "x"}),),
+                stop_reason="tool_use",
+                content=[],
+            ),
+            ProviderTurn(text="Please share your flight details.", tool_calls=(), stop_reason="end_turn", content=[]),
+        ]
+    )
+
+    run_triage("My flight was delayed.", claim_id="CLM-SERVER", provider=provider, audit=audit)
+
+    (event,) = audit.events
+    assert (event.kind, event.subject, event.claim_id) == (AuditKind.TOOL_REFUSED, "issue_payment", "CLM-SERVER")

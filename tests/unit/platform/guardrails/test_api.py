@@ -217,3 +217,19 @@ def test_an_unexpected_executor_error_still_propagates_and_is_logged_with_the_re
     assert response.status_code == 500
     assert pending.id in caplog.text
     assert gate.get(pending.id).status.value == "approved"
+
+
+def test_approve_deny_and_execute_each_run_in_a_span_naming_the_request(
+    client: TestClient, gate: ApprovalGate, spans
+) -> None:
+    approved = gate.submit(GuardedAction.LOG_CLAIM, _PAYLOAD)
+    denied = gate.submit(GuardedAction.LOG_CLAIM, _PAYLOAD)
+
+    client.post(f"/approvals/{approved.id}/approve")
+    client.post(f"/approvals/{denied.id}/deny")
+    client.post(f"/approvals/{approved.id}/execute")
+
+    finished = {span.name: dict(span.attributes or {}) for span in spans.get_finished_spans()}
+    assert finished["approvals.approve"] == {"request_id": approved.id}
+    assert finished["approvals.deny"] == {"request_id": denied.id}
+    assert finished["approvals.execute"] == {"request_id": approved.id}

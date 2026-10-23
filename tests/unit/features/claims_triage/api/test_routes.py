@@ -19,13 +19,14 @@ from ombuds.platform.ai.streaming import ToolCallDelta, ToolResultEvent
 from ombuds.platform.ai.tool_loop import ToolRegistry
 from ombuds.platform.guardrails.approval_gate import ApprovalGate
 from tests.api_auth import TRIAGE_HEADERS
+from tests.unit.platform.guardrails.audit_fakes import RecordingAuditLog
 from tests.unit.platform.guardrails.store_fakes import executing
 
 client = TestClient(create_app(executing(ApprovalGate()), ToolRegistry()), headers=TRIAGE_HEADERS)
 
 
 def test_triage_endpoint_returns_the_use_case_result(monkeypatch) -> None:
-    def _fake_run_triage(claim_text: str, *, registry, provider=None) -> TriageResult:
+    def _fake_run_triage(claim_text: str, *, registry, provider=None, audit=None) -> TriageResult:
         assert claim_text == "My flight was cancelled."
         return TriageResult(
             claim_id="CLM-1", answer="Please provide your flight details.", decision=None, tool_results=()
@@ -47,7 +48,7 @@ def test_triage_endpoint_returns_the_use_case_result(monkeypatch) -> None:
 
 
 def test_triage_endpoint_surfaces_an_escalated_result(monkeypatch) -> None:
-    def _fake_run_triage(claim_text: str, *, registry, provider=None) -> TriageResult:
+    def _fake_run_triage(claim_text: str, *, registry, provider=None, audit=None) -> TriageResult:
         return TriageResult(
             claim_id="CLM-1",
             answer="This claim could not be resolved automatically and needs human review.",
@@ -86,7 +87,7 @@ def test_triage_endpoint_rejects_a_missing_claim_text_field() -> None:
 
 
 def test_triage_endpoint_serializes_tool_results(monkeypatch) -> None:
-    def _fake_run_triage(claim_text: str, *, registry, provider=None) -> TriageResult:
+    def _fake_run_triage(claim_text: str, *, registry, provider=None, audit=None) -> TriageResult:
         return TriageResult(
             claim_id="CLM-1",
             answer='{"eligible": true, "explanation": "You are eligible for EUR 250."}',
@@ -105,7 +106,7 @@ def test_triage_endpoint_serializes_tool_results(monkeypatch) -> None:
 
 
 def test_triage_endpoint_propagates_use_case_errors_as_a_server_error(monkeypatch) -> None:
-    def _fake_run_triage(claim_text: str, *, registry, provider=None) -> TriageResult:
+    def _fake_run_triage(claim_text: str, *, registry, provider=None, audit=None) -> TriageResult:
         raise RuntimeError("triage did not converge within 8 tool-use turns")
 
     monkeypatch.setattr(routes, "run_triage", _fake_run_triage)
@@ -120,7 +121,7 @@ def test_triage_stream_endpoint_emits_progress_frames_then_one_final_frame(monke
         claim_id="CLM-1", answer="Please provide your flight details.", decision=None, tool_results=()
     )
 
-    def _fake_stream_triage(claim_text: str, *, registry, provider=None) -> Iterator[TriageStreamEvent]:
+    def _fake_stream_triage(claim_text: str, *, registry, provider=None, audit=None) -> Iterator[TriageStreamEvent]:
         assert claim_text == "My flight was cancelled."
         yield ToolCallDelta(call=call)
         yield ToolResultEvent(result=ToolResult(call_id="call-1", name="check_eligibility", content="{}"))
@@ -148,7 +149,7 @@ def test_triage_stream_endpoint_emits_progress_frames_then_one_final_frame(monke
 def test_triage_stream_endpoint_ends_with_an_error_frame_when_the_provider_is_unavailable(monkeypatch) -> None:
     call = ToolCall(id="call-1", name="check_eligibility", arguments={})
 
-    def _fake_stream_triage(claim_text: str, *, registry, provider=None) -> Iterator[TriageStreamEvent]:
+    def _fake_stream_triage(claim_text: str, *, registry, provider=None, audit=None) -> Iterator[TriageStreamEvent]:
         yield ToolCallDelta(call=call)
         raise ProviderUnavailableError("overloaded")
 
@@ -165,3 +166,19 @@ def test_triage_stream_endpoint_rejects_an_empty_claim() -> None:
     response = client.post("/claims/triage/stream", json={"claim_text": ""})
 
     assert response.status_code == 422
+
+
+def test_triage_endpoint_hands_the_apps_audit_sink_to_the_use_case(monkeypatch) -> None:
+    audit = RecordingAuditLog()
+    seen: list[object] = []
+
+    def _fake_run_triage(claim_text: str, *, registry, provider=None, audit=None) -> TriageResult:
+        seen.append(audit)
+        return TriageResult(claim_id="CLM-1", answer="ok", decision=None, tool_results=())
+
+    monkeypatch.setattr(routes, "run_triage", _fake_run_triage)
+    app_client = TestClient(create_app(executing(ApprovalGate()), ToolRegistry(), audit), headers=TRIAGE_HEADERS)
+
+    app_client.post("/claims/triage", json={"claim_text": "My flight was cancelled."})
+
+    assert seen == [audit]

@@ -19,8 +19,12 @@ from ombuds.platform.guardrails.approval_gate import (
     ApprovalStateError,
     ExecutableApprovalStore,
 )
+from ombuds.platform.observability.tracing import start_span
 
 logger = logging.getLogger(__name__)
+
+SPAN_PREFIX = "approvals."
+"""Span per state-changing route (ADR-0017), so the audit rows a decision writes carry its `trace_id`."""
 
 router = APIRouter(prefix="/approvals", tags=["approvals"], dependencies=[Depends(require_approver_token)])
 
@@ -85,17 +89,18 @@ def approve(
 
     If the executor fails the request stays `APPROVED` and the response is a 502 naming it; retry with `/execute`.
     """
-    try:
-        return approvals.approve(request_id, approver, body.note)
-    except ApprovalNotFoundError as exc:
-        raise HTTPException(status_code=404, detail=str(exc)) from exc
-    except ApprovalStateError as exc:
-        raise HTTPException(status_code=409, detail=str(exc)) from exc
-    except ToolExecutionError as exc:
-        return _execution_failed(request_id, approvals, exc)
-    except Exception:
-        logger.exception("executing approved request %s failed unexpectedly", request_id)
-        raise
+    with start_span(f"{SPAN_PREFIX}approve", request_id=request_id):
+        try:
+            return approvals.approve(request_id, approver, body.note)
+        except ApprovalNotFoundError as exc:
+            raise HTTPException(status_code=404, detail=str(exc)) from exc
+        except ApprovalStateError as exc:
+            raise HTTPException(status_code=409, detail=str(exc)) from exc
+        except ToolExecutionError as exc:
+            return _execution_failed(request_id, approvals, exc)
+        except Exception:
+            logger.exception("executing approved request %s failed unexpectedly", request_id)
+            raise
 
 
 @router.post(
@@ -108,17 +113,18 @@ def execute(request_id: str, approvals: Approvals) -> ApprovalRequest | JSONResp
 
     409 for a request in any other status, and nothing is written.
     """
-    try:
-        return approvals.execute_approved(request_id)
-    except ApprovalNotFoundError as exc:
-        raise HTTPException(status_code=404, detail=str(exc)) from exc
-    except ApprovalStateError as exc:
-        raise HTTPException(status_code=409, detail=str(exc)) from exc
-    except ToolExecutionError as exc:
-        return _execution_failed(request_id, approvals, exc)
-    except Exception:
-        logger.exception("executing approved request %s failed unexpectedly", request_id)
-        raise
+    with start_span(f"{SPAN_PREFIX}execute", request_id=request_id):
+        try:
+            return approvals.execute_approved(request_id)
+        except ApprovalNotFoundError as exc:
+            raise HTTPException(status_code=404, detail=str(exc)) from exc
+        except ApprovalStateError as exc:
+            raise HTTPException(status_code=409, detail=str(exc)) from exc
+        except ToolExecutionError as exc:
+            return _execution_failed(request_id, approvals, exc)
+        except Exception:
+            logger.exception("executing approved request %s failed unexpectedly", request_id)
+            raise
 
 
 @router.post("/{request_id}/deny", response_model=ApprovalRequest)
@@ -126,9 +132,10 @@ def deny(
     request_id: str, approver: Approver, approvals: Approvals, body: ApprovalDecisionRequest = _NO_NOTE
 ) -> ApprovalRequest:
     """Deny a pending request."""
-    try:
-        return approvals.deny(request_id, approver, body.note)
-    except ApprovalNotFoundError as exc:
-        raise HTTPException(status_code=404, detail=str(exc)) from exc
-    except ApprovalStateError as exc:
-        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    with start_span(f"{SPAN_PREFIX}deny", request_id=request_id):
+        try:
+            return approvals.deny(request_id, approver, body.note)
+        except ApprovalNotFoundError as exc:
+            raise HTTPException(status_code=404, detail=str(exc)) from exc
+        except ApprovalStateError as exc:
+            raise HTTPException(status_code=409, detail=str(exc)) from exc

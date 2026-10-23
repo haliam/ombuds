@@ -29,8 +29,9 @@ from ombuds.platform.ai.providers.fallback import build_default_provider
 from ombuds.platform.ai.schemas.tool_calls import ToolResult
 from ombuds.platform.ai.streaming import ToolCallDelta, ToolResultEvent
 from ombuds.platform.ai.tool_loop import ToolDispatcher
+from ombuds.platform.guardrails.audit_log import AuditEvent, AuditKind, AuditLog
 from ombuds.platform.guardrails.guarded_dispatcher import GuardedDispatcher
-from ombuds.platform.guardrails.injection_detection import detect
+from ombuds.platform.guardrails.injection_detection import InjectionResult, detect
 from ombuds.platform.guardrails.pii_filter import redact, redact_value
 from ombuds.platform.mcp.client import McpToolClient
 from ombuds.platform.observability.tracing import start_span, trace_stream
@@ -47,6 +48,7 @@ __all__ = [
 
 _RECURSION_LIMIT = 4 * MAX_TOOL_TURNS + 2 * MAX_REPAIR_ATTEMPTS + 10
 TRIAGE_SPAN = "triage.run"
+INJECTION_SPAN = "triage.injection_escalation"
 
 INJECTION_ESCALATION_REASON = "Possible prompt injection in the claim text; needs human review."
 
@@ -96,6 +98,7 @@ def run_triage(
     use_mcp: bool = False,
     claimant_id: str | None = None,
     long_term_store: LongTermMemoryStore | None = None,
+    audit: AuditLog | None = None,
 ) -> TriageResult:
     """Run the tool-use loop for one claim: ask the model, dispatch any tool calls, repeat until it answers.
 
@@ -124,17 +127,20 @@ def run_triage(
     are given, prior facts about this claimant are shown to the model as a context block in the first user
     turn, and a run that ends with a verified decision consolidates its rules-derived `ShortTermMemory`
     facts back into the store. Omit either and there is no cross-run recall.
+
+    `audit` receives the two events no inner seam can see: an injection escalation and a call to a tool outside
+    the agent's set (ADR-0016). Omit it and neither is recorded.
     """
-    run = _prepare_run(claim_text, claim_id, provider)
+    run = _prepare_run(claim_text, claim_id, provider, audit)
     if isinstance(run, TriageResult):
         return run
     long_term = long_term_store.load(claimant_id) if claimant_id and long_term_store else LongTermMemory()
 
     if use_mcp:
         with McpToolClient() as mcp_client:
-            result, long_term = _invoke_graph(run, _agent_tools(mcp_client, run.claim_id), long_term)
+            result, long_term = _invoke_graph(run, _agent_tools(mcp_client, run.claim_id, audit), long_term)
     else:
-        result, long_term = _invoke_graph(run, _agent_tools(registry, run.claim_id), long_term)
+        result, long_term = _invoke_graph(run, _agent_tools(registry, run.claim_id, audit), long_term)
 
     if claimant_id and long_term_store:
         long_term_store.save(claimant_id, long_term)
@@ -151,7 +157,9 @@ class _PreparedRun:
     system: str
 
 
-def _prepare_run(claim_text: str, claim_id: str | None, provider: LLMProvider | None) -> _PreparedRun | TriageResult:
+def _prepare_run(
+    claim_text: str, claim_id: str | None, provider: LLMProvider | None, audit: AuditLog | None
+) -> _PreparedRun | TriageResult:
     """The setup both entry points run before the graph: issue the `claim_id`, screen for injection, redact PII.
 
     Returns the injection escalation instead when the claim text looks like an instruction to the model, so
@@ -159,13 +167,28 @@ def _prepare_run(claim_text: str, claim_id: str | None, provider: LLMProvider | 
     one place to attach tracing or auditing to a run.
     """
     claim_id = claim_id or str(uuid.uuid4())
-    if detect(claim_text).suspicious:
-        return _injection_escalation(claim_id)
+    injection = detect(claim_text)
+    if injection.suspicious:
+        with start_span(INJECTION_SPAN, claim_id=claim_id):
+            if audit is not None:
+                audit.record(_injection_event(claim_id, injection))
+            return _injection_escalation(claim_id)
     return _PreparedRun(
         claim_id=claim_id,
         claim_text=redact(claim_text).text,
         provider=provider or build_default_provider(),
         system=load_prompt("claims_triage"),
+    )
+
+
+def _injection_event(claim_id: str, injection: InjectionResult) -> AuditEvent:
+    """What was flagged, as counts per kind: the detector never reports the matched text (safe to store)."""
+    return AuditEvent(
+        kind=AuditKind.INJECTION_ESCALATION,
+        subject="claim_text",
+        outcome="escalated",
+        claim_id=claim_id,
+        detail={"findings": {finding.kind.value: finding.count for finding in injection.findings}},
     )
 
 
@@ -185,9 +208,9 @@ def _injection_escalation(claim_id: str) -> TriageResult:
     )
 
 
-def _agent_tools(dispatcher: ToolDispatcher, claim_id: str) -> ToolDispatcher:
+def _agent_tools(dispatcher: ToolDispatcher, claim_id: str, audit: AuditLog | None) -> ToolDispatcher:
     """The agent's tools for one run: pinned to `claim_id` (ADR-0009), PII redacted from arguments (ADR-0013)."""
-    return GuardedDispatcher(scope_for_agent(dispatcher, claim_id))
+    return GuardedDispatcher(scope_for_agent(dispatcher, claim_id, audit))
 
 
 def _invoke_graph(
@@ -261,7 +284,12 @@ def _first_user_message(claim_text: str, long_term: LongTermMemory) -> dict[str,
 
 
 def stream_triage(
-    claim_text: str, *, registry: ToolDispatcher, claim_id: str | None = None, provider: LLMProvider | None = None
+    claim_text: str,
+    *,
+    registry: ToolDispatcher,
+    claim_id: str | None = None,
+    provider: LLMProvider | None = None,
+    audit: AuditLog | None = None,
 ) -> Iterator[TriageStreamEvent]:
     """Run the same graph as `run_triage`, yielding progress events as they happen, then the final result.
 
@@ -270,11 +298,11 @@ def stream_triage(
     would return. Model text is never yielded on its own: until `finalize` has verified it, a reply may be a
     verdict the rules engine contradicts, so the only model-derived text a caller sees is the final result's.
     """
-    run = _prepare_run(claim_text, claim_id, provider)
+    run = _prepare_run(claim_text, claim_id, provider, audit)
     if isinstance(run, TriageResult):
         yield TriageCompleted(result=run)
         return
-    app = build_triage_graph(run.provider, _agent_tools(registry, run.claim_id), run.system, stream=True)
+    app = build_triage_graph(run.provider, _agent_tools(registry, run.claim_id, audit), run.system, stream=True)
 
     final_state: AgentState | None = None
     graph_stream = app.stream(

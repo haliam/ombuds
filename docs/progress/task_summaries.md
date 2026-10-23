@@ -604,7 +604,7 @@ Template — copy this block per finished task, filling in the fields (omit **De
 
 **Decisions/trade-offs:** spans carry ids, model, stop reason, counts and verdicts only, never prompts, arguments or results, and an exception sets the status to its type, not its message, so the backend needs no PII handling. Decorators at the existing seams, as for audit. `trace_stream` makes the span current only while the source produces an event, because FastAPI resumes sync generators on different threads. See ADR-0017.
 **Verified:** `make test` (355 unit tests at the time of this update), in-memory exporter assertions for spans, provider failover and the audit `trace_id`.
-**Follow-up:** the MCP stdio subprocess starts its own traces (no context propagation); no HTTP request spans, token-usage attributes or collector in compose; approvals routes open no span (audit rows from approve/deny have a null `trace_id`).
+**Follow-up:** the MCP stdio subprocess starts its own traces (no context propagation); no HTTP request spans, token-usage attributes or collector in compose; approvals routes opened no span at the time (closed in W6, see "Complete the audit trail").
 
 ---
 
@@ -622,6 +622,26 @@ Template — copy this block per finished task, filling in the fields (omit **De
 **Decisions/trade-offs:** 502 rather than 409 so a state conflict (already decided) stays distinguishable from a failed downstream effect. No automatic retry.
 **Verified:** `make lint`, unit tests through the real policy → executing → audited stack with a failing executor, and an integration test over Postgres (payment for an unlogged claim → 502, log the claim, `/execute` → one `payments` row, audit trail shows approved then executed).
 **Follow-up:** the `/approvals` routes were unauthenticated at the time; closed by ADR-0019.
+
+---
+
+### Complete the audit trail
+
+**Week:** W6
+**Goal:** Record the two refusals the audit could not see, give approval decisions a trace id, and stop the docstring overpromising.
+**Source:** `w4_review_pre_w5_plan.md` (F-06)
+
+**Files & responsibilities:**
+- `migrations/0004_audit_refusals.sql` — widens the `kind` `CHECK` with `tool_refused` and `injection_escalation`.
+- `audit_log.py` — the two new `AuditKind`s.
+- `tools/__init__.py` — `scope_for_agent(..., audit)` records a `tool_refused` event (redacted arguments, capped name) for a call outside the agent's set.
+- `triage_use_case.py` — `audit` parameter on `run_triage`/`stream_triage`; records `injection_escalation` (counts per kind) inside a `triage.injection_escalation` span.
+- `runtime.py`, `api_app.py`, `api/routes.py` — `ClaimsTriageRuntime.audit` is put on `app.state.audit` and handed to the use case.
+- `guardrails/api.py` — `approvals.approve|deny|execute` spans.
+- `audit_repository.py` — docstring no longer claims an action cannot proceed unaudited.
+
+**Decisions/trade-offs:** the sink is passed in rather than wrapped around the scope, because the refusal happens in feature code outside the audited dispatcher. `audit` is optional so unit tests and callers without a database need nothing. No new ADR: this completes ADR-0016, which is amended.
+**Verified:** `make test` (unit tests for both events, the span names and the route wiring) and `make test-integration` (both kinds round-trip through migration 0004 against Postgres).
 
 ---
 

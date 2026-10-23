@@ -23,7 +23,7 @@ Full detail in [`w4_review_pre_w5_plan.md`](w4_review_pre_w5_plan.md). The four 
 |---|---|---|
 | Agent-level eval dataset and runner | W4 O-1 (W3 F-07) | Same gap as above; tracing now exists to record runs. The strongest W5 candidate |
 | Explicit `env` for the MCP subprocess (`DATABASE_URL`, `OPA_*`, `PAYOUT_LIMIT_EUR`, `OTEL_*`) | W4 F-05 | `McpToolClient` passes none; the child gets only `HOME`/`PATH`-style defaults, so `use_mcp=True` in Docker would hit `localhost` defaults |
-| Audit the out-of-scope tool call and the injection escalation; span the approvals routes; fix the "must not proceed unaudited" docstring | W4 F-06 | Scoped-out calls and injection hits leave no audit row; approval rows have a null `trace_id`. Needs migration 0004 |
+| ~~Audit the out-of-scope tool call and the injection escalation; span the approvals routes; fix the "must not proceed unaudited" docstring~~ | W4 F-06 | Done in W6 (migration 0004, ADR-0016 amended) |
 | Pin `@scalar/api-reference` and add an OPA healthcheck | W4 F-08 | `/scalar` loads an unpinned CDN script; `api` waits for OPA only with `service_started` |
 
 ## Added from `/codebase-review W4 W5` second pass (2026-10-21)

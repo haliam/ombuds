@@ -9,6 +9,7 @@ from ombuds.platform.ai.tool_loop import ToolRegistry
 from ombuds.platform.guardrails.approval_gate import ApprovalGate
 from ombuds.platform.guardrails.executing_store import ExecutingApprovalStore
 from tests.api_auth import APPROVER_HEADERS, TRIAGE_HEADERS
+from tests.unit.platform.guardrails.audit_fakes import RecordingAuditLog
 from tests.unit.platform.guardrails.store_fakes import executing
 
 
@@ -27,13 +28,16 @@ def test_the_default_app_builds_its_runtime_at_startup_and_closes_its_pool_at_sh
     monkeypatch.setenv("DATABASE_URL", "postgresql://u:p@localhost/db")
     monkeypatch.setattr(api_app, "create_pool", lambda *_: pool)
     monkeypatch.setattr(
-        api_app, "build_runtime", lambda *_: ClaimsTriageRuntime(executing(ApprovalGate()), ToolRegistry())
+        api_app,
+        "build_runtime",
+        lambda *_: ClaimsTriageRuntime(executing(ApprovalGate()), ToolRegistry(), RecordingAuditLog()),
     )
     app = api_app.create_app()
 
     with TestClient(app):
         assert isinstance(app.state.approvals, ExecutingApprovalStore)
         assert isinstance(app.state.registry, ToolRegistry)
+        assert isinstance(app.state.audit, RecordingAuditLog)
         assert not pool.closed
 
     assert pool.closed

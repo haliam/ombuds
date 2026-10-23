@@ -13,6 +13,7 @@ from ombuds.platform.ai.budget import BudgetExceededError
 from ombuds.platform.ai.tool_loop import ToolDispatcher
 from ombuds.platform.guardrails.api import router as approvals_router
 from ombuds.platform.guardrails.approval_gate import ExecutableApprovalStore
+from ombuds.platform.guardrails.audit_log import AuditLog
 from ombuds.platform.guardrails.policy_engine import OpaHttpPolicyEngine
 from ombuds.platform.infrastructure.postgres import create_pool
 from ombuds.platform.observability.logging import configure_logging
@@ -42,6 +43,7 @@ async def _postgres_lifespan(app: FastAPI) -> AsyncIterator[None]:
     )
     app.state.approvals = runtime.approvals
     app.state.registry = runtime.registry
+    app.state.audit = runtime.audit
     try:
         yield
     finally:
@@ -53,13 +55,17 @@ def _budget_exceeded(request: Request, exc: Exception) -> JSONResponse:
     return JSONResponse(status_code=429, content={"detail": str(exc)})
 
 
-def create_app(approvals: ExecutableApprovalStore | None = None, registry: ToolDispatcher | None = None) -> FastAPI:
+def create_app(
+    approvals: ExecutableApprovalStore | None = None,
+    registry: ToolDispatcher | None = None,
+    audit: AuditLog | None = None,
+) -> FastAPI:
     """Build the FastAPI app: the claims-triage feature's routes plus the platform-level approvals routes.
 
     The approval store and tool registry are chosen here, the composition root, and reached by routes through
     `Depends`. By default both come from the Postgres-backed runtime, opened at startup and closed at
-    shutdown. Tests pass `approvals` and/or `registry` (e.g. an in-memory `ApprovalGate`) to skip the
-    database; a route whose dependency was not passed fails if called.
+    shutdown. Tests pass `approvals`, `registry` and/or `audit` (e.g. an in-memory `ApprovalGate`) to skip the
+    database; a route whose dependency was not passed fails if called, except `audit`, which then records nothing.
     """
     configure_logging()
     configure_tracing(config.OTEL_TRACES_EXPORTER)
@@ -71,6 +77,8 @@ def create_app(approvals: ExecutableApprovalStore | None = None, registry: ToolD
             app.state.approvals = approvals
         if registry is not None:
             app.state.registry = registry
+        if audit is not None:
+            app.state.audit = audit
     app.add_exception_handler(BudgetExceededError, _budget_exceeded)
     app.include_router(claims_triage_router)
     app.include_router(approvals_router)

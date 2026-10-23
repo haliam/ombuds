@@ -71,7 +71,7 @@ where p.claim_id is null;
 
 ## 4. The audit trail
 
-`kind` is one of `tool_call`, `policy_decision`, `approval_submitted`, `approval_approved`, `approval_executed` (and `approval_denied` for refusals).
+`kind` is one of `tool_call`, `policy_decision`, `approval_submitted`, `approval_approved`, `approval_executed` (and `approval_denied` for refusals), `tool_refused` (the agent asked for a tool outside its set) and `injection_escalation` (a claim escalated before the model).
 
 ```sql
 -- latest activity

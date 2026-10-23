@@ -20,6 +20,8 @@ class AuditKind(StrEnum):
     APPROVAL_APPROVED = "approval_approved"
     APPROVAL_DENIED = "approval_denied"
     APPROVAL_EXECUTED = "approval_executed"
+    TOOL_REFUSED = "tool_refused"
+    INJECTION_ESCALATION = "injection_escalation"
 
 
 class AuditEvent(BaseModel):
@@ -31,7 +33,8 @@ class AuditEvent(BaseModel):
     subject: str
     """The tool name or guarded action the event is about."""
     outcome: str
-    """`ok`/`error` for a tool call, `allow`/`deny` for a policy verdict, the new status for an approval."""
+    """`ok`/`error` for a tool call, `allow`/`deny` for a policy verdict, the new status for an approval,
+    `refused` for an out-of-scope tool call, `escalated` for an injection escalation."""
     claim_id: str | None = None
     approval_request_id: str | None = None
     detail: dict[str, JsonValue] = {}
