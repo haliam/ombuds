@@ -34,7 +34,7 @@ Each diagram is `MAJOR.MINOR` with a date, shown in the page header and in the d
 | [SSE Event Order](sse-event-order/README.md) | 1.0 | 2026-10-18 | Mermaid | ADR-0007 |
 | [Docker Compose Startup](compose-startup/README.md) | 1.1 | 2026-10-22 | Mermaid | ADR-0015 |
 | [Memory Flow](memory-flow/README.md) | 1.0 | 2026-10-18 | Mermaid | ADR-0009 |
-| [Prompt Versioning](prompt-versioning/README.md) | 1.0 | 2026-10-18 | Mermaid | none |
+| [Prompt Versioning](prompt-versioning/README.md) | 1.1 | 2026-10-23 | Mermaid | none |
 | [Injection Detection Internals](injection-detection/README.md) | 1.0 | 2026-10-18 | Mermaid | ADR-0014 |
 
 ## Which tool
