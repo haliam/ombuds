@@ -1,5 +1,6 @@
 """Integration fixtures: a real Postgres + pgvector (docker compose `db` service, or `DATABASE_URL`)."""
 
+import os
 from collections.abc import Iterator
 
 import psycopg
@@ -20,7 +21,10 @@ def pool() -> Iterator[Pool]:
         db_pool = create_pool(config.database_url(), max_size=10)
         db_pool.wait(timeout=5)
     except (psycopg.OperationalError, PoolTimeout) as exc:
-        pytest.skip(f"Postgres not reachable ({exc}); run `docker compose up -d --wait db`")
+        unreachable = f"Postgres not reachable ({exc}); run `docker compose up -d --wait db`"
+        if os.environ.get("CI"):
+            pytest.fail(unreachable)  # a silent skip would let CI pass without testing anything
+        pytest.skip(unreachable)
     apply_migrations(db_pool)
     yield db_pool
     db_pool.close()

@@ -18,7 +18,8 @@ Keep this section accurate or delete a stale line — a wrong command here is wo
 - `make ingest` → starts the db, then chunks + embeds `verticals/airline/kb_seed/*.md` into pgvector (needs `OPENAI_API_KEY`); safe to re-run
 - `make test-policy` → `opa check` + Rego unit tests (`*_test.rego`) in the OPA container; `make opa-up` starts the OPA server on :8181 (`make test-integration` does it too; `make up` includes it). `PAYOUT_LIMIT_EUR` (default 400) is the payout ceiling
 - `OTEL_TRACES_EXPORTER=console` (or `otlp` + `OTEL_EXPORTER_OTLP_ENDPOINT`) → emit spans for LLM turns, tool calls and policy checks (ADR-0017); default `none`
-- `uv run pre-commit install` → one-time, runs the same checks on every commit
+- `uv run pre-commit install` → one-time, runs the same checks (plus gitleaks) on every commit
+- `.github/workflows/ci.yml` → on PRs and `main`: `make test`, `make test-policy` + `tests/integration` (pgvector service + OPA container; under `CI` an unreachable service fails the suite instead of skipping), and a gitleaks scan. GitHub secret scanning push protection is enabled on the repo
 - `make eval` → `make ingest`, then `python -m evals.run_evals`: retrieval hit@k/MRR per relevance floor over `evals/datasets/airline_retrieval.jsonl` (needs `OPENAI_API_KEY`; prints a report, never fails)
 - `make up` → `docker compose up --build -d --wait`: db, a one-shot `migrate-ingest` (migrations + KB ingest, needs `OPENAI_API_KEY` in `.env`), then the API on `localhost:8000` (needs `ANTHROPIC_API_KEY` too); `make down` stops it.. Approvals live in Postgres, so the API holds no per-process approval state
 - `python -m ombuds.platform.mcp.server` → the standalone MCP server over stdio (same Postgres-backed approvals as the API; needs the db up). API app factory: `create_app()` in `src/ombuds/api_app.py`

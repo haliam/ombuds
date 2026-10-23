@@ -6,7 +6,7 @@ How to run, debug and work on ombuds day to day. Run `make help` for the live li
 
 1. `cp .env.example .env`, then fill in `ANTHROPIC_API_KEY` and `OPENAI_API_KEY` (OpenAI is used for embeddings) and replace `change-me` with a password of your choice in both `POSTGRES_PASSWORD` and `DATABASE_URL` (URL-safe characters only). There is no default: compose refuses to start without `POSTGRES_PASSWORD`, and the app refuses to start without `DATABASE_URL`. `OMBUDS_ALLOW_DEV_DEFAULTS=1` opts in to a throwaway `ombuds:ombuds` URL for the app only. Also set `OMBUDS_TRIAGE_TOKEN`, `OMBUDS_APPROVER_TOKEN` (different values) and `OMBUDS_APPROVER`; with any unset the API answers 503 (ADR-0019). The password is applied when the Postgres volume is first created, so after changing it run `make db-reset`.
 2. `uv sync` installs dependencies (`make` targets also do this on first run).
-3. `uv run pre-commit install` runs the same checks on every commit.
+3. `uv run pre-commit install` runs the same checks on every commit, including a gitleaks secret scan. CI (`.github/workflows/ci.yml`) repeats them and adds the integration and policy tests.
 
 ## Run the app
 
