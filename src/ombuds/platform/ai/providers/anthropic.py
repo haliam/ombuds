@@ -11,7 +11,7 @@ from ombuds.platform.ai.usage import TokenUsage
 
 DEFAULT_TIMEOUT_SECONDS = 30.0
 DEFAULT_MAX_RETRIES = 2
-DEFAULT_MAX_TOKENS = 1024
+DEFAULT_MAX_TOKENS = 4096
 
 # Anthropic SDK exceptions that mean "this model is unavailable right now", once the SDK client's own
 # retries (see AnthropicProvider.__init__) are already exhausted — connection failures/timeouts, rate

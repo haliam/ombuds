@@ -11,7 +11,7 @@ Before the first real end-to-end run, nothing bounded spend except `MAX_TOOL_TUR
 - **A ledger and a decorator.** `UsageBudget` keeps running tokens and estimated USD (a price table in `config.py`; unknown models are charged at a high price). `BudgetedProvider` wraps each concrete adapter, refuses a turn with `BudgetExceededError` once either cap is reached, and charges the reported usage after the turn. It sits inside `TracedProvider` and outside nothing else, so a failover is charged at the fallback model's price.
 - **One ledger per process**, from `process_budget()`, because `run_triage` builds a provider per request. Caps are `LLM_BUDGET_MAX_USD` (default 1.00) and `LLM_BUDGET_MAX_TOKENS` (default 500000).
 - **HTTP behaviour.** `BudgetExceededError` becomes a 429 from the app, or an `error` frame on the SSE stream. `FallbackProvider` does not catch it, so it never fails over to a cheaper model.
-- **Output cap** is configurable (`ANTHROPIC_MAX_TOKENS`, default unchanged at 1024).
+- **Output cap** is configurable (`ANTHROPIC_MAX_TOKENS`, default 4096, raised from 1024 because truncation means escalation).
 
 ## Consequences
 - Safe by default: a fresh checkout cannot spend more than the default caps per process.
