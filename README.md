@@ -58,6 +58,7 @@ More diagrams: [guardrails pipeline](docs/diagrams/guardrails-pipeline/README.md
 | `make test` | Lint (ruff, mypy strict), then unit tests |
 | `make test-integration` | Real Postgres/pgvector and a real MCP round-trip, LLM mocked |
 | `make eval` | Retrieval hit@k / MRR over `evals/datasets/` (needs `OPENAI_API_KEY`; prints a report, never fails) |
+| `make eval-agent` | Runs the real agent over 19 labelled claims and reports outcome and verdict accuracy (needs `ANTHROPIC_API_KEY` and `OPENAI_API_KEY`; spends money; prints a report, never fails) |
 
 ## Trade-offs
 
@@ -84,7 +85,7 @@ Each row is a real choice between alternatives, with what was given up. The full
 - **One vertical.** Only airline EU261 exists. The seam for a second vertical is structural, not yet exercised by a second implementation.
 - **Shared static tokens.** The API uses one bearer token for triage and one for approve/deny (ADR-0019), and fails closed when they are unset. All approvers share one token and recorded name; there is no per-person identity or TLS.
 - **PII and injection defences are heuristics.** See the trade-off rows above for what they miss.
-- **Retrieval is measured, not tuned.** `make eval` reports retrieval quality; there is no end-to-end answer-quality eval yet.
+- **Retrieval is measured, not tuned.** `make eval` reports retrieval quality and `make eval-agent` reports how often the agent reaches the right outcome and verdict; neither gates CI.
 
 ## Why airline claims (EU261)
 

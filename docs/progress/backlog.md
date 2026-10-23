@@ -5,7 +5,6 @@ The three stage reviews (`w1_review_pre_w2_plan.md`, `w2_review_pre_w3_plan.md`,
 | Item | Origin | Status in code |
 |---|---|---|
 | Auth on `/approvals/*`, with `approver` derived from the token | W3 F-03, W2 F-13 | No token check; `approver` is self-declared, so audit rows record an unverified actor |
-| Agent-level eval dataset (claim text → expected eligibility/escalation) | W3 F-07, W1 F-11 | `evals/datasets/airline_claims.jsonl` is empty; only retrieval is evaluated |
 | CI (lint + unit; integration with a pgvector service) | W3 F-10, W2 O-4 | No `.github/workflows` |
 | Delete dead stubs (`db_models.py`, `application/policies.py`) | W3 F-11 | Still one-line stubs; `tests/e2e/*` are placeholders for the compose smoke test |
 | Pin the `uv` image tag in the Dockerfile | W3 F-11 | `ghcr.io/astral-sh/uv:latest` |
@@ -20,7 +19,7 @@ Full detail in [`w4_review_pre_w5_plan.md`](w4_review_pre_w5_plan.md). The four 
 
 | Item | Origin | Status in code |
 |---|---|---|
-| Agent-level eval dataset and runner | W4 O-1 (W3 F-07) | Same gap as above; tracing now exists to record runs. The strongest W5 candidate |
+| ~~Agent-level eval dataset and runner~~ | W4 O-1 (W3 F-07) | Done in W6: `make eval-agent` |
 | ~~Explicit `env` for the MCP subprocess~~ | W4 F-05 | Done: `McpToolClient` passes the full parent environment (de00717), so `DATABASE_URL`, `OPA_*`, `PAYOUT_LIMIT_EUR` and `OTEL_*` reach the child; no explicit allowlist needed |
 | ~~Audit the out-of-scope tool call and the injection escalation; span the approvals routes; fix the "must not proceed unaudited" docstring~~ | W4 F-06 | Done in W6 (migration 0004, ADR-0016 amended) |
 | Pin `@scalar/api-reference` and add an OPA healthcheck | W4 F-08 | `/scalar` loads an unpinned CDN script; `api` waits for OPA only with `service_started` |

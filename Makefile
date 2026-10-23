@@ -1,4 +1,4 @@
-.PHONY: help up down logs ps run lint format test db-up db-down db-reset test-integration test-policy opa-up ingest eval
+.PHONY: help up down logs ps run lint format test db-up db-down db-reset test-integration test-policy opa-up ingest eval eval-agent
 
 help: # list the targets and what they do
 	@grep -E '^[a-z-]+:.*# ' $(MAKEFILE_LIST) | sed -E 's/^([a-z-]+):[^#]*# (.*)/\1\t\2/' | column -t -s "$$(printf '\t')"
@@ -54,3 +54,6 @@ ingest: db-up # chunk + embed the KB seed documents into pgvector (needs OPENAI_
 
 eval: ingest # retrieval eval over the ingested KB: metrics per relevance floor (needs OPENAI_API_KEY)
 	uv run python -m evals.run_evals
+
+eval-agent: ingest # agent eval: real model runs over evals/datasets/airline_claims.jsonl; costs money (needs ANTHROPIC_API_KEY, OPENAI_API_KEY)
+	uv run python -m evals.run_agent_evals
