@@ -94,5 +94,5 @@ Update this script when each lands.
 ## Planned: Week 6 (guardrails, measurement, cleanup)
 
 - **Complete audit trail.** Out-of-scope tool calls and injection escalations appear in `audit_log`; replace the "expected" wording in section 5 with the real row.
-- **Agent-level eval.** Run the claims eval (`evals/datasets/airline_claims.jsonl`, currently empty) and show the score table.
+- **Agent-level eval.** Run `make eval-agent` (`evals/datasets/airline_claims.jsonl`) and show the outcome and verdict scores and the misses. It spends real money, so run it before the demo, not during.
 - **CI.** Show a green pipeline (lint, unit, integration, gitleaks) as the closing slide.

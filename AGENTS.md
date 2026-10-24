@@ -10,7 +10,7 @@ Python ≥3.11 · FastAPI · LangGraph · MCP · PostgreSQL + pgvector (or Chrom
 
 ## Commands
 Keep this section accurate or delete a stale line — a wrong command here is worse than no command.
-**Status (2026-10-15):** `make test-policy`, `make opa-up`, `make test`, `make lint`, `make format`, `make db-up`/`db-down`, `make test-integration`, `make ingest`, `make eval`, `make up` and `make down` are wired. Add a command here only once it actually works.
+**Status (2026-10-15):** `make test-policy`, `make opa-up`, `make test`, `make lint`, `make format`, `make db-up`/`db-down`, `make test-integration`, `make ingest`, `make eval`, `make eval-agent`, `make up` and `make down` are wired. Add a command here only once it actually works.
 - Developer guide (run, debug, commands, working rules): `docs/guide/developer-guide.md`; `make help` lists the targets. Also wired: `make logs`, `make ps`, `make run` (API with reload, outside Docker) and `make db-reset` (destructive: deletes the Postgres volume).
 - `make test` → `make lint` then `uv run pytest tests/unit` (uv creates `.venv` and installs deps on first run)
 - `make lint` → `ruff check` + `ruff format --check` + `mypy`; `make format` → ruff auto-fix. Config in `pyproject.toml`
@@ -21,6 +21,7 @@ Keep this section accurate or delete a stale line — a wrong command here is wo
 - `uv run pre-commit install` → one-time, runs the same checks (plus gitleaks) on every commit
 - `.github/workflows/ci.yml` → on PRs and `main`: `make test`, `make test-policy` + `tests/integration` (pgvector service + OPA container; under `CI` an unreachable service fails the suite instead of skipping), and a gitleaks scan. GitHub secret scanning push protection is enabled on the repo
 - `make eval` → `make ingest`, then `python -m evals.run_evals`: retrieval hit@k/MRR per relevance floor over `evals/datasets/airline_retrieval.jsonl` (needs `OPENAI_API_KEY`; prints a report, never fails)
+- `make eval-agent` → `make ingest`, then `python -m evals.run_agent_evals`: runs the real agent over `evals/datasets/airline_claims.jsonl` (claim text → expected outcome: decision, clarify or escalate; expected verdicts are computed from gold facts by the rules engine) and prints outcome/verdict accuracy plus the misses (needs `ANTHROPIC_API_KEY` and `OPENAI_API_KEY`; costs money; never fails). Run it before making a new prompt version live
 - `make up` → `docker compose up --build -d --wait`: db, a one-shot `migrate-ingest` (migrations + KB ingest, needs `OPENAI_API_KEY` in `.env`), then the API on `localhost:8000` (needs `ANTHROPIC_API_KEY` too); `make down` stops it.. Approvals live in Postgres, so the API holds no per-process approval state
 - `python -m ombuds.platform.mcp.server` → the standalone MCP server over stdio (same Postgres-backed approvals as the API; needs the db up). API app factory: `create_app()` in `src/ombuds/api_app.py`
 

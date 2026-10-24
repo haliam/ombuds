@@ -59,6 +59,7 @@ Once the API is up (`/claims*` needs `Authorization: Bearer $OMBUDS_TRIAGE_TOKEN
 | `make test-policy` | `opa check --strict` and the Rego unit tests, run in the OPA container. |
 | `make ingest` | Chunks and embeds `verticals/airline/kb_seed/*.md` into pgvector. Needs `OPENAI_API_KEY`. Safe to re-run. |
 | `make eval` | Runs ingest, then prints retrieval metrics. Never fails the build. |
+| `make eval-agent` | Runs ingest, then the real agent over `evals/datasets/airline_claims.jsonl` and prints outcome/verdict accuracy and the misses. Spends real money against the process cap (ADR-0018). Never fails the build. |
 
 ## Docker
 

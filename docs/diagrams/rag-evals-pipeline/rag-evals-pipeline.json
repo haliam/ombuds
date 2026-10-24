@@ -2,14 +2,14 @@
  "schema_version": 1,
  "diagram_type": "dataflow",
  "meta": {
-  "title": "RAG Ingest, Retrieval and Evals · v1.0 · 2026-10-18",
+  "title": "RAG Ingest, Retrieval and Evals · v1.1 · 2026-10-23",
   "output": "docs/diagrams/rag-evals-pipeline/rag-evals-pipeline.html",
   "quality_profile": "showcase",
   "repository": {
    "url": "https://github.com/haliam/ombuds.git",
    "provider": "github",
    "link_mode": "web",
-   "revision": "b78ae9fac441804e076ed96c6b239128a19226be"
+   "revision": "6a738dcf9453680e7e84e4da5e932e167a2ae974"
   }
  },
  "stages": [
@@ -278,7 +278,7 @@
    "dot": "rose",
    "title": "Not built yet",
    "items": [
-    "No end-to-end agent or prompt eval: evals/datasets/airline_claims.jsonl is empty, though prompt versioning depends on one",
+    "Agent eval (make eval-agent) is manual and never gates CI, so a prompt change is not blocked by a score drop",
     "Embedding-provider outages surface to the agent as a tool error result"
    ]
   }

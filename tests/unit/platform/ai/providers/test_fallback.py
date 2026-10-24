@@ -2,6 +2,7 @@ from collections.abc import Iterator, Sequence
 
 import pytest
 
+from ombuds.platform.ai.budget import BudgetExceededError
 from ombuds.platform.ai.providers.base import ProviderTurn, ProviderUnavailableError
 from ombuds.platform.ai.providers.fallback import FallbackProvider
 from ombuds.platform.ai.schemas.tool_calls import ToolDefinition
@@ -145,4 +146,29 @@ def test_stream_turn_propagates_non_provider_unavailable_errors_without_fallback
     with pytest.raises(ValueError, match="not a provider-availability problem"):
         list(provider.stream_turn([], [], system="s"))
 
+    assert fallback.calls == 0
+
+
+def test_run_turn_does_not_fail_over_on_budget_exceeded() -> None:
+    """ADR-0018: a spent budget must not be dodged by switching to the fallback model."""
+    primary = _FailingProvider(BudgetExceededError("cap reached"))
+    fallback = _OkProvider()
+    provider = FallbackProvider(primary, fallback, max_attempts=3, sleep=_no_sleep)
+
+    with pytest.raises(BudgetExceededError):
+        provider.run_turn([], [], system="s")
+
+    assert primary.calls == 1
+    assert fallback.calls == 0
+
+
+def test_stream_turn_does_not_fail_over_on_budget_exceeded() -> None:
+    primary = _FailingProvider(BudgetExceededError("cap reached"))
+    fallback = _OkProvider()
+    provider = FallbackProvider(primary, fallback, max_attempts=3, sleep=_no_sleep)
+
+    with pytest.raises(BudgetExceededError):
+        list(provider.stream_turn([], [], system="s"))
+
+    assert primary.calls == 1
     assert fallback.calls == 0
