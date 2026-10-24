@@ -31,7 +31,7 @@ Keep this section accurate or delete a stale line — a wrong command here is wo
 - `domain/` — shared business models (`models/claim.py`, `enums.py`) and `errors.py`. No LLM, agent, HTTP or DB concerns.
 - `features/claims_triage/` — everything specific to the one feature:
   - `verticals/airline/` — `rules.py` (EU261 tiers, exemptions), `evidence_schema.py`, `kb_seed/`. Only `airline/` exists; no vertical registry/ABC until a second one does.
-  - `application/` — `triage_use_case.py` (orchestrates a triage), `runtime.py` (builds the Postgres-backed approval store + tool registry for a composition root), `executors.py` (what runs once a request is approved) and `policies.py` (empty scaffold for feature-specific approval rules).
+  - `application/` — `triage_use_case.py` (orchestrates a triage), `runtime.py` (builds the Postgres-backed approval store + tool registry for a composition root), `executors.py` (what runs once a request is approved).
   - `agent/` — LangGraph `graph.py` (the model/tool loop only: no checkpointer, no approval node; ADR-0001), `state.py`, `nodes/` (`escalate_retry` only — classify/retrieve/decide happen inside the model's tool loop and `finalize`), `memory/`.
   - `rag/` — chunking, embeddings, ingest, retrieval, citation.
   - `tools/` — `search_kb`, `check_eligibility`, `log_claim`, `issue_payment`. Dispatch into `verticals/` and `domain/`; never contain business rules themselves.
