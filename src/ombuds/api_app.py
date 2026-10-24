@@ -28,7 +28,7 @@ _SCALAR_HTML = """<!doctype html>
   </head>
   <body>
     <script id="api-reference" data-url="/openapi.json"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@scalar/api-reference"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@scalar/api-reference@1.76.0"></script>
   </body>
 </html>
 """

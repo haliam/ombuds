@@ -76,7 +76,7 @@ Same rule: one bullet, one branch, one chat. Order is by importance.
 - [x] Give the MCP subprocess its configuration: it inherits the full parent environment (de00717); an explicit allowlist was dropped as unnecessary, since the server is our own code
 - [x] Raise the `ANTHROPIC_MAX_TOKENS` default from 1024 to 4096 (already configurable since ADR-0018)
 - [x] Pin the two ADR-0018 claims with unit tests: a `BudgetExceededError` does not fail over to the fallback model, and `process_budget()` returns one shared ledger
-- [ ] Repo tidy-up: delete the dead stubs (`db_models.py`, `application/policies.py`), pin the `uv` image and `@scalar/api-reference`, fix the `compare_providers.py` run line
+- [x] Repo tidy-up: delete the dead stubs (`db_models.py`, `application/policies.py`), pin the `uv` image and `@scalar/api-reference`, fix the `compare_providers.py` run line
 - [ ] Final manual checks: skim `docs/diagrams/*.html` for internal paths, confirm provider spend limits
 
 ---

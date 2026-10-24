@@ -5,7 +5,7 @@ layer (platform/ai/providers/). Prints text, latency, and an estimated cost
 side by side so the SDKs can be eyeballed before any shared abstraction gets
 built over them.
 
-Run with: uv run --group scripts python scripts/compare_providers.py
+Run with: uv run python scripts/compare_providers.py
 """
 
 import os
