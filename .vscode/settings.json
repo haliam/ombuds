@@ -10,5 +10,6 @@
   },
   "search.exclude": {
     ".venv": true
-  }
+  },
+  "python.terminal.useEnvFile": true
 }
