@@ -76,4 +76,5 @@ Once the API is up (`/claims*` needs `Authorization: Bearer $OMBUDS_TRIAGE_TOKEN
 - **Limits:** `LLM_BUDGET_MAX_USD` / `LLM_BUDGET_MAX_TOKENS` cap LLM spend per process (ADR-0018); `PAYOUT_LIMIT_EUR` (default 400) caps payouts.
 - **Secrets:** never commit `.env` or real claim data; only `.env.example`.
 - **Read first:** [code-style.md](../code-style.md), the ADRs in [decisions/](../decisions/), and [architecture.md](../architecture.md).
+- **Where things live:** [repo-structure.md](repo-structure.md) lists every source file and what it is for.
 - **Workflow:** one commit per plan task, then stop; the next task goes in a new chat.
