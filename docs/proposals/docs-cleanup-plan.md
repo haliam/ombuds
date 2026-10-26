@@ -1,6 +1,6 @@
 # Docs cleanup plan
 
-**Status: in progress (2026-10-26).** Produced by running [docs-cleanup-prompt.md](docs-cleanup-prompt.md) on branch `docs-simplification`. Done: diagram `.html` removal, first review, W4 order, security-hardening and diagram plans, e2e merge, backlog fold, demo script, rev2, `build_and_explain.md`, `task_summaries.md` trim (78 KB to 33 KB) and glossary check. Open: the development board and the overlapping archify diagrams, `tasks.md` header (Notion source), and deleting this plan when finished.
+**Status: in progress (2026-10-26).** Produced by running the `docs-cleanup` skill (`.claude/skills/docs-cleanup/SKILL.md`) on branch `docs-simplification`. Done: diagram `.html` removal, first review, W4 order, security-hardening and diagram plans, e2e merge, backlog fold, demo script, rev2, `build_and_explain.md`, `task_summaries.md` trim (78 KB to 33 KB) and glossary check. Open: the development board and the overlapping archify diagrams, `tasks.md` header (Notion source), and deleting this plan when finished.
 
 `docs/` is 11 MB and about 3,200 lines of markdown. Roughly 10 MB is diagram binaries (20 diagram folders; the six archify ones are ~1.1 MB each, the development board 2.7 MB). Deleting the diagram `.html` files alone removes 7.4 MB. Everything below was checked against `tasks.md` (W1–W6 ticked, W7 has one open item), the ADR list and inbound links. Where I judged from headers only, it says **unverified**.
 
@@ -26,7 +26,7 @@ Every plan here is finished. The living knowledge already sits in ADRs, `tasks.m
 | `security-hardening.md` | **DELETE** | Status line still says "proposed", but all five tasks shipped: ports and DB default (W5), auth (ADR-0019), gitleaks/CI/push protection and the HTML skim (W6, `tasks.md`). The "weak defaults" it describes no longer exist, so it is misleading as it stands. |
 | `diagram-plan.md` | **DELETE** (after moving 2 lines) | Header says "This plan is history"; ~55 of its 70 lines are the "original plan, for reference". Its status table duplicates `diagrams/README.md`. Keep only: "Not drawn yet: tracing, Rego policy, audit trail, agent-eval flow" — move that to `diagrams/README.md`. Inbound: `diagrams/README.md`? (unverified), `task_summaries.md`. |
 | `e2e-real-case-test.md` | **MERGE** into `progress/e2e-report-2026-10-26.md`, then delete | Done 2026-10-26; the report already states the three cases and results. Keep the plan's "Cost control" and "Not covered, by design" paragraphs as a short "How to rerun" at the top of the report. Inbound: the report (links back). |
-| `docs-cleanup-prompt.md`, this plan | KEEP until executed, then delete the plan | New. |
+| this plan | KEEP until the cleanup is done, then delete | The prompt became the `docs-cleanup` skill. |
 
 After this the folder holds only live proposals (none right now); keep the folder for future ones.
 
