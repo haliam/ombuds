@@ -1,6 +1,6 @@
 # ombuds — Build Task List
 
-Extracted from the "🤖 AI Build" view of the AI Interview Notion database (snapshot — re-extract if the Notion board has moved on since this was pulled). Priority is tracked on the Notion board, not duplicated here; checkboxes below just track done vs. not.
+This file is the source of truth for the build tasks; the repo, not Notion, is where progress is tracked. It started as an extract of the "🤖 AI Build" view of the AI Interview Notion database (last synced 2026-09-24); the Notion board has not been updated since and is no longer synced. Checkboxes track done vs. not.
 
 ## Week 1 — Raw API Fundamentals + Engineering Foundation
 
@@ -96,6 +96,6 @@ Open items with no week yet, from the W1–W4 reviews and the [e2e run](../repor
 
 ---
 
-Tool names follow ADR-0004 (EU261 tool set, not generic helpdesk tools). Last synced with Notion 2026-09-24.
+Tool names follow ADR-0004 (EU261 tool set, not generic helpdesk tools).
 
 Per-task recaps (goal, files touched, libraries used) live in [`task_summaries.md`](task_summaries.md) — each item with a summary link above points to its entry. Library/framework glossary lives separately in [`glossary.md`](glossary.md).

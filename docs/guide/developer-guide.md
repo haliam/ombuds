@@ -1,6 +1,6 @@
 # Developer guide
 
-How to run, debug and work on ombuds day to day. Run `make help` for the live list of targets. The `make` targets are defined in the [Makefile](../Makefile); the rest are tools you run directly.
+How to run, debug and work on ombuds day to day. Run `make help` for the live list of targets. The `make` targets are defined in the [Makefile](../../Makefile); the rest are tools you run directly.
 
 ## First-time setup
 
@@ -75,5 +75,5 @@ Once the API is up (`/claims*` needs `Authorization: Bearer $OMBUDS_TRIAGE_TOKEN
 - **Prompts:** versioned files in `src/ombuds/platform/prompts/claims_triage/` (v4 is live). Bump the version rather than editing in place, and run the evals first.
 - **Limits:** `LLM_BUDGET_MAX_USD` / `LLM_BUDGET_MAX_TOKENS` cap LLM spend per process (ADR-0018); `PAYOUT_LIMIT_EUR` (default 400) caps payouts.
 - **Secrets:** never commit `.env` or real claim data; only `.env.example`.
-- **Read first:** [code-style.md](code-style.md), the ADRs in [decisions/](decisions/), and [architecture.md](architecture.md).
+- **Read first:** [code-style.md](../code-style.md), the ADRs in [decisions/](../decisions/), and [architecture.md](../architecture.md).
 - **Workflow:** one commit per plan task, then stop; the next task goes in a new chat.
