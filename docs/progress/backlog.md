@@ -12,7 +12,7 @@ Not re-verified: small W1/W2 hygiene items (`McpToolClient` enter leak, `Fallbac
 
 ## Added from `/codebase-review W4 W5` (2026-10-18)
 
-Full detail in [`w4_review_pre_w5_plan.md`](w4_review_pre_w5_plan.md). The four required pre-W5 tasks (P-1 to P-4: approval recovery route, loopback ports and OPA exposure, `/approvals` auth, docs reconciliation) are tracked there, not here. The optional items are:
+Full detail in the first W4 review (git history, `360b5c5`). The four required pre-W5 tasks (P-1 to P-4: approval recovery route, loopback ports and OPA exposure, `/approvals` auth, docs reconciliation) are tracked there, not here. The optional items are:
 
 | Item | Origin | Status in code |
 |---|---|---|

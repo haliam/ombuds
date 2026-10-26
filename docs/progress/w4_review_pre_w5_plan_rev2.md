@@ -2,7 +2,7 @@
 
 _Reviewed 2026-10-21 on branch `main` @ `3e1746f`. `make lint`: **fails**, 2 × E501 (ruff format and mypy strict are clean on 182 files). `tests/unit`: 355 passed. Integration/e2e: read only (they need Docker and keys). No `.codegraph/` index exists, so I used grep and direct reads._
 
-**Stage inference and file name.** No arguments were given. `tasks.md` has Weeks 1–4 fully checked and Week 5 untouched, so this is W4 done, W5 next. `w4_review_pre_w5_plan.md` already exists (2026-10-18, `360b5c5`), so I wrote this one beside it instead of overwriting it. It is a refresh: the earlier review's four required tasks became the W5 plan in `tasks.md`, and none has landed yet. The only code change since that review is ADR-0018 (the LLM spend cap, plus a configurable `ANTHROPIC_MAX_TOKENS`). Everything else since is docs and diagrams.
+**Stage inference and file name.** No arguments were given. `tasks.md` has Weeks 1–4 fully checked and Week 5 untouched, so this is W4 done, W5 next. The first review exists only in git history (2026-10-18, `360b5c5`), so I wrote this one beside it instead of overwriting it. It is a refresh: the earlier review's four required tasks became the W5 plan in `tasks.md`, and none has landed yet. The only code change since that review is ADR-0018 (the LLM spend cap, plus a configurable `ANTHROPIC_MAX_TOKENS`). Everything else since is docs and diagrams.
 
 ---
 

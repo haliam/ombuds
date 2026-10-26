@@ -629,7 +629,7 @@ Template — copy this block per finished task, filling in the fields (omit **De
 
 **Week:** W6
 **Goal:** Record the two refusals the audit could not see, give approval decisions a trace id, and stop the docstring overpromising.
-**Source:** `w4_review_pre_w5_plan.md` (F-06)
+**Source:** the first W4 review (F-06; git history, `360b5c5`)
 
 **Files & responsibilities:**
 - `migrations/0004_audit_refusals.sql` — widens the `kind` `CHECK` with `tool_refused` and `injection_escalation`.
