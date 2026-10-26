@@ -1,6 +1,6 @@
 # Docs cleanup plan
 
-**Status: proposed (2026-10-26).** Produced by running [docs-cleanup-prompt.md](docs-cleanup-prompt.md) on branch `docs-simplification`. Nothing here is applied yet.
+**Status: in progress (2026-10-26).** Produced by running [docs-cleanup-prompt.md](docs-cleanup-prompt.md) on branch `docs-simplification`. Done: diagram `.html` removal, first review, W4 order, security-hardening and diagram plans, e2e merge, backlog fold, demo script, rev2, `build_and_explain.md`, `task_summaries.md` trim (78 KB to 33 KB) and glossary check. Open: the development board and the overlapping archify diagrams, `tasks.md` header (Notion source), and deleting this plan when finished.
 
 `docs/` is 11 MB and about 3,200 lines of markdown. Roughly 10 MB is diagram binaries (20 diagram folders; the six archify ones are ~1.1 MB each, the development board 2.7 MB). Deleting the diagram `.html` files alone removes 7.4 MB. Everything below was checked against `tasks.md` (W1–W6 ticked, W7 has one open item), the ADR list and inbound links. Where I judged from headers only, it says **unverified**.
 
