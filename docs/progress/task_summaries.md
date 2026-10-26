@@ -413,7 +413,7 @@ Template (omit **Decisions** and **Follow-up** when there is nothing non-obvious
 **Goal:** Give the project a readable front door: diagrams traced from the code, and a README that states the problem, design and trade-offs without claiming anything unbuilt.
 
 **Files:**
-- `docs/diagrams/architecture/`, `triage-approval-flow/` — a component view and a sequence view (archify), pinned to a commit. The development-overview boards were added afterwards.
+- `docs/diagrams/architecture/`, `triage-approval-flow/` — a component view and a sequence view (archify), pinned to a commit. The development-overview board was added afterwards (since redrawn as one board, v2.0).
 - `docs/architecture.md`, `README.md` — embeds the diagrams and a component table; the README is Problem, Design, Trade-offs (linking each ADR) and Known limitations.
 
 **Notable libraries:** archify (Claude Code skill).

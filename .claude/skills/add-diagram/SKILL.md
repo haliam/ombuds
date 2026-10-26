@@ -23,7 +23,6 @@ Copy `_template.md` and fill every section; the template holds the layout and th
 - Version `1.0` for a new diagram; pinned commit from `git rev-parse --short HEAD`.
 - The interviewer text always names a trade-off and an honest "not built yet" gap.
 - Check both explanation texts with `wc -w` and stay inside the template's ranges.
-- `development-overview` is a two-board page and is exempt from the single-header template; don't copy its shape.
 
 ## 4. Wire it in (same commit)
 - Add a row to the index table in `docs/diagrams/README.md` (title, version, date, tool, decisions).
