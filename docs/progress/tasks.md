@@ -87,7 +87,7 @@ Same rule: one bullet, one branch, one chat. More items will land here.
 
 ## Later
 
-Open items with no week yet, from the W1–W4 reviews and the [e2e run](e2e-report-2026-10-26.md). The review files are in git history.
+Open items with no week yet, from the W1–W4 reviews and the [e2e run](../reports/e2e-report-2026-10-26.md). The review files are in git history.
 
 - [ ] Prompt v5: require `log_claim` after an eligible decision (v4 only says it "records a decision", so a plain "do I get compensation?" claim persisted nothing). Run `make eval-agent` before it goes live
 - [ ] Stamp the run's `claim_id` on every audit row (`scope_for_agent`), so `check_eligibility` and `search_kb` rows can be tied to their claim
