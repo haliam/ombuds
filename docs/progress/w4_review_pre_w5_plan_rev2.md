@@ -226,7 +226,7 @@ W4's four tasks were assessed in the 2026-10-18 review and the code has not chan
 | O-2 | Use the shape in F-03 for auth (one `auth.py`, overridable settings function, routers not app, `/openapi.json` open) | Inside W5 task 3 |
 | O-3 | Compose password from one `POSTGRES_PASSWORD`, `config.py` raises at use unless a dev flag is set (F-04). Run after the ports task | Inside W5 task 4 |
 | O-4 | Two tests pinning ADR-0018 (no failover on budget, one shared ledger) (F-06) | Any time; ~15 minutes |
-| O-5 | Remove the stale "O-3 `ANTHROPIC_MAX_TOKENS`" line in `backlog.md` | With the W5 docs task |
+| O-5 | Remove the stale "O-3 `ANTHROPIC_MAX_TOKENS`" line in `tasks.md (Later)` | With the W5 docs task |
 | O-6 | Execute W5 in this order: ports → recovery route → auth → DB default → README | Planning only |
 
 ---

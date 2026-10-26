@@ -34,7 +34,7 @@ Extracted from the "🤖 AI Build" view of the AI Interview Notion database (sna
 - [x] Add prompt-injection test cases — [summary](task_summaries.md#add-prompt-injection-test-cases)
 - [x] Write integration test for `/triage` end-to-end — [summary](task_summaries.md#write-integration-test-for-triage-end-to-end)
 
-## Pre-W4 refactor (W3 review) — plan removed, see git history; open leftovers in [backlog.md](backlog.md)
+## Pre-W4 refactor (W3 review) — plan removed, see git history; open leftovers in [Later](#later)
 
 - [x] P-1 — Composition-root wiring: approval store, pool and registry injected, `_GATE` removed — [summary](task_summaries.md#pre-w4-refactor-w3-review)
 - [x] P-2 — Executors, durable `claims`, `payments` migration, ADR-0009 addendum — [summary](task_summaries.md#pre-w4-refactor-w3-review)
@@ -50,7 +50,7 @@ Extracted from the "🤖 AI Build" view of the AI Interview Notion database (sna
 
 ## Week 5 — Close the governance holes (mandatory)
 
-Each bullet is one goal: one branch, one chat, as many commits as it needs. Detail lives in [backlog.md](backlog.md). Review notes: [w4_review_pre_w5_plan_rev2.md](w4_review_pre_w5_plan_rev2.md). Do them in the order listed (the ports and DB-default tasks both edit `docker-compose.yml`).
+Each bullet is one goal: one branch, one chat, as many commits as it needs. Review notes: [w4_review_pre_w5_plan_rev2.md](w4_review_pre_w5_plan_rev2.md). Do them in the order listed (the ports and DB-default tasks both edit `docker-compose.yml`).
 
 - [x] Make `make lint` green again: wrap the two over-long docstring lines (`api/routes.py:76`, `audit_repository.py:25`)
 - [x] Lock down network exposure: bind db, OPA and API ports to `127.0.0.1`, add an OPA healthcheck so `api` waits on it
@@ -84,6 +84,15 @@ Same rule: one bullet, one branch, one chat. Order is by importance.
 Same rule: one bullet, one branch, one chat. More items will land here.
 
 - [ ] Move provider construction to the composition roots: `build_default_provider()` and `process_budget()` leave `providers/fallback.py` for a `providers/factory.py`; `api_app.create_app()` (and the MCP server, if it needs an LLM) builds the provider and the `UsageBudget` once and injects them; `run_triage` requires a provider (drop the `provider or build_default_provider()` default and the `lru_cache` singleton), so tests stop patching globals
+
+## Later
+
+Open items with no week yet, from the W1–W4 reviews and the [e2e run](e2e-report-2026-10-26.md). The review files are in git history.
+
+- [ ] Prompt v5: require `log_claim` after an eligible decision (v4 only says it "records a decision", so a plain "do I get compensation?" claim persisted nothing). Run `make eval-agent` before it goes live
+- [ ] Stamp the run's `claim_id` on every audit row (`scope_for_agent`), so `check_eligibility` and `search_kb` rows can be tied to their claim
+- [ ] Frozen settings object built once in `create_app()` instead of import-time env reads in `config.py` (W3 F-09)
+- [ ] Unverified small W1/W2 hygiene items: `McpToolClient` enter leak, `FallbackProvider` docstring
 
 ---
 
