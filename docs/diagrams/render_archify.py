@@ -14,7 +14,7 @@ from PIL import Image
 
 OUT = Path("docs/diagrams")
 ARCHIFY = Path.home() / ".claude/skills/archify/bin/archify.mjs"
-TYPES = {"development-overview": "workflow", "guardrails-pipeline": "dataflow", "rag-evals-pipeline": "dataflow", "triage-approval-flow": "sequence", "claim-sequence": "sequence"}
+TYPES = {"development-overview": "workflow", "guardrails-pipeline": "dataflow", "rag-evals-pipeline": "dataflow", "claim-sequence": "sequence"}
 
 
 def crop_to_card(shot: Path, dest: Path) -> None:

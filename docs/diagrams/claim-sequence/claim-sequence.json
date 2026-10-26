@@ -2,13 +2,13 @@
  "schema_version": 1,
  "diagram_type": "sequence",
  "meta": {
-  "title": "Claim Run Sequence · v1.0 · 2026-10-19",
+  "title": "Claim Run Sequence · v1.1 · 2026-10-26",
   "output": "docs/diagrams/claim-sequence/claim-sequence.html",
   "quality_profile": "showcase",
   "repository": {
    "url": "https://github.com/haliam/ombuds.git",
    "provider": "github",
-   "revision": "38ea6731d950393b975234707487a3879ddbab5d"
+   "revision": "314d9a1a3e3794d3d84c1c4441c945bfa6e815b7"
   }
  },
  "participants": [
@@ -148,7 +148,7 @@
    "y": 160,
    "label": "POST /triage",
    "variant": "emphasis",
-   "note": "Guards, claim_id"
+   "note": "Token, guards, claim_id"
   },
   {
    "id": "recall",
@@ -323,7 +323,8 @@
    "to": "api",
    "y": 1198,
    "label": "POST approve",
-   "variant": "security"
+   "variant": "security",
+   "note": "Approver token"
   },
   {
    "id": "exec",
@@ -359,7 +360,8 @@
    "items": [
     "Triage only submits a pending request",
     "A human approval later runs the executor once",
-    "OPA can deny at submit, so no request exists"
+    "OPA can deny at submit, so no request exists",
+    "A failed executor stays approved; /execute retries"
    ]
   },
   {

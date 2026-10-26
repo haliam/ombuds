@@ -19,12 +19,11 @@ Each diagram is `MAJOR.MINOR` with a date, shown in the page header and in the d
 | Diagram | Ver | Date | Tool | Decisions |
 |---|---|---|---|---|
 | [Ombuds Claims Triage](architecture/README.md) | 1.2 | 2026-10-22 | archify | ADR-0001, 0002, 0009, 0015, 0016, 0017, 0019 |
-| [Triage and Approval Flow](triage-approval-flow/README.md) | 1.1 | 2026-10-22 | archify | ADR-0009, 0014, 0019 |
 | [Guardrails and Tool Scoping Pipeline](guardrails-pipeline/README.md) | 1.1 | 2026-10-22 | archify | ADR-0013, 0014, 0015 |
 | [RAG Ingest, Retrieval and Evals](rag-evals-pipeline/README.md) | 1.1 | 2026-10-23 | archify | ADR-0010, 0011, 0012 |
 | [MCP Process Boundary](mcp-boundary/README.md) | 1.0 | 2026-10-18 | archify | ADR-0003 |
 | [Claim Artifact Map](artifact-map/README.md) | 1.1 | 2026-10-23 | archify | ADR-0003, 0009, 0010, 0015, 0016, 0017 |
-| [Claim Run Sequence](claim-sequence/README.md) | 1.0 | 2026-10-19 | archify | ADR-0009, 0012, 0014, 0015 |
+| [Claim Run Sequence](claim-sequence/README.md) | 1.1 | 2026-10-26 | archify | ADR-0009, 0012, 0014, 0015, 0019 |
 | [Ombuds Development Board](development-overview/README.md) | 2.0 | 2026-10-26 | archify | ADR-0001 to 0019 |
 | [Postgres Data Model](data-model/README.md) | 1.1 | 2026-10-22 | Mermaid | ADR-0009, 0010, 0016 |
 | [Layering and Composition Roots](layering/README.md) | 1.0 | 2026-10-18 | Mermaid | ADR-0002, 0003 |

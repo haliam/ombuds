@@ -36,7 +36,7 @@ A claim comes in — for example, a flight cancellation compensation claim. Ombu
 6. **Gates risky actions behind a human.** A state-changing tool call (`log_claim` today; `issue_payment`, which the agent is never offered) only *submits* a payload-bound approval request, made of server-issued and rules-derived values, never model-authored ones. It does this whatever the model's confidence. An OPA/Rego policy (ADR-0015) is checked at submit and refuses any payout above `PAYOUT_LIMIT_EUR` outright, so it never reaches the human queue; if OPA is down it denies. `log_claim` always waits for a human; letting low-risk logging auto-execute is not built. If the executor fails after approval, the request stays approved and `POST /approvals/{id}/execute` retries it (nothing retries automatically).
 7. **Executes only after approval.** Once a human approves, the action runs exactly once against Postgres, which the LLM never owns ([ADR-0009](docs/decisions/0009-approval-request-is-the-pending-action.md)): `log_claim` writes the `claims` row, and `issue_payment` writes a *simulated* payout record to `payments` (there is no real payment rail) and requires a logged claim with a matching amount.
 
-![Triage and approval sequence](docs/diagrams/triage-approval-flow/triage-approval-flow.png)
+![Claim run sequence](docs/diagrams/claim-sequence/claim-sequence.png)
 
 *One triage, then the later human approval. Note that nothing changes state until the second half.*
 

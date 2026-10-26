@@ -25,13 +25,13 @@ Diagram: [Ombuds Claims Triage v1.2](diagrams/architecture/README.md) (interacti
 
 ## Triage and approval flow
 
-![Triage and approval sequence](diagrams/triage-approval-flow/triage-approval-flow.png)
+![Claim run sequence](diagrams/claim-sequence/claim-sequence.png)
 
 One triage and the later human approval are two separate moments: the agent only submits `log_claim`, and only after a human approves does the executor write to Postgres.
 
-Diagram: [Triage and Approval Flow v1.1](diagrams/triage-approval-flow/README.md)
+Diagram: [Claim Run Sequence v1.1](diagrams/claim-sequence/README.md)
 
-For the same run seen as a numbered sequence with the governance checks in place, see Diagram: [Claim Run Sequence v1.0](diagrams/claim-sequence/README.md). Where every artifact the run produces ends up: Diagram: [Claim Artifact Map v1.0](diagrams/artifact-map/README.md).
+Where every artifact the run produces ends up: Diagram: [Claim Artifact Map v1.0](diagrams/artifact-map/README.md).
 
 ## MCP process boundary
 
