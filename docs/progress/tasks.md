@@ -77,7 +77,7 @@ Same rule: one bullet, one branch, one chat. Order is by importance.
 - [x] Raise the `ANTHROPIC_MAX_TOKENS` default from 1024 to 4096 (already configurable since ADR-0018)
 - [x] Pin the two ADR-0018 claims with unit tests: a `BudgetExceededError` does not fail over to the fallback model, and `process_budget()` returns one shared ledger
 - [x] Repo tidy-up: delete the dead stubs (`db_models.py`, `application/policies.py`), pin the `uv` image and `@scalar/api-reference`, fix the `compare_providers.py` run line
-- [ ] Final manual checks: skim `docs/diagrams/*.html` for internal paths, confirm provider spend limits
+- [ ] Final manual checks: skim `docs/diagrams/*.html` for internal paths (done: only `github.com/haliam/ombuds` repo URLs, the JetBrains Mono and archify credits, and w3.org/OFL namespaces; no local paths, hostnames, IPs, emails or keys), confirm provider spend limits (manual, in the Anthropic and OpenAI consoles; still open)
 
 ---
 
