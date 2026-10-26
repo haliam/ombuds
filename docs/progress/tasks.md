@@ -79,6 +79,12 @@ Same rule: one bullet, one branch, one chat. Order is by importance.
 - [x] Repo tidy-up: delete the dead stubs (`db_models.py`, `application/policies.py`), pin the `uv` image and `@scalar/api-reference`, fix the `compare_providers.py` run line
 - [x] Final manual checks: skim `docs/diagrams/*.html` for internal paths (done: only `github.com/haliam/ombuds` repo URLs, the JetBrains Mono and archify credits, and w3.org/OFL namespaces; no local paths, hostnames, IPs, emails or keys), confirm provider spend limits (done 2026-10-26: keys renewed, monthly limits set in the Anthropic and OpenAI consoles)
 
+## Week 7 — Composition and cleanup
+
+Same rule: one bullet, one branch, one chat. More items will land here.
+
+- [ ] Move provider construction to the composition roots: `build_default_provider()` and `process_budget()` leave `providers/fallback.py` for a `providers/factory.py`; `api_app.create_app()` (and the MCP server, if it needs an LLM) builds the provider and the `UsageBudget` once and injects them; `run_triage` requires a provider (drop the `provider or build_default_provider()` default and the `lru_cache` singleton), so tests stop patching globals
+
 ---
 
 Tool names follow ADR-0004 (EU261 tool set, not generic helpdesk tools). Last synced with Notion 2026-09-24.
