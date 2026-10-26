@@ -15,7 +15,7 @@ This page holds two boards of the same build history: **v1** (steps and ADR deci
 
 ![development-overview](development-overview.png)
 
-Interactive version: [`development-overview.html`](development-overview.html) · Source: [`development-overview.json`](development-overview.json)
+Source: [`development-overview.json`](development-overview.json)
 
 ### What it shows
 
@@ -39,7 +39,7 @@ Which decision would you revisit first? ADR-0008 (in-memory, poll-based approval
 
 ![development-overview-v2](development-overview-v2.png)
 
-Interactive version: [`development-overview-v2.html`](development-overview-v2.html) · Source: [`development-overview-v2.json`](development-overview-v2.json)
+Source: [`development-overview-v2.json`](development-overview-v2.json)
 
 ### What it shows
 
@@ -66,7 +66,7 @@ python docs/diagrams/render_archify.py development-overview      # v1
 python docs/diagrams/render_archify.py development-overview-v2   # v2
 ```
 
-This runs `archify finalize architecture` and rewrites the `.html` and `.png` next to the JSON. The HTML stays under the repo's 1000 KB `check-added-large-files` limit. `render_archify.py` maps `development-overview-v2` to this folder.
+This runs `archify finalize architecture` and rewrites the `.png` next to the JSON. `render_archify.py` maps `development-overview-v2` to this folder.
 
 Board v1 is generated: edit [`development_board_gen.py`](../development_board_gen.py), run it to rewrite the JSON, then the command above. Board v2's JSON is edited by hand.
 

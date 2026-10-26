@@ -534,7 +534,7 @@ Template — copy this block per finished task, filling in the fields (omit **De
 **Files & responsibilities:**
 - `docs/diagrams/architecture/architecture.json`, `architecture.png` — component view (archify `architecture`), pinned to commit `7342b6c` with source lines per component.
 - `docs/diagrams/triage-approval-flow/triage-approval-flow.json`, `triage-approval-flow.png` — sequence view (archify `sequence`) of one triage and the later human approval.
-- `docs/diagrams/development-overview/development-overview.*` and `development-overview-v2.*` — build timeline boards (archify `architecture`): v1 shows steps and ADR decisions; v2 shows steps only, each linked to its code at a pinned commit. Every diagram now has `.json`, `.html` and `.png`.
+- `docs/diagrams/development-overview/development-overview.*` and `development-overview-v2.*` — build timeline boards (archify `architecture`): v1 shows steps and ADR decisions; v2 shows steps only, each linked to its code at a pinned commit. Every diagram now has `.json` and `.png` (the `.html` was dropped later as a build output).
 - `docs/architecture.md` — was an empty stub; now embeds both diagrams, a component table, layering, deployment and what is not built.
 - `README.md` — restructured into Problem, Design, Trade-offs (table linking each ADR) and Known limitations; Week 4 items are marked as not built.
 

@@ -6,7 +6,7 @@
 
 ![triage-approval-flow](triage-approval-flow.png)
 
-Interactive version: [`triage-approval-flow.html`](triage-approval-flow.html) · Source: [`triage-approval-flow.json`](triage-approval-flow.json)
+Source: [`triage-approval-flow.json`](triage-approval-flow.json)
 
 ## What it shows
 
@@ -32,7 +32,7 @@ Edit [`triage-approval-flow.json`](triage-approval-flow.json) (bump the version 
 python docs/diagrams/render_archify.py triage-approval-flow
 ```
 
-This runs `archify finalize sequence` and rewrites the `.html` and `.png` next to the JSON. The HTML stays under the repo's 1000 KB `check-added-large-files` limit.
+This runs `archify finalize sequence` and rewrites the `.png` next to the JSON.
 
 ## Change log
 

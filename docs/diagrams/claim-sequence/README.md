@@ -6,7 +6,7 @@
 
 ![claim-sequence](claim-sequence.png)
 
-Interactive version: [`claim-sequence.html`](claim-sequence.html) · Source: [`claim-sequence.json`](claim-sequence.json)
+Source: [`claim-sequence.json`](claim-sequence.json)
 
 ## What it shows
 

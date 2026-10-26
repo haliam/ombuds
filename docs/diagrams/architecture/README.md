@@ -6,7 +6,7 @@
 
 ![architecture](architecture.png)
 
-Interactive version: [`architecture.html`](architecture.html) · Source: [`architecture.json`](architecture.json)
+Source: [`architecture.json`](architecture.json)
 
 ## What it shows
 
@@ -32,7 +32,7 @@ Edit [`architecture.json`](architecture.json) (bump the version and date in `met
 python docs/diagrams/render_archify.py architecture
 ```
 
-This runs `archify finalize architecture` and rewrites the `.html` and `.png` next to the JSON. The HTML stays under the repo's 1000 KB `check-added-large-files` limit.
+This runs `archify finalize architecture` and rewrites the `.png` next to the JSON.
 
 ## Change log
 

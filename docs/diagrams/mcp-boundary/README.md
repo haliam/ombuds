@@ -6,7 +6,7 @@
 
 ![mcp-boundary](mcp-boundary.png)
 
-Interactive version: [`mcp-boundary.html`](mcp-boundary.html) · Source: [`mcp-boundary.json`](mcp-boundary.json)
+Source: [`mcp-boundary.json`](mcp-boundary.json)
 
 ## What it shows
 
@@ -32,7 +32,7 @@ Edit [`mcp-boundary.json`](mcp-boundary.json) (bump the version and date in `met
 python docs/diagrams/render_archify.py mcp-boundary
 ```
 
-This runs `archify finalize architecture` and rewrites the `.html` and `.png` next to the JSON. The HTML stays under the repo's 1000 KB `check-added-large-files` limit.
+This runs `archify finalize architecture` and rewrites the `.png` next to the JSON.
 
 ## Change log
 

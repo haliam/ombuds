@@ -1,4 +1,4 @@
-"""Rebuild an archify diagram's .html and .png from its .json source.
+"""Rebuild an archify diagram's .png from its .json source.
 
 Usage (from the repo root): python docs/diagrams/render_archify.py <name> [<name> ...]
 Needs node, the archify skill (~/.claude/skills/archify), google-chrome and Pillow.
@@ -64,7 +64,6 @@ def render(name: str) -> None:
             capture_output=True,
             timeout=120,
         )
-        (folder / f"{name}.html").write_bytes(html.read_bytes())
         crop_to_card(shot, folder / f"{name}.png")
 
 

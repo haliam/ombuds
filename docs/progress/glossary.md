@@ -103,7 +103,7 @@ Grouped by category; append new terms under the matching section.
 
 | Term | What it is |
 |---|---|
-| **archify** | A Claude Code skill that turns a typed JSON description into a standalone, interactive HTML diagram (architecture, sequence, workflow and more) and checks it in a real browser. Each archify diagram has a folder in `docs/diagrams/<slug>/` that keeps its `.json` source, the generated `.html` and a `.png` screenshot.<br>↳ *First seen:* [Architecture diagram + README](task_summaries.md#write-architecture-diagram--readme-problem-design-trade-offs) |
+| **archify** | A Claude Code skill that turns a typed JSON description into a standalone, interactive HTML diagram (architecture, sequence, workflow and more) and checks it in a real browser. Each archify diagram has a folder in `docs/diagrams/<slug>/` that keeps its `.json` source and a `.png` screenshot (the `.html` is a build output and is not committed).<br>↳ *First seen:* [Architecture diagram + README](task_summaries.md#write-architecture-diagram--readme-problem-design-trade-offs) |
 
 ## Data layer (Postgres)
 

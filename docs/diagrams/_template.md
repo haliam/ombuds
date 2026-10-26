@@ -4,7 +4,7 @@
 **Decisions** [ADR-00NN](../decisions/00NN-slug.md)
 **Source** code paths the diagram was checked against
 
-<!-- archify: ![slug](slug/slug.png) + links to slug/slug.html and slug/slug.json -->
+<!-- archify: ![slug](slug/slug.png) + link to slug/slug.json -->
 <!-- Mermaid: a ```mermaid block that starts with front matter:
 ---
 title: <Title> · v1.0 · YYYY-MM-DD
