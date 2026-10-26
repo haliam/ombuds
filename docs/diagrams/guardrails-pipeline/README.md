@@ -6,7 +6,7 @@
 
 ![guardrails-pipeline](guardrails-pipeline.png)
 
-Interactive version: [`guardrails-pipeline.html`](guardrails-pipeline.html) · Source: [`guardrails-pipeline.json`](guardrails-pipeline.json)
+Source: [`guardrails-pipeline.json`](guardrails-pipeline.json)
 
 ## What it shows
 
@@ -32,7 +32,7 @@ Edit [`guardrails-pipeline.json`](guardrails-pipeline.json) (bump the version an
 python docs/diagrams/render_archify.py guardrails-pipeline
 ```
 
-This runs `archify finalize dataflow` and rewrites the `.html` and `.png` next to the JSON. The HTML stays under the repo's 1000 KB `check-added-large-files` limit.
+This runs `archify finalize dataflow` and rewrites the `.png` next to the JSON.
 
 ## Change log
 

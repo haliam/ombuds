@@ -1,12 +1,12 @@
 {
- "schema_version": 1,
- "diagram_type": "architecture",
+ "schema_version": 2,
+ "diagram_type": "workflow",
  "meta": {
-  "title": "Ombuds Development Board · v1.0 · 2026-10-18",
+  "title": "Ombuds Development Board · v2.0 · 2026-10-26",
   "output": "docs/diagrams/development-overview/development-overview.html",
   "quality_profile": "showcase",
   "legend": {
-   "mode": "auto",
+   "mode": "all",
    "entries": {
     "backend": {
      "label": "Step · done"
@@ -23,916 +23,984 @@
    }
   }
  },
- "components": [
+ "lanes": [
+  {
+   "id": "start_d",
+   "label": "Project start · decisions"
+  },
+  {
+   "id": "w1_d",
+   "label": "Week 1 · decisions"
+  },
+  {
+   "id": "w1_d2",
+   "label": "Week 1 · decisions (2)"
+  },
+  {
+   "id": "w1",
+   "label": "Week 1 · build"
+  },
+  {
+   "id": "w2_d",
+   "label": "Week 2 · decisions"
+  },
+  {
+   "id": "w2",
+   "label": "Week 2 · build"
+  },
+  {
+   "id": "w3_d",
+   "label": "Week 3 · decisions"
+  },
+  {
+   "id": "w3",
+   "label": "Week 3 · build"
+  },
+  {
+   "id": "pw4",
+   "label": "Pre-W4 refactor"
+  },
+  {
+   "id": "w4_d",
+   "label": "Week 4 · decisions"
+  },
+  {
+   "id": "w4",
+   "label": "Week 4 · build"
+  },
+  {
+   "id": "w5_d",
+   "label": "Week 5 · decisions"
+  },
+  {
+   "id": "w5",
+   "label": "Week 5 · build"
+  },
+  {
+   "id": "w6_d",
+   "label": "Week 6 · decisions"
+  },
+  {
+   "id": "w6",
+   "label": "Week 6 · build"
+  },
+  {
+   "id": "w7",
+   "label": "Week 7 · now"
+  }
+ ],
+ "mainPath": [
+  "w1_rules",
+  "w1_api",
+  "w1_tools",
+  "w1_triage",
+  "w1_stream",
+  "w1_reply"
+ ],
+ "nodes": [
   {
    "id": "d2",
+   "lane": "start_d",
+   "col": 0,
    "type": "security",
    "label": "ADR-2 Feature-sliced",
    "sublabel": "code grouped by feature",
    "tag": "Sep 23",
-   "pos": [
-    40,
-    100
-   ],
-   "size": [
-    150,
-    64
-   ]
+   "width": 146
   },
   {
    "id": "d1",
+   "lane": "start_d",
+   "col": 1,
    "type": "security",
    "label": "ADR-1 LangGraph",
    "sublabel": "visible, auditable flow",
    "tag": "Sep 23",
-   "pos": [
-    230,
-    100
-   ],
-   "size": [
-    150,
-    64
-   ]
+   "width": 146
   },
   {
    "id": "d3",
+   "lane": "start_d",
+   "col": 2,
    "type": "security",
    "label": "ADR-3 MCP in repo",
    "sublabel": "one repo, one deploy",
    "tag": "Sep 23",
-   "pos": [
-    420,
-    100
-   ],
-   "size": [
-    150,
-    64
-   ]
-  },
-  {
-   "id": "d4",
-   "type": "security",
-   "label": "ADR-4 EU261 tools",
-   "sublabel": "real law, real money",
-   "tag": "Sep 24",
-   "pos": [
-    420,
-    274
-   ],
-   "size": [
-    150,
-    64
-   ]
-  },
-  {
-   "id": "d7",
-   "type": "security",
-   "label": "ADR-7 SSE",
-   "sublabel": "one-way, plain HTTP",
-   "tag": "Sep 26",
-   "pos": [
-    800,
-    274
-   ],
-   "size": [
-    150,
-    64
-   ]
-  },
-  {
-   "id": "d5",
-   "type": "security",
-   "label": "ADR-5 Prompted JSON",
-   "sublabel": "check reply, then fix",
-   "tag": "Sep 26",
-   "pos": [
-    990,
-    274
-   ],
-   "size": [
-    150,
-    64
-   ]
+   "width": 146
   },
   {
    "id": "w1_rules",
+   "lane": "w1",
+   "col": 0,
    "type": "backend",
    "label": "Folders + rules",
    "sublabel": "EU261 rules, tested",
    "tag": "done",
-   "pos": [
-    40,
-    392
-   ],
-   "size": [
-    150,
-    64
-   ]
+   "width": 146
   },
   {
    "id": "w1_api",
+   "lane": "w1",
+   "col": 1,
    "type": "backend",
    "label": "Call AI APIs directly",
    "sublabel": "OpenAI vs Anthropic",
    "tag": "done",
-   "pos": [
-    230,
-    392
-   ],
-   "size": [
-    150,
-    64
-   ]
+   "width": 146
   },
   {
    "id": "w1_tools",
+   "lane": "w1",
+   "col": 2,
    "type": "backend",
    "label": "Tools + deny-all gate",
    "sublabel": "stub blocks all actions",
    "tag": "done",
-   "pos": [
-    420,
-    392
-   ],
-   "size": [
-    150,
-    64
-   ]
+   "width": 146
   },
   {
    "id": "w1_triage",
+   "lane": "w1",
+   "col": 3,
    "type": "backend",
    "label": "/triage endpoint",
    "sublabel": "API + unit tests",
    "tag": "done",
-   "pos": [
-    610,
-    392
-   ],
-   "size": [
-    150,
-    64
-   ]
+   "width": 146
   },
   {
    "id": "w1_stream",
+   "lane": "w1",
+   "col": 4,
    "type": "backend",
    "label": "Streaming replies",
    "sublabel": "live updates (SSE)",
    "tag": "done",
-   "pos": [
-    800,
-    392
-   ],
-   "size": [
-    150,
-    64
-   ]
+   "width": 146
   },
   {
    "id": "w1_reply",
+   "lane": "w1",
+   "col": 5,
    "type": "backend",
    "label": "Checked replies",
    "sublabel": "validate, retry, backup",
    "tag": "done",
-   "pos": [
-    990,
-    392
-   ],
-   "size": [
-    150,
-    64
-   ]
+   "width": 146
+  },
+  {
+   "id": "d4",
+   "lane": "w1_d",
+   "col": 2,
+   "type": "security",
+   "label": "ADR-4 EU261 tools",
+   "sublabel": "real law, real money",
+   "tag": "Sep 24",
+   "width": 146
+  },
+  {
+   "id": "d7",
+   "lane": "w1_d",
+   "col": 4,
+   "type": "security",
+   "label": "ADR-7 SSE",
+   "sublabel": "one-way, plain HTTP",
+   "tag": "Sep 26",
+   "width": 146
+  },
+  {
+   "id": "d5",
+   "lane": "w1_d",
+   "col": 5,
+   "type": "security",
+   "label": "ADR-5 Prompted JSON",
+   "sublabel": "check reply, then fix",
+   "tag": "Sep 26",
+   "width": 146
   },
   {
    "id": "d6",
+   "lane": "w1_d2",
+   "col": 5,
    "type": "security",
    "label": "ADR-6 Two-layer retry",
    "sublabel": "retry, then switch model",
    "tag": "Sep 26",
-   "pos": [
-    990,
-    510
-   ],
-   "size": [
-    150,
-    64
-   ]
-  },
-  {
-   "id": "d8",
-   "type": "security",
-   "label": "ADR-8 Memory approval",
-   "sublabel": "replaced by ADR-9",
-   "tag": "Sep 28",
-   "pos": [
-    800,
-    684
-   ],
-   "size": [
-    150,
-    64
-   ]
-  },
-  {
-   "id": "d9",
-   "type": "security",
-   "label": "ADR-9 Approve once",
-   "sublabel": "replaces ADR-8",
-   "tag": "Sep 28",
-   "pos": [
-    990,
-    684
-   ],
-   "size": [
-    150,
-    64
-   ]
+   "width": 146
   },
   {
    "id": "w2_loop",
+   "lane": "w2",
+   "col": 0,
    "type": "backend",
    "label": "Agent loop",
    "sublabel": "rebuilt in LangGraph",
    "tag": "done",
-   "pos": [
-    40,
-    802
-   ],
-   "size": [
-    150,
-    64
-   ]
+   "width": 146
   },
   {
    "id": "w2_mcp",
+   "lane": "w2",
+   "col": 1,
    "type": "backend",
    "label": "MCP tool server",
    "sublabel": "4 tools exposed",
    "tag": "done",
-   "pos": [
-    230,
-    802
-   ],
-   "size": [
-    150,
-    64
-   ]
+   "width": 146
   },
   {
    "id": "w2_amcp",
+   "lane": "w2",
+   "col": 2,
    "type": "backend",
    "label": "Agent uses MCP",
    "sublabel": "tools called over MCP",
    "tag": "done",
-   "pos": [
-    420,
-    802
-   ],
-   "size": [
-    150,
-    64
-   ]
+   "width": 146
   },
   {
    "id": "w2_mem",
+   "lane": "w2",
+   "col": 3,
    "type": "backend",
    "label": "Agent memory",
    "sublabel": "short + long term",
    "tag": "done",
-   "pos": [
-    610,
-    802
-   ],
-   "size": [
-    150,
-    64
-   ]
+   "width": 146
   },
   {
    "id": "w2_esc",
+   "lane": "w2",
+   "col": 4,
    "type": "backend",
    "label": "Escalate / retry",
    "sublabel": "low confidence → human",
    "tag": "done",
-   "pos": [
-    800,
-    802
-   ],
-   "size": [
-    150,
-    64
-   ]
+   "width": 146
   },
   {
    "id": "w2_gate",
+   "lane": "w2",
+   "col": 5,
    "type": "backend",
    "label": "Human approval gate",
    "sublabel": "replaces deny-all stub",
    "tag": "done",
-   "pos": [
-    990,
-    802
-   ],
-   "size": [
-    150,
-    64
-   ]
+   "width": 146
   },
   {
-   "id": "d10",
+   "id": "d8",
+   "lane": "w2_d",
+   "col": 4,
    "type": "security",
-   "label": "ADR-10 pgvector",
-   "sublabel": "one DB, one commit",
-   "tag": "Oct 6",
-   "pos": [
-    40,
-    976
-   ],
-   "size": [
-    150,
-    64
-   ]
+   "label": "ADR-8 Memory approval",
+   "sublabel": "simple; replaced",
+   "tag": "Sep 28",
+   "width": 146
   },
   {
-   "id": "d11",
+   "id": "d9",
+   "lane": "w2_d",
+   "col": 5,
    "type": "security",
-   "label": "ADR-11 Chunking",
-   "sublabel": "whole sections, cited",
-   "tag": "Oct 7",
-   "pos": [
-    230,
-    976
-   ],
-   "size": [
-    150,
-    64
-   ]
-  },
-  {
-   "id": "d12",
-   "type": "security",
-   "label": "ADR-12 Score floor",
-   "sublabel": "best cut-off, no loss",
-   "tag": "Oct 8",
-   "pos": [
-    420,
-    976
-   ],
-   "size": [
-    150,
-    64
-   ]
-  },
-  {
-   "id": "d13",
-   "type": "security",
-   "label": "ADR-13 PII redaction",
-   "sublabel": "hide personal data",
-   "tag": "Oct 8",
-   "pos": [
-    800,
-    976
-   ],
-   "size": [
-    150,
-    64
-   ]
+   "label": "ADR-9 Approve once",
+   "sublabel": "approve once, run once",
+   "tag": "Sep 28",
+   "width": 146
   },
   {
    "id": "w3_pg",
+   "lane": "w3",
+   "col": 0,
    "type": "backend",
    "label": "Postgres + pgvector",
    "sublabel": "durable data + vectors",
    "tag": "done",
-   "pos": [
-    40,
-    1094
-   ],
-   "size": [
-    150,
-    64
-   ]
+   "width": 146
   },
   {
    "id": "w3_rag",
+   "lane": "w3",
+   "col": 1,
    "type": "backend",
    "label": "RAG search",
    "sublabel": "chunk, embed, retrieve",
    "tag": "done",
-   "pos": [
-    230,
-    1094
-   ],
-   "size": [
-    150,
-    64
-   ]
+   "width": 146
   },
   {
    "id": "w3_eval",
+   "lane": "w3",
+   "col": 2,
    "type": "backend",
    "label": "Retrieval eval",
    "sublabel": "30 labelled questions",
    "tag": "done",
-   "pos": [
-    420,
-    1094
-   ],
-   "size": [
-    150,
-    64
-   ]
+   "width": 146
   },
   {
    "id": "w3_docker",
+   "lane": "w3",
+   "col": 3,
    "type": "backend",
    "label": "Docker Compose",
    "sublabel": "one-command stack",
    "tag": "done",
-   "pos": [
-    610,
-    1094
-   ],
-   "size": [
-    150,
-    64
-   ]
+   "width": 146
   },
   {
    "id": "w3_guard",
+   "lane": "w3",
+   "col": 4,
    "type": "backend",
    "label": "PII + injection",
    "sublabel": "redact; flag attacks",
    "tag": "done",
-   "pos": [
-    800,
-    1094
-   ],
-   "size": [
-    150,
-    64
-   ]
+   "width": 146
   },
   {
    "id": "w3_it",
+   "lane": "w3",
+   "col": 5,
    "type": "backend",
    "label": "End-to-end test",
    "sublabel": "/triage over real stack",
    "tag": "done",
-   "pos": [
-    990,
-    1094
-   ],
-   "size": [
-    150,
-    64
-   ]
+   "width": 146
+  },
+  {
+   "id": "d10",
+   "lane": "w3_d",
+   "col": 0,
+   "type": "security",
+   "label": "ADR-10 pgvector",
+   "sublabel": "one DB, one commit",
+   "tag": "Oct 6",
+   "width": 146
+  },
+  {
+   "id": "d11",
+   "lane": "w3_d",
+   "col": 1,
+   "type": "security",
+   "label": "ADR-11 Chunking",
+   "sublabel": "whole sections, cited",
+   "tag": "Oct 7",
+   "width": 146
+  },
+  {
+   "id": "d12",
+   "lane": "w3_d",
+   "col": 2,
+   "type": "security",
+   "label": "ADR-12 Score floor",
+   "sublabel": "best cut-off, no loss",
+   "tag": "Oct 8",
+   "width": 146
+  },
+  {
+   "id": "d13",
+   "lane": "w3_d",
+   "col": 4,
+   "type": "security",
+   "label": "ADR-13 PII redaction",
+   "sublabel": "hide personal data",
+   "tag": "Oct 8",
+   "width": 146
   },
   {
    "id": "d14",
+   "lane": "w3_d",
+   "col": 5,
    "type": "security",
    "label": "ADR-14 Injection",
    "sublabel": "a hit goes to human",
    "tag": "Oct 8",
-   "pos": [
-    800,
-    1212
-   ],
-   "size": [
-    150,
-    64
-   ]
+   "width": 146
   },
   {
    "id": "p1",
+   "lane": "pw4",
+   "col": 0,
    "type": "backend",
    "label": "P-1 Wiring",
    "sublabel": "approval store injected",
    "tag": "done",
-   "pos": [
-    40,
-    1386
-   ],
-   "size": [
-    150,
-    64
-   ]
+   "width": 146
   },
   {
    "id": "p2",
+   "lane": "pw4",
+   "col": 1,
    "type": "backend",
    "label": "P-2 Executors",
    "sublabel": "claims + payments saved",
    "tag": "done",
-   "pos": [
-    230,
-    1386
-   ],
-   "size": [
-    150,
-    64
-   ]
+   "width": 146
   },
   {
    "id": "p3",
+   "lane": "pw4",
+   "col": 2,
    "type": "backend",
    "label": "P-3 Shared preamble",
    "sublabel": "one setup, two paths",
    "tag": "done",
-   "pos": [
-    420,
-    1386
-   ],
-   "size": [
-    150,
-    64
-   ]
+   "width": 146
   },
   {
    "id": "p4",
+   "lane": "pw4",
+   "col": 3,
    "type": "backend",
    "label": "P-4 Docs fixed",
    "sublabel": "docs match the code",
    "tag": "done",
-   "pos": [
-    610,
-    1386
-   ],
-   "size": [
-    150,
-    64
-   ]
+   "width": 146
+  },
+  {
+   "id": "w4_otel",
+   "lane": "w4",
+   "col": 0,
+   "type": "backend",
+   "label": "Tracing (OTel)",
+   "sublabel": "span per AI/tool call",
+   "tag": "done",
+   "width": 146
+  },
+  {
+   "id": "w4_rego",
+   "lane": "w4",
+   "col": 1,
+   "type": "backend",
+   "label": "Payout policy (Rego)",
+   "sublabel": "block big auto-payouts",
+   "tag": "done",
+   "width": 146
+  },
+  {
+   "id": "w4_audit",
+   "lane": "w4",
+   "col": 2,
+   "type": "backend",
+   "label": "Audit trail",
+   "sublabel": "every call + decision",
+   "tag": "done",
+   "width": 146
   },
   {
    "id": "w4_doc",
+   "lane": "w4",
+   "col": 3,
    "type": "backend",
    "label": "Diagram + README",
    "sublabel": "design + trade-offs",
    "tag": "done",
-   "pos": [
-    40,
-    1560
-   ],
-   "size": [
-    150,
-    64
-   ]
+   "width": 146
+  },
+  {
+   "id": "d17",
+   "lane": "w4_d",
+   "col": 0,
+   "type": "security",
+   "label": "ADR-17 Tracing",
+   "sublabel": "spans at existing seams",
+   "tag": "Oct 18",
+   "width": 146
+  },
+  {
+   "id": "d15",
+   "lane": "w4_d",
+   "col": 1,
+   "type": "security",
+   "label": "ADR-15 OPA sidecar",
+   "sublabel": "policy outside the code",
+   "tag": "Oct 18",
+   "width": 146
+  },
+  {
+   "id": "d16",
+   "lane": "w4_d",
+   "col": 2,
+   "type": "security",
+   "label": "ADR-16 Audit log",
+   "sublabel": "append-only, in Postgres",
+   "tag": "Oct 18",
+   "width": 146
+  },
+  {
+   "id": "w5_net",
+   "lane": "w5",
+   "col": 0,
+   "type": "backend",
+   "label": "Ports locked down",
+   "sublabel": "localhost only + healthcheck",
+   "tag": "done",
+   "width": 146
+  },
+  {
+   "id": "w5_rec",
+   "lane": "w5",
+   "col": 1,
+   "type": "backend",
+   "label": "Recoverable approvals",
+   "sublabel": "retry route, no stuck requests",
+   "tag": "done",
+   "width": 146
+  },
+  {
+   "id": "w5_auth",
+   "lane": "w5",
+   "col": 2,
+   "type": "backend",
+   "label": "API authentication",
+   "sublabel": "two bearer tokens, fail closed",
+   "tag": "done",
+   "width": 146
+  },
+  {
+   "id": "w5_db",
+   "lane": "w5",
+   "col": 3,
+   "type": "backend",
+   "label": "No default DB password",
+   "sublabel": "set in .env or refuse",
+   "tag": "done",
+   "width": 146
+  },
+  {
+   "id": "w5_lint",
+   "lane": "w5",
+   "col": 4,
+   "type": "backend",
+   "label": "Lint green again",
+   "sublabel": "two long lines fixed",
+   "tag": "done",
+   "width": 146
+  },
+  {
+   "id": "w5_docs",
+   "lane": "w5",
+   "col": 5,
+   "type": "backend",
+   "label": "Docs match the code",
+   "sublabel": "README, diagrams, architecture",
+   "tag": "done",
+   "width": 146
+  },
+  {
+   "id": "d19",
+   "lane": "w5_d",
+   "col": 2,
+   "type": "security",
+   "label": "ADR-19 Bearer tokens",
+   "sublabel": "one per role, per router",
+   "tag": "Oct 22",
+   "width": 146
+  },
+  {
+   "id": "w6_ci",
+   "lane": "w6",
+   "col": 0,
+   "type": "backend",
+   "label": "CI + secret scans",
+   "sublabel": "lint, tests, gitleaks",
+   "tag": "done",
+   "width": 146
+  },
+  {
+   "id": "w6_audit",
+   "lane": "w6",
+   "col": 1,
+   "type": "backend",
+   "label": "Audit completed",
+   "sublabel": "refusals + injection recorded",
+   "tag": "done",
+   "width": 146
+  },
+  {
+   "id": "w6_eval",
+   "lane": "w6",
+   "col": 2,
+   "type": "backend",
+   "label": "Agent eval",
+   "sublabel": "real agent on 15-25 claims",
+   "tag": "done",
+   "width": 146
+  },
+  {
+   "id": "w6_cfg",
+   "lane": "w6",
+   "col": 3,
+   "type": "backend",
+   "label": "MCP env + 4096 tokens",
+   "sublabel": "child inherits config",
+   "tag": "done",
+   "width": 146
+  },
+  {
+   "id": "w6_cap",
+   "lane": "w6",
+   "col": 4,
+   "type": "backend",
+   "label": "Spend-cap tests",
+   "sublabel": "no failover, one ledger",
+   "tag": "done",
+   "width": 146
+  },
+  {
+   "id": "w6_tidy",
+   "lane": "w6",
+   "col": 5,
+   "type": "backend",
+   "label": "Tidy + final checks",
+   "sublabel": "dead stubs gone, limits set",
+   "tag": "done",
+   "width": 146
+  },
+  {
+   "id": "d18",
+   "lane": "w6_d",
+   "col": 4,
+   "type": "security",
+   "label": "ADR-18 Spend cap",
+   "sublabel": "budget in a provider wrapper",
+   "tag": "Oct 18",
+   "width": 146
   },
   {
    "id": "here",
+   "lane": "w7",
+   "col": 0,
    "type": "frontend",
    "label": "YOU ARE HERE",
-   "sublabel": "Week 4: 1 of 4 done",
+   "sublabel": "Week 7: 0 of 1 done",
    "tag": "now",
-   "pos": [
-    230,
-    1560
-   ],
-   "size": [
-    150,
-    64
-   ]
+   "width": 146
   },
   {
-   "id": "w4_otel",
+   "id": "w7_roots",
+   "lane": "w7",
+   "col": 1,
    "type": "external",
-   "label": "Tracing (OTel)",
-   "sublabel": "span per AI/tool call",
+   "label": "Providers in the roots",
+   "sublabel": "build once, inject",
    "tag": "pending",
-   "pos": [
-    420,
-    1560
-   ],
-   "size": [
-    150,
-    64
-   ]
-  },
-  {
-   "id": "w4_rego",
-   "type": "external",
-   "label": "Payout policy (Rego)",
-   "sublabel": "block big auto-payouts",
-   "tag": "pending",
-   "pos": [
-    610,
-    1560
-   ],
-   "size": [
-    150,
-    64
-   ]
-  },
-  {
-   "id": "w4_audit",
-   "type": "external",
-   "label": "Audit trail",
-   "sublabel": "every call + decision",
-   "tag": "pending",
-   "pos": [
-    800,
-    1560
-   ],
-   "size": [
-    150,
-    64
-   ]
+   "width": 146
   }
  ],
- "boundaries": [
+ "edges": [
   {
-   "kind": "region",
-   "label": "Project start · decisions",
-   "wraps": [
-    "d2",
-    "d1",
-    "d3"
-   ],
-   "pad": 24
+   "id": "e_d2",
+   "from": "d2",
+   "to": "w1_rules",
+   "variant": "dashed",
+   "role": "branch"
   },
   {
-   "kind": "region",
-   "label": "Week 1 · done",
-   "wraps": [
-    "d4",
-    "d7",
-    "d5",
-    "w1_rules",
-    "w1_api",
-    "w1_tools",
-    "w1_triage",
-    "w1_stream",
-    "w1_reply",
-    "d6"
-   ],
-   "pad": 24
+   "id": "e_d4",
+   "from": "d4",
+   "to": "w1_tools",
+   "variant": "dashed",
+   "role": "branch"
   },
   {
-   "kind": "region",
-   "label": "Week 2 · done",
-   "wraps": [
-    "d8",
-    "d9",
-    "w2_loop",
-    "w2_mcp",
-    "w2_amcp",
-    "w2_mem",
-    "w2_esc",
-    "w2_gate"
-   ],
-   "pad": 24
+   "id": "e_d7",
+   "from": "d7",
+   "to": "w1_stream",
+   "variant": "dashed",
+   "role": "branch"
   },
   {
-   "kind": "region",
-   "label": "Week 3 · done",
-   "wraps": [
-    "d10",
-    "d11",
-    "d12",
-    "d13",
-    "w3_pg",
-    "w3_rag",
-    "w3_eval",
-    "w3_docker",
-    "w3_guard",
-    "w3_it",
-    "d14"
-   ],
-   "pad": 24
+   "id": "e_d5",
+   "from": "d5",
+   "to": "w1_reply",
+   "variant": "dashed",
+   "role": "branch"
   },
   {
-   "kind": "region",
-   "label": "Pre-W4 refactor · done",
-   "wraps": [
-    "p1",
-    "p2",
-    "p3",
-    "p4"
-   ],
-   "pad": 24
+   "id": "e_d6",
+   "from": "d6",
+   "to": "w1_reply",
+   "variant": "dashed",
+   "role": "branch"
   },
   {
-   "kind": "security-group",
-   "label": "Week 4 · IN PROGRESS",
-   "wraps": [
-    "w4_doc",
-    "here",
-    "w4_otel",
-    "w4_rego",
-    "w4_audit"
-   ],
-   "pad": 24
-  }
- ],
- "connections": [
+   "id": "e_d9",
+   "from": "d9",
+   "to": "w2_gate",
+   "variant": "dashed",
+   "role": "branch"
+  },
   {
-   "id": "c_w1_rules_w1_api",
+   "id": "e_d8d9",
+   "from": "d8",
+   "to": "d9",
+   "label": "replaced by",
+   "variant": "dashed",
+   "role": "branch"
+  },
+  {
+   "id": "e_d10",
+   "from": "d10",
+   "to": "w3_pg",
+   "variant": "dashed",
+   "role": "branch"
+  },
+  {
+   "id": "e_d11",
+   "from": "d11",
+   "to": "w3_rag",
+   "variant": "dashed",
+   "role": "branch"
+  },
+  {
+   "id": "e_d12",
+   "from": "d12",
+   "to": "w3_eval",
+   "variant": "dashed",
+   "role": "branch"
+  },
+  {
+   "id": "e_d13",
+   "from": "d13",
+   "to": "w3_guard",
+   "variant": "dashed",
+   "role": "branch"
+  },
+  {
+   "id": "e_d14",
+   "from": "d14",
+   "to": "w3_guard",
+   "variant": "dashed",
+   "role": "branch"
+  },
+  {
+   "id": "e_d17",
+   "from": "d17",
+   "to": "w4_otel",
+   "variant": "dashed",
+   "role": "branch"
+  },
+  {
+   "id": "e_d15",
+   "from": "d15",
+   "to": "w4_rego",
+   "variant": "dashed",
+   "role": "branch"
+  },
+  {
+   "id": "e_d16",
+   "from": "d16",
+   "to": "w4_audit",
+   "variant": "dashed",
+   "role": "branch"
+  },
+  {
+   "id": "e_d19",
+   "from": "d19",
+   "to": "w5_auth",
+   "variant": "dashed",
+   "role": "branch"
+  },
+  {
+   "id": "e_d18",
+   "from": "d18",
+   "to": "w6_cap",
+   "variant": "dashed",
+   "role": "branch"
+  },
+  {
+   "id": "m_w1_rules_w1_api",
    "from": "w1_rules",
    "to": "w1_api",
    "variant": "emphasis"
   },
   {
-   "id": "c_w1_api_w1_tools",
+   "id": "m_w1_api_w1_tools",
    "from": "w1_api",
    "to": "w1_tools",
    "variant": "emphasis"
   },
   {
-   "id": "c_w1_tools_w1_triage",
+   "id": "m_w1_tools_w1_triage",
    "from": "w1_tools",
    "to": "w1_triage",
    "variant": "emphasis"
   },
   {
-   "id": "c_w1_triage_w1_stream",
+   "id": "m_w1_triage_w1_stream",
    "from": "w1_triage",
    "to": "w1_stream",
    "variant": "emphasis"
   },
   {
-   "id": "c_w1_stream_w1_reply",
+   "id": "m_w1_stream_w1_reply",
    "from": "w1_stream",
    "to": "w1_reply",
    "variant": "emphasis"
   },
   {
-   "id": "c_w2_loop_w2_mcp",
+   "id": "m_w2_loop_w2_mcp",
    "from": "w2_loop",
    "to": "w2_mcp",
    "variant": "emphasis"
   },
   {
-   "id": "c_w2_mcp_w2_amcp",
+   "id": "m_w2_mcp_w2_amcp",
    "from": "w2_mcp",
    "to": "w2_amcp",
    "variant": "emphasis"
   },
   {
-   "id": "c_w2_amcp_w2_mem",
+   "id": "m_w2_amcp_w2_mem",
    "from": "w2_amcp",
    "to": "w2_mem",
    "variant": "emphasis"
   },
   {
-   "id": "c_w2_mem_w2_esc",
+   "id": "m_w2_mem_w2_esc",
    "from": "w2_mem",
    "to": "w2_esc",
    "variant": "emphasis"
   },
   {
-   "id": "c_w2_esc_w2_gate",
+   "id": "m_w2_esc_w2_gate",
    "from": "w2_esc",
    "to": "w2_gate",
    "variant": "emphasis"
   },
   {
-   "id": "c_w3_pg_w3_rag",
+   "id": "m_w3_pg_w3_rag",
    "from": "w3_pg",
    "to": "w3_rag",
    "variant": "emphasis"
   },
   {
-   "id": "c_w3_rag_w3_eval",
+   "id": "m_w3_rag_w3_eval",
    "from": "w3_rag",
    "to": "w3_eval",
    "variant": "emphasis"
   },
   {
-   "id": "c_w3_eval_w3_docker",
+   "id": "m_w3_eval_w3_docker",
    "from": "w3_eval",
    "to": "w3_docker",
    "variant": "emphasis"
   },
   {
-   "id": "c_w3_docker_w3_guard",
+   "id": "m_w3_docker_w3_guard",
    "from": "w3_docker",
    "to": "w3_guard",
    "variant": "emphasis"
   },
   {
-   "id": "c_w3_guard_w3_it",
+   "id": "m_w3_guard_w3_it",
    "from": "w3_guard",
    "to": "w3_it",
    "variant": "emphasis"
   },
   {
-   "id": "c_p1_p2",
+   "id": "m_p1_p2",
    "from": "p1",
    "to": "p2",
    "variant": "emphasis"
   },
   {
-   "id": "c_p2_p3",
+   "id": "m_p2_p3",
    "from": "p2",
    "to": "p3",
    "variant": "emphasis"
   },
   {
-   "id": "c_p3_p4",
+   "id": "m_p3_p4",
    "from": "p3",
    "to": "p4",
    "variant": "emphasis"
   },
   {
-   "id": "c_w4_doc_here",
-   "from": "w4_doc",
-   "to": "here",
-   "variant": "emphasis"
-  },
-  {
-   "id": "c_here_w4_otel",
-   "from": "here",
-   "to": "w4_otel",
-   "variant": "emphasis"
-  },
-  {
-   "id": "c_w4_otel_w4_rego",
+   "id": "m_w4_otel_w4_rego",
    "from": "w4_otel",
    "to": "w4_rego",
    "variant": "emphasis"
   },
   {
-   "id": "c_w4_rego_w4_audit",
+   "id": "m_w4_rego_w4_audit",
    "from": "w4_rego",
    "to": "w4_audit",
    "variant": "emphasis"
   },
   {
-   "id": "c_d2_w1_rules",
-   "from": "d2",
-   "to": "w1_rules",
-   "variant": "dashed"
+   "id": "m_w4_audit_w4_doc",
+   "from": "w4_audit",
+   "to": "w4_doc",
+   "variant": "emphasis"
   },
   {
-   "id": "c_d4_w1_tools",
-   "from": "d4",
-   "to": "w1_tools",
-   "variant": "dashed"
+   "id": "m_w5_net_w5_rec",
+   "from": "w5_net",
+   "to": "w5_rec",
+   "variant": "emphasis"
   },
   {
-   "id": "c_d7_w1_stream",
-   "from": "d7",
-   "to": "w1_stream",
-   "variant": "dashed"
+   "id": "m_w5_rec_w5_auth",
+   "from": "w5_rec",
+   "to": "w5_auth",
+   "variant": "emphasis"
   },
   {
-   "id": "c_d5_w1_reply",
-   "from": "d5",
-   "to": "w1_reply",
-   "variant": "dashed"
+   "id": "m_w5_auth_w5_db",
+   "from": "w5_auth",
+   "to": "w5_db",
+   "variant": "emphasis"
   },
   {
-   "id": "c_d6_w1_reply",
-   "from": "d6",
-   "to": "w1_reply",
-   "variant": "dashed",
-   "fromSide": "top",
-   "toSide": "bottom"
+   "id": "m_w5_db_w5_lint",
+   "from": "w5_db",
+   "to": "w5_lint",
+   "variant": "emphasis"
   },
   {
-   "id": "c_d9_w2_gate",
-   "from": "d9",
-   "to": "w2_gate",
-   "variant": "dashed"
+   "id": "m_w5_lint_w5_docs",
+   "from": "w5_lint",
+   "to": "w5_docs",
+   "variant": "emphasis"
   },
   {
-   "id": "c_d10_w3_pg",
-   "from": "d10",
-   "to": "w3_pg",
-   "variant": "dashed"
+   "id": "m_w6_ci_w6_audit",
+   "from": "w6_ci",
+   "to": "w6_audit",
+   "variant": "emphasis"
   },
   {
-   "id": "c_d11_w3_rag",
-   "from": "d11",
-   "to": "w3_rag",
-   "variant": "dashed"
+   "id": "m_w6_audit_w6_eval",
+   "from": "w6_audit",
+   "to": "w6_eval",
+   "variant": "emphasis"
   },
   {
-   "id": "c_d12_w3_eval",
-   "from": "d12",
-   "to": "w3_eval",
-   "variant": "dashed"
+   "id": "m_w6_eval_w6_cfg",
+   "from": "w6_eval",
+   "to": "w6_cfg",
+   "variant": "emphasis"
   },
   {
-   "id": "c_d13_w3_guard",
-   "from": "d13",
-   "to": "w3_guard",
-   "variant": "dashed"
+   "id": "m_w6_cfg_w6_cap",
+   "from": "w6_cfg",
+   "to": "w6_cap",
+   "variant": "emphasis"
   },
   {
-   "id": "c_d14_w3_guard",
-   "from": "d14",
-   "to": "w3_guard",
-   "variant": "dashed",
-   "fromSide": "top",
-   "toSide": "bottom"
+   "id": "m_w6_cap_w6_tidy",
+   "from": "w6_cap",
+   "to": "w6_tidy",
+   "variant": "emphasis"
   },
   {
-   "id": "c_d8_d9",
-   "from": "d8",
-   "to": "d9",
-   "variant": "dashed"
+   "id": "m_here_w7_roots",
+   "from": "here",
+   "to": "w7_roots",
+   "variant": "emphasis"
   }
  ],
  "cards": [
@@ -940,20 +1008,20 @@
    "dot": "amber",
    "title": "Current stage",
    "items": [
-    "Week 4 is under way: 1 of 4 tasks done (architecture diagram + README).",
-    "Weeks 1-3 and the pre-W4 refactor (P-1 to P-4) are finished.",
-    "Next (list order): tracing → payout policy → audit trail."
+    "Weeks 1-6 and the pre-W4 refactor are finished; Week 7 has one task left.",
+    "Next: build the LLM provider and spend budget once in the composition roots and inject them.",
+    "Open items without a week are in the Later list of tasks.md."
    ]
   },
   {
    "dot": "rose",
    "title": "Flagged gaps",
    "items": [
-    "tasks.md has no 'in progress' state; Week 4 is shown as current because it is partly done.",
-    "tasks.md does not rank the 3 pending tasks; its list order is used. Priority lives on the Notion board.",
+    "tasks.md has no 'in progress' state; Week 7 is shown as current because it is the first with open work.",
     "tasks.md carries no dates. Order follows the task list; decision dates come from the ADRs.",
-    "tasks.md was last synced with Notion on 2026-09-24.",
-    "Weeks 1-3 merge some related tasks into one box (e.g. stub + tool schemas)."
+    "The repo is the source of truth; the Notion board is no longer synced.",
+    "Weeks 1-3 merge some related tasks into one box (e.g. stub + tool schemas), and Weeks 5-6 group small tasks.",
+    "ADR-18 (spend cap) was not a board task; it is shown beside the W6 tests that pin it."
    ]
   },
   {
@@ -983,6 +1051,17 @@
    ]
   },
   {
+   "dot": "violet",
+   "title": "Decisions in one line (15-19)",
+   "items": [
+    "ADR-15 OPA sidecar: the payout rule lives in a reviewable policy file and fails closed.",
+    "ADR-16 Audit log: an append-only Postgres table written at the existing seams.",
+    "ADR-17 Tracing: OpenTelemetry spans at the same seams, ids and counts only.",
+    "ADR-18 Spend cap: a process-wide budget in a provider wrapper; a spent budget refuses the turn.",
+    "ADR-19 Bearer tokens: one static token per role, attached to the routers, fail closed."
+   ]
+  },
+  {
    "dot": "cyan",
    "title": "Key terms · the problem",
    "items": [
@@ -997,20 +1076,26 @@
    "items": [
     "Agent: the AI that reads a claim and calls tools → Agent loop.",
     "LangGraph: library that lays the agent out as steps and arrows → ADR-1, Agent loop.",
-    "Tool: an action the agent can call (search_kb, check_eligibility, log_claim, issue_payment) → ADR-4.",
+    "Tool: an action the agent can call (search_kb, check_eligibility, log_claim) → ADR-4.",
     "MCP: standard way to offer tools to any AI client → ADR-3, MCP tool server.",
     "Structured output: a reply in a fixed, checkable shape → ADR-5.",
-    "SSE: server pushes updates over plain HTTP → ADR-7."
+    "SSE: server pushes updates over plain HTTP → ADR-7.",
+    "Agent eval: the real agent run over labelled claims, scored but never failing CI → Agent eval."
    ]
   },
   {
    "dot": "orange",
-   "title": "Key terms · safety",
+   "title": "Key terms · safety and governance",
    "items": [
     "Approval gate: a state-changing action waits for a human yes → ADR-8, ADR-9.",
     "Exactly once: an approved action runs once, never twice → ADR-9, Executors.",
     "PII redaction: replaces emails, IBANs etc. with placeholders → ADR-13.",
-    "Prompt injection: text that tries to give the AI new orders → ADR-14."
+    "Prompt injection: text that tries to give the AI new orders → ADR-14.",
+    "OPA/Rego: policy code; the rule is 'block auto-payout above the limit' → ADR-15.",
+    "Audit trail: an append-only log of every tool call and decision → ADR-16.",
+    "OpenTelemetry: tracing, a span per AI or tool call → ADR-17.",
+    "Bearer token: a secret sent with each request to prove the caller's role → ADR-19.",
+    "Spend cap: a budget that stops model calls once spent → ADR-18."
    ]
   },
   {
@@ -1023,16 +1108,8 @@
     "Relevance floor: minimum score for a search hit to count → ADR-12.",
     "Eval set: labelled questions that measure search quality → Retrieval eval.",
     "Docker Compose: starts the whole stack with one command → Docker Compose.",
-    "Composition root: the one place that wires parts together → P-1 Wiring, ADR-2."
-   ]
-  },
-  {
-   "dot": "cyan",
-   "title": "Key terms · coming in Week 4",
-   "items": [
-    "OpenTelemetry: tracing, a span per AI or tool call → Tracing.",
-    "OPA/Rego: policy code; rule is 'block auto-payout above €X' → Payout policy.",
-    "Audit trail: a log of every tool call and decision → Audit trail."
+    "Composition root: the one place that wires parts together → P-1 Wiring, ADR-2, Providers in the roots.",
+    "CI and gitleaks: automatic lint, tests and secret scanning on every change → CI + secret scans."
    ]
   }
  ]

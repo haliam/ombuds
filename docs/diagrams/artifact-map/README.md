@@ -6,7 +6,7 @@
 
 ![artifact-map](artifact-map.png)
 
-Interactive version: [`artifact-map.html`](artifact-map.html) · Source: [`artifact-map.json`](artifact-map.json)
+Source: [`artifact-map.json`](artifact-map.json)
 
 ## What it shows
 

@@ -5,9 +5,9 @@ This folder is the one home for diagrams. **Every diagram has its own folder wit
 | Path | What it holds |
 |---|---|
 | `<slug>/README.md` | The diagram page (the thing to read and link to). Every diagram has a folder with one. |
-| `<slug>/<slug>.json`, `.html`, `.png` | Only for archify diagrams: the source (pinned to a commit), the interactive page and the image embedded in the page. Mermaid diagrams have just the `README.md`, because the diagram is inside it. |
+| `<slug>/<slug>.json`, `.png` | Only for archify diagrams: the source (pinned to a commit) and the image embedded in the page. Mermaid diagrams have just the `README.md`, because the diagram is inside it. |
 | `_template.md` | Template for a new diagram's `README.md`. |
-| `render_archify.py` | Rebuilds an archify diagram's `.html` and `.png` from its JSON. |
+| `render_archify.py` | Rebuilds an archify diagram's `.png` from its JSON. |
 | `development_board_gen.py` | Generates development board v1's JSON. |
 
 ## Versioning
@@ -19,13 +19,12 @@ Each diagram is `MAJOR.MINOR` with a date, shown in the page header and in the d
 | Diagram | Ver | Date | Tool | Decisions |
 |---|---|---|---|---|
 | [Ombuds Claims Triage](architecture/README.md) | 1.2 | 2026-10-22 | archify | ADR-0001, 0002, 0009, 0015, 0016, 0017, 0019 |
-| [Triage and Approval Flow](triage-approval-flow/README.md) | 1.1 | 2026-10-22 | archify | ADR-0009, 0014, 0019 |
 | [Guardrails and Tool Scoping Pipeline](guardrails-pipeline/README.md) | 1.1 | 2026-10-22 | archify | ADR-0013, 0014, 0015 |
 | [RAG Ingest, Retrieval and Evals](rag-evals-pipeline/README.md) | 1.1 | 2026-10-23 | archify | ADR-0010, 0011, 0012 |
 | [MCP Process Boundary](mcp-boundary/README.md) | 1.0 | 2026-10-18 | archify | ADR-0003 |
 | [Claim Artifact Map](artifact-map/README.md) | 1.1 | 2026-10-23 | archify | ADR-0003, 0009, 0010, 0015, 0016, 0017 |
-| [Claim Run Sequence](claim-sequence/README.md) | 1.0 | 2026-10-19 | archify | ADR-0009, 0012, 0014, 0015 |
-| [Ombuds Development Board](development-overview/README.md) (v1 decisions, v2 code links) | 1.0 | 2026-10-18 | archify | all |
+| [Claim Run Sequence](claim-sequence/README.md) | 1.1 | 2026-10-26 | archify | ADR-0009, 0012, 0014, 0015, 0019 |
+| [Ombuds Development Board](development-overview/README.md) | 2.0 | 2026-10-26 | archify | ADR-0001 to 0019 |
 | [Postgres Data Model](data-model/README.md) | 1.1 | 2026-10-22 | Mermaid | ADR-0009, 0010, 0016 |
 | [Layering and Composition Roots](layering/README.md) | 1.0 | 2026-10-18 | Mermaid | ADR-0002, 0003 |
 | [Approval Request Lifecycle](approval-lifecycle/README.md) | 1.0 | 2026-10-18 | Mermaid | ADR-0009 |
@@ -37,6 +36,8 @@ Each diagram is `MAJOR.MINOR` with a date, shown in the page header and in the d
 | [Prompt Versioning](prompt-versioning/README.md) | 1.1 | 2026-10-23 | Mermaid | none |
 | [Injection Detection Internals](injection-detection/README.md) | 1.0 | 2026-10-18 | Mermaid | ADR-0014 |
 
+Not drawn yet: Rego payout policy and audit trail internals, tracing, and an end-to-end agent eval flow.
+
 ## Which tool
 
 - **Mermaid**: small diagrams (state machines, flowcharts, ER, short sequences). The diagram lives in its page's ```mermaid block, with front-matter `title:`; GitHub renders it, no binaries.
@@ -44,4 +45,4 @@ Each diagram is `MAJOR.MINOR` with a date, shown in the page header and in the d
 
 ## Regenerate an archify diagram
 
-From the repo root: `python docs/diagrams/render_archify.py <slug>` (needs node, the archify skill, google-chrome and Pillow; Pillow is not a project dependency, so run it as `uv run --with pillow python docs/diagrams/render_archify.py <slug>`). It runs `archify finalize` and rewrites the `.html` and `.png`. archify writes scratch runs to `.archify/` at the repo root. It is gitignored; delete it freely.
+From the repo root: `python docs/diagrams/render_archify.py <slug>` (needs node, the archify skill, google-chrome and Pillow; Pillow is not a project dependency, so run it as `uv run --with pillow python docs/diagrams/render_archify.py <slug>`). It runs `archify finalize` and rewrites the `.png`. archify writes scratch runs to `.archify/` at the repo root. It is gitignored; delete it freely.

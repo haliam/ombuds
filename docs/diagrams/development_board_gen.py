@@ -12,7 +12,13 @@ lanes = [
     ("w3_d", "Week 3 · decisions"),
     ("w3", "Week 3 · build"),
     ("pw4", "Pre-W4 refactor"),
-    ("w4", "Week 4 · now"),
+    ("w4_d", "Week 4 · decisions"),
+    ("w4", "Week 4 · build"),
+    ("w5_d", "Week 5 · decisions"),
+    ("w5", "Week 5 · build"),
+    ("w6_d", "Week 6 · decisions"),
+    ("w6", "Week 6 · build"),
+    ("w7", "Week 7 · now"),
 ]
 nodes = []
 edges = []
@@ -53,7 +59,7 @@ step("w2_amcp", "w2", 2, "Agent uses MCP", "tools called over MCP")
 step("w2_mem", "w2", 3, "Agent memory", "short + long term")
 step("w2_esc", "w2", 4, "Escalate / retry", "low confidence → human")
 step("w2_gate", "w2", 5, "Human approval gate", "replaces deny-all stub")
-dec("d8", "w2_d", 4, "ADR-8 Memory approval", "simple; replaced", "Sep 28", "w2_gate")
+dec("d8", "w2_d", 4, "ADR-8 Memory approval", "simple; replaced", "Sep 28")
 dec("d9", "w2_d", 5, "ADR-9 Approve once", "approve once, run once", "Sep 28", "w2_gate")
 edges.append(dict(id="e_d8d9", **{"from": "d8", "to": "d9"}, label="replaced by", variant="dashed", role="branch"))
 # W3
@@ -66,31 +72,52 @@ step("w3_it", "w3", 5, "End-to-end test", "/triage over real stack")
 dec("d10", "w3_d", 0, "ADR-10 pgvector", "one DB, one commit", "Oct 6", "w3_pg")
 dec("d11", "w3_d", 1, "ADR-11 Chunking", "whole sections, cited", "Oct 7", "w3_rag")
 dec("d12", "w3_d", 2, "ADR-12 Score floor", "best cut-off, no loss", "Oct 8", "w3_eval")
-dec("d13", "w3_d", 3, "ADR-13 PII redaction", "hide personal data", "Oct 8", "w3_guard")
-dec("d14", "w3_d", 4, "ADR-14 Injection", "a hit goes to human", "Oct 8", "w3_guard")
+dec("d13", "w3_d", 4, "ADR-13 PII redaction", "hide personal data", "Oct 8", "w3_guard")
+dec("d14", "w3_d", 5, "ADR-14 Injection", "a hit goes to human", "Oct 8", "w3_guard")
 # Pre-W4
 step("p1", "pw4", 0, "P-1 Wiring", "approval store injected")
 step("p2", "pw4", 1, "P-2 Executors", "claims + payments saved")
 step("p3", "pw4", 2, "P-3 Shared preamble", "one setup, two paths")
 step("p4", "pw4", 3, "P-4 Docs fixed", "docs match the code")
 # W4
-step("w4_doc", "w4", 0, "Diagram + README", "design + trade-offs")
+step("w4_otel", "w4", 0, "Tracing (OTel)", "span per AI/tool call")
+step("w4_rego", "w4", 1, "Payout policy (Rego)", "block big auto-payouts")
+step("w4_audit", "w4", 2, "Audit trail", "every call + decision")
+step("w4_doc", "w4", 3, "Diagram + README", "design + trade-offs")
+dec("d17", "w4_d", 0, "ADR-17 Tracing", "spans at existing seams", "Oct 18", "w4_otel")
+dec("d15", "w4_d", 1, "ADR-15 OPA sidecar", "policy outside the code", "Oct 18", "w4_rego")
+dec("d16", "w4_d", 2, "ADR-16 Audit log", "append-only, in Postgres", "Oct 18", "w4_audit")
+# W5
+step("w5_net", "w5", 0, "Ports locked down", "localhost only + healthcheck")
+step("w5_rec", "w5", 1, "Recoverable approvals", "retry route, no stuck requests")
+step("w5_auth", "w5", 2, "API authentication", "two bearer tokens, fail closed")
+step("w5_db", "w5", 3, "No default DB password", "set in .env or refuse")
+step("w5_lint", "w5", 4, "Lint green again", "two long lines fixed")
+step("w5_docs", "w5", 5, "Docs match the code", "README, diagrams, architecture")
+dec("d19", "w5_d", 2, "ADR-19 Bearer tokens", "one per role, per router", "Oct 22", "w5_auth")
+# W6
+step("w6_ci", "w6", 0, "CI + secret scans", "lint, tests, gitleaks")
+step("w6_audit", "w6", 1, "Audit completed", "refusals + injection recorded")
+step("w6_eval", "w6", 2, "Agent eval", "real agent on 15-25 claims")
+step("w6_cfg", "w6", 3, "MCP env + 4096 tokens", "child inherits config")
+step("w6_cap", "w6", 4, "Spend-cap tests", "no failover, one ledger")
+step("w6_tidy", "w6", 5, "Tidy + final checks", "dead stubs gone, limits set")
+dec("d18", "w6_d", 4, "ADR-18 Spend cap", "budget in a provider wrapper", "Oct 18", "w6_cap")
+# W7
 nodes.append(
     dict(
         id="here",
-        lane="w4",
-        col=1,
+        lane="w7",
+        col=0,
         type="frontend",
         label="YOU ARE HERE",
-        sublabel="Week 4: 1 of 4 done",
+        sublabel="Week 7: 0 of 1 done",
         tag="now",
         width=W,
     )
 )
 main.append("here")
-step("w4_otel", "w4", 2, "Tracing (OTel)", "span per AI/tool call", "pending")
-step("w4_rego", "w4", 3, "Payout policy (Rego)", "block big auto-payouts", "pending")
-step("w4_audit", "w4", 4, "Audit trail", "every call + decision", "pending")
+step("w7_roots", "w7", 1, "Providers in the roots", "build once, inject", "pending")
 nodes_col = {n["id"]: n["col"] for n in nodes}
 # main edges
 for a, b in zip(main, main[1:]):
@@ -103,20 +130,20 @@ cards = [
         dot="amber",
         title="Current stage",
         items=[
-            "Week 4 is under way: 1 of 4 tasks done (architecture diagram + README).",
-            "Weeks 1-3 and the pre-W4 refactor (P-1 to P-4) are finished.",
-            "Next (list order): tracing → payout policy → audit trail.",
+            "Weeks 1-6 and the pre-W4 refactor are finished; Week 7 has one task left.",
+            "Next: build the LLM provider and spend budget once in the composition roots and inject them.",
+            "Open items without a week are in the Later list of tasks.md.",
         ],
     ),
     dict(
         dot="rose",
         title="Flagged gaps",
         items=[
-            "tasks.md has no 'in progress' state; Week 4 is shown as current because it is partly done.",
-            "tasks.md does not rank the 3 pending tasks; its list order is used. Priority lives on the Notion board.",
+            "tasks.md has no 'in progress' state; Week 7 is shown as current because it is the first with open work.",
             "tasks.md carries no dates. Order follows the task list; decision dates come from the ADRs.",
-            "tasks.md was last synced with Notion on 2026-09-24.",
-            "Weeks 1-3 merge some related tasks into one box (e.g. stub + tool schemas).",
+            "The repo is the source of truth; the Notion board is no longer synced.",
+            "Weeks 1-3 merge some related tasks into one box (e.g. stub + tool schemas), and Weeks 5-6 group small tasks.",
+            "ADR-18 (spend cap) was not a board task; it is shown beside the W6 tests that pin it.",
         ],
     ),
     dict(
@@ -146,6 +173,17 @@ cards = [
         ],
     ),
     dict(
+        dot="violet",
+        title="Decisions in one line (15-19)",
+        items=[
+            "ADR-15 OPA sidecar: the payout rule lives in a reviewable policy file and fails closed.",
+            "ADR-16 Audit log: an append-only Postgres table written at the existing seams.",
+            "ADR-17 Tracing: OpenTelemetry spans at the same seams, ids and counts only.",
+            "ADR-18 Spend cap: a process-wide budget in a provider wrapper; a spent budget refuses the turn.",
+            "ADR-19 Bearer tokens: one static token per role, attached to the routers, fail closed.",
+        ],
+    ),
+    dict(
         dot="cyan",
         title="Key terms · the problem",
         items=[
@@ -160,20 +198,26 @@ cards = [
         items=[
             "Agent: the AI that reads a claim and calls tools → Agent loop.",
             "LangGraph: library that lays the agent out as steps and arrows → ADR-1, Agent loop.",
-            "Tool: an action the agent can call (search_kb, check_eligibility, log_claim, issue_payment) → ADR-4.",
+            "Tool: an action the agent can call (search_kb, check_eligibility, log_claim) → ADR-4.",
             "MCP: standard way to offer tools to any AI client → ADR-3, MCP tool server.",
             "Structured output: a reply in a fixed, checkable shape → ADR-5.",
             "SSE: server pushes updates over plain HTTP → ADR-7.",
+            "Agent eval: the real agent run over labelled claims, scored but never failing CI → Agent eval.",
         ],
     ),
     dict(
         dot="orange",
-        title="Key terms · safety",
+        title="Key terms · safety and governance",
         items=[
             "Approval gate: a state-changing action waits for a human yes → ADR-8, ADR-9.",
             "Exactly once: an approved action runs once, never twice → ADR-9, Executors.",
             "PII redaction: replaces emails, IBANs etc. with placeholders → ADR-13.",
             "Prompt injection: text that tries to give the AI new orders → ADR-14.",
+            "OPA/Rego: policy code; the rule is 'block auto-payout above the limit' → ADR-15.",
+            "Audit trail: an append-only log of every tool call and decision → ADR-16.",
+            "OpenTelemetry: tracing, a span per AI or tool call → ADR-17.",
+            "Bearer token: a secret sent with each request to prove the caller's role → ADR-19.",
+            "Spend cap: a budget that stops model calls once spent → ADR-18.",
         ],
     ),
     dict(
@@ -186,22 +230,14 @@ cards = [
             "Relevance floor: minimum score for a search hit to count → ADR-12.",
             "Eval set: labelled questions that measure search quality → Retrieval eval.",
             "Docker Compose: starts the whole stack with one command → Docker Compose.",
-            "Composition root: the one place that wires parts together → P-1 Wiring, ADR-2.",
-        ],
-    ),
-    dict(
-        dot="cyan",
-        title="Key terms · coming in Week 4",
-        items=[
-            "OpenTelemetry: tracing, a span per AI or tool call → Tracing.",
-            "OPA/Rego: policy code; rule is 'block auto-payout above €X' → Payout policy.",
-            "Audit trail: a log of every tool call and decision → Audit trail.",
+            "Composition root: the one place that wires parts together → P-1 Wiring, ADR-2, Providers in the roots.",
+            "CI and gitleaks: automatic lint, tests and secret scanning on every change → CI + secret scans.",
         ],
     ),
 ]
 meta = dict(
-    title="Ombuds Development Board · v1.0 · 2026-10-18",
-    output="/tmp/development-overview.html",
+    title="Ombuds Development Board · v2.0 · 2026-10-26",
+    output="docs/diagrams/development-overview/development-overview.html",
     quality_profile="showcase",
     legend=dict(
         mode="all",
@@ -223,4 +259,6 @@ d = dict(
     edges=edges,
     cards=cards,
 )
-json.dump(d, open(sys.argv[1], "w"), indent=1, ensure_ascii=False)
+with open(sys.argv[1], "w") as out:
+    json.dump(d, out, indent=1, ensure_ascii=False)
+    out.write("\n")

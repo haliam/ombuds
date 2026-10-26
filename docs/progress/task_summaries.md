@@ -1,23 +1,22 @@
 # ombuds — Build Task Summaries
 
-One entry per finished task from `tasks.md`. Recap for future-you, not documentation — that stays in docstrings/ADRs. Newest entries at the bottom.
+One entry per finished task from `tasks.md`. Recap for future-you, not documentation — that stays in docstrings and ADRs. Newest entries at the bottom. Keep each entry short: the goal, the files that matter, and any decision or correction that is not obvious from the code.
 
-Template — copy this block per finished task, filling in the fields (omit **Decisions/trade-offs** and **Follow-up** when there's nothing non-obvious to say):
+Template (omit **Decisions** and **Follow-up** when there is nothing non-obvious to say):
 
 ```
 ### <task name from checklist>
 
-**Week:** <W1/W2/W3/W4, matching the section in tasks.md>
+**Week:** <W1…W7, matching the section in tasks.md>
 **Goal:** <one sentence — the problem this task solves>
-**Source:** <ADR # / Notion task, if any>
+**Source:** <ADR # / review finding, if any>
 
-**Files & responsibilities:**
-- `file.py` — what it's responsible for, one line (bare filename; add a directory prefix only to disambiguate two files sharing a name)
+**Files:**
+- `file.py` — what it is responsible for, one line
 
-**Notable libraries:** <only libraries doing something non-obvious here — skip repeating pytest/mypy/ruff every time>
-
-**Decisions/trade-offs:** <optional — a judgment call you made and why>
-**Follow-up:** <optional — only if something's deliberately deferred>
+**Notable libraries:** <only libraries doing something non-obvious here>
+**Decisions:** <a judgment call and why>
+**Follow-up:** <only if something is deliberately deferred>
 ```
 
 ---
@@ -25,427 +24,322 @@ Template — copy this block per finished task, filling in the fields (omit **De
 ### Implement EU261 rules engine (`verticals/airline/rules.py`) + unit tests
 
 **Week:** W1
-**Goal:** Give the agent a deterministic, legally-grounded eligibility/compensation calculator so the LLM never invents EU261 numbers itself.
-**Source:** ADR-0004 (EU261 tool set); Regulation (EC) 261/2004, CJEU *Sturgeon* (C-402/07)
+**Goal:** Give the agent a deterministic, legally grounded eligibility and compensation calculator, so the LLM never invents EU261 numbers.
+**Source:** ADR-0004; Regulation (EC) 261/2004; CJEU *Sturgeon* (C-402/07)
 
-**Files & responsibilities:**
-- `evidence_schema.py` — `FlightDisruption`/`Reroute` models: the facts a claim must establish (distance, scope, notice given, reroute offered) before rules can run. Facts only, no judgments.
-- `rules.py` — `evaluate()`: scope check (Art. 3) → extraordinary-circumstances exemption (Art. 5(3)) → delay threshold (Art. 7, *Sturgeon*) → cancellation-notice exemption (Art. 5(1)(c)) → compensation tier by distance (Art. 7(1)) → reroute reduction (Art. 7(2)). First exemption found wins.
-- `claim.py` — `EligibilityResult`: the vertical-agnostic output shape (`eligible`, `compensation_eur`, machine-readable `reasons`).
-- `test_rules.py` — boundary tests for every threshold (distance tiers, 3h delay cutoff, 7/14-day notice windows), built from one baseline `disruption(**overrides)` factory per `docs/code-style.md`.
+**Files:**
+- `evidence_schema.py` — `FlightDisruption`/`Reroute`: the facts a claim must establish before rules can run. Facts only, no judgments.
+- `rules.py` — `evaluate()`: scope (Art. 3) → extraordinary circumstances (Art. 5(3)) → delay threshold (Art. 7, *Sturgeon*) → cancellation notice (Art. 5(1)(c)) → tier by distance (Art. 7(1)) → reroute reduction (Art. 7(2)). The first exemption found wins.
+- `claim.py` — `EligibilityResult`: the vertical-agnostic output (`eligible`, `compensation_eur`, machine-readable `reasons`).
+- `test_rules.py` — boundary tests for every threshold, built from one baseline factory.
 
-**Notable libraries:**
-- Pydantic (`frozen=True` models) — evidence is immutable once constructed, so a rule function can't accidentally mutate its input.
-- `enum.StrEnum` — `Reason` codes are a closed, serializable set an LLM can cite without re-deriving why.
-- `datetime.timedelta` — every duration (notice, delay, reroute shift) is a `timedelta`, never a bare int of hours, so units can't be mixed up.
-
-**Decisions/trade-offs:** Deliberately simplified subset of EU261 — voluntary denied boarding, missed connections across bookings, care/assistance rights, and UK261 are explicitly out of scope (documented in the module docstring) rather than half-implemented.
+**Notable libraries:** Pydantic frozen models (evidence cannot be mutated), `StrEnum` reason codes, `timedelta` for every duration.
+**Decisions:** a deliberately simplified subset of EU261. Voluntary denied boarding, missed connections across bookings, care rights and UK261 are out of scope, documented in the module docstring rather than half-implemented.
 
 ---
 
 ### Call OpenAI & Anthropic APIs directly, compare outputs
 
 **Week:** W1
-**Goal:** Eyeball raw provider SDKs (text, latency, cost) on the same prompt before building any shared abstraction over them.
-**Source:** "Raw API Fundamentals" checklist
+**Goal:** Look at the raw provider SDKs (text, latency, cost) on the same prompt before building any shared abstraction.
 
-**Files & responsibilities:**
-- `compare_providers.py` — throwaway script, not part of the runtime provider layer (`platform/ai/providers/` is still stubbed). Calls Anthropic, OpenAI, and DeepSeek with the same EU261 prompt and prints text + latency + estimated cost side by side.
+**Files:**
+- `compare_providers.py` — throwaway script, not part of the runtime. Calls Anthropic, OpenAI and DeepSeek with one EU261 prompt and prints text, latency and estimated cost side by side.
 
-**Notable libraries:**
-- `anthropic` / `openai` SDKs — call each provider directly, no shared client; DeepSeek reuses the `openai` SDK since it exposes an OpenAI-compatible endpoint (same client, different `base_url`).
-- `python-dotenv` (`load_dotenv`) — loads API keys from `.env` for a local script run, not the app's own config path.
-- `dataclasses` (`@dataclass(frozen=True)`) — `ProviderResult` is a plain immutable record; no cross-layer boundary here, so no Pydantic needed (per `docs/code-style.md`: Pydantic is for models crossing a layer boundary).
-
-**Decisions/trade-offs:** Cost is an estimate hardcoded from published pricing at write-time, flagged in a comment to re-verify before trusting it — not fetched live.
+**Notable libraries:** `anthropic` and `openai` SDKs (DeepSeek reuses `openai` with a different `base_url`); `python-dotenv`; a frozen `dataclass` for `ProviderResult` (no layer boundary, so no Pydantic).
+**Decisions:** cost is an estimate hardcoded from published pricing and flagged to re-verify, not fetched live.
 
 ---
 
 ### Stub `approval_gate` as deny-all before any state-changing tool is registered
 
 **Week:** W1
-**Goal:** Guarantee a state-changing tool (`log_claim`, `issue_payment`) can never execute before a real approval mechanism exists — even temporarily.
+**Goal:** Guarantee `log_claim` and `issue_payment` can never execute before a real approval mechanism exists.
 **Source:** ADR-0004
 
-**Files & responsibilities:**
-- `approval_gate.py` — defines `GuardedAction` (which actions require approval) and `check_approval()`; currently denies every action unconditionally.
-- `test_approval_gate.py` — pins that every `GuardedAction` is denied, parametrized so a new guarded action is covered automatically.
+**Files:**
+- `approval_gate.py` — `GuardedAction` and `check_approval()`, which denied every action unconditionally.
+- `test_approval_gate.py` — parametrized, so a new guarded action is covered automatically.
 
-**Notable libraries:**
-- Pydantic (`BaseModel`, `ConfigDict(frozen=True)`) — makes `ApprovalDecision` a validated, immutable result object instead of a raw dict.
-- `enum.StrEnum` — closed, typo-proof set of guarded action names.
-
-**Follow-up:** Stub only; replaced by the real human-approval gate in W2.
+**Follow-up:** replaced by the real human-approval gate in W2.
 
 ---
 
 ### Define tool schemas (`check_eligibility`, `log_claim`) + parse tool-use loop
 
 **Week:** W1
-**Goal:** Give both tools a provider-agnostic schema an LLM's tool-use request can validate against, and a dispatcher that turns a provider turn's tool calls into results without an if/elif per tool.
-**Source:** ADR-0004 (EU261 tool set)
+**Goal:** Give both tools a provider-agnostic schema and a dispatcher that turns a model turn's tool calls into results without an if/elif per tool.
+**Source:** ADR-0004
 
-**Files & responsibilities:**
-- `tool_calls.py` — `ToolDefinition` (name, description, `args_model`), `ToolCall`, `ToolResult`: the provider-agnostic shape a tool-use turn is parsed into/out of, independent of any specific SDK's response type.
-- `tool_loop.py` — `ToolRegistry`: maps tool name → schema + handler; `dispatch()`/`dispatch_all()` validate arguments against the tool's `args_model` and run the handler, turning an unknown tool or a validation failure into an error `ToolResult` rather than an exception, so one bad call can't abort the rest of a turn.
-- `check_eligibility.py` — read-only tool; reuses `FlightDisruption` as its own `args_model` and dispatches straight to `verticals/airline/rules.evaluate()`.
-- `log_claim.py` — state-changing tool; `log_claim()` calls `approval_gate.check_approval()` before anything else and returns a denial result while the gate is the deny-all stub — persistence code isn't written yet since it's unreachable until W2.
-- `test_tool_loop.py`, `test_check_eligibility.py`, `test_log_claim.py`.
+**Files:**
+- `tool_calls.py` — `ToolDefinition`, `ToolCall`, `ToolResult`: the provider-agnostic shapes, independent of any SDK.
+- `tool_loop.py` — `ToolRegistry`: name → schema + handler. `dispatch_all()` validates arguments and turns an unknown tool or a validation failure into an error `ToolResult`, so one bad call cannot abort the rest of a turn.
+- `check_eligibility.py` — read-only; its schema is `FlightDisruption` itself and it calls `rules.evaluate()`.
+- `log_claim.py` — state-changing; checked the approval gate first.
 
-**Notable libraries:** none new — same Pydantic/`StrEnum` patterns as the rules engine and approval gate.
-
-**Decisions/trade-offs:** `check_eligibility`'s tool schema is `FlightDisruption` itself rather than a separate `CheckEligibilityArgs` wrapper — the tool takes exactly the rules engine's facts, so a second model would just duplicate the fields it's read-only over. `log_claim` raises `NotImplementedError` on the (currently unreachable) approved path rather than stubbing persistence, since there's no infrastructure layer yet to write to.
-**Follow-up:** `issue_payment` still has no schema — deferred until it's wired up alongside `log_claim` in a later task; `tool_loop.ToolRegistry` isn't yet wired to a real provider response (that's the FastAPI `/triage` endpoint task next).
+**Decisions:** `check_eligibility` uses `FlightDisruption` as its schema instead of a wrapper model, since the tool takes exactly the rules engine's facts.
 
 ---
 
 ### Build FastAPI `/triage` endpoint (raw SDK, no framework)
 
 **Week:** W1
-**Goal:** Wire the existing `ToolRegistry` to a real provider turn and expose it as an HTTP endpoint — a raw `anthropic` SDK tool-use loop, not the LangGraph agent (that's a separate, later task).
-**Source:** follow-up from the tool-schemas task
+**Goal:** Wire the registry to a real provider turn and expose it over HTTP, with a raw `anthropic` tool-use loop (not LangGraph yet).
 
-**Files & responsibilities:**
-- `base.py` — `LLMProvider` Protocol (`run_turn`) and `ProviderTurn` (text, tool calls, stop reason, raw content), so `triage_use_case` isn't coupled to Anthropic's SDK types.
-- `anthropic.py` — `AnthropicProvider.run_turn()`: converts `ToolDefinition`s to Anthropic's `input_schema` tool format, sends one `messages.create` call, and parses `tool_use`/`text` content blocks back into a `ProviderTurn`.
-- `config.py` — `load_prompt()` reads the active versioned prompt file per AGENTS.md's prompt-versioning rule; `CLAIMS_TRIAGE_PROMPT_VERSION` in `.env.example` records which version (`v2`) is live.
-- `v2.txt` — filled in the previously-empty stub with the system prompt: always call `check_eligibility` rather than reasoning about EU261 itself, cite its reason codes, and expect `log_claim` may be denied by the approval gate.
-- `triage_use_case.py` — `run_triage()`: registers `check_eligibility`/`log_claim` on a `ToolRegistry`, loops `provider.run_turn()` → `registry.dispatch_all()` → feed `tool_result` blocks back, until the model stops requesting tools or `MAX_TOOL_TURNS` (8) is hit.
-- `schemas.py`, `api/routes.py` — `TriageRequest`/`TriageResponse` and `POST /claims/triage`, thin per AGENTS.md.
-- `api_app.py` — `create_app()` factory mounting the claims-triage router.
-- `test_triage_use_case.py` — a fake `LLMProvider` (no real API calls) pins the no-tool-call, single-tool-call, unknown-tool, and max-turns-exceeded paths.
-- `test_routes.py` — `TestClient` against the real app, `monkeypatch`ing `run_triage` so the route test doesn't depend on the use case's internals.
+**Files:**
+- `base.py`, `anthropic.py` — the `LLMProvider` Protocol (`run_turn`, `ProviderTurn`) and `AnthropicProvider`, so the use case is not coupled to Anthropic types.
+- `config.py`, `v2.txt` — `load_prompt()` reads the versioned prompt; `CLAIMS_TRIAGE_PROMPT_VERSION` records which version is live.
+- `triage_use_case.py` — `run_triage()`: loop `run_turn` → `dispatch_all` → feed results back until the model stops or `MAX_TOOL_TURNS` (8).
+- `schemas.py`, `api/routes.py`, `api_app.py` — `POST /claims/triage` and the `create_app()` factory.
+- `test_triage_use_case.py`, `test_routes.py` — a fake `LLMProvider` and `TestClient`; no real API calls.
 
-**Notable libraries:** FastAPI (`APIRouter`, `TestClient`) and its `httpx` dev dependency — both newly added to `pyproject.toml`.
-
-**Decisions/trade-offs:** `LLMProvider.run_turn()` takes provider-native message dicts and returns a provider-specific `content` blob that's only ever replayed back into that same provider's next call — full provider-agnosticism across the message history was deferred since only Anthropic is wired up; `OpenAIProvider`/`fallback.py` stay stubs. `run_triage()` takes `provider` as an optional keyword so tests can inject a fake without a mocking framework.
-**Follow-up:** streaming (SSE), structured-output retry/repair, and retries/backoff/fallback-model are their own W1 tasks next; a thorough unit-test pass over the tool-calling parser + endpoint (edge cases, malformed provider output) is the very next checklist item.
+**Notable libraries:** FastAPI (`APIRouter`, `TestClient`) and `httpx`.
+**Decisions:** provider-agnosticism of the message history was deferred, since only Anthropic is wired. `run_triage()` takes `provider` as a keyword so tests can inject a fake without a mocking framework.
 
 ---
 
 ### Write unit tests for tool-calling parser + endpoint
 
 **Week:** W1
-**Goal:** Close edge-case gaps left after the FastAPI `/triage` task — the schemas, dispatch loop, and route had only happy-path coverage.
-**Source:** follow-up from the FastAPI `/triage` endpoint task
+**Goal:** Close the edge-case gaps left by the `/triage` task: schemas, dispatch and the route had only happy-path coverage.
 
-**Files & responsibilities:**
-- `test_tool_calls.py` (new) — `ToolDefinition.input_schema()` produces valid JSON Schema for its `args_model`; `ToolCall` is frozen (assignment raises); `ToolResult.is_error` defaults to `False`.
-- `test_tool_loop.py` — added: `dispatch_all` doesn't abort the batch after one call fails (an unknown-tool error alongside a successful call in the same list); `definitions()` returns every registered `ToolDefinition`.
-- `test_routes.py` — added: a request missing `claim_text` entirely (not just empty) returns 422; a non-empty `tool_results` tuple round-trips through JSON correctly; an unhandled exception from `run_triage` (e.g. the `MAX_TOOL_TURNS`-exceeded `RuntimeError`) propagates rather than being silently swallowed.
+**Files:** `test_tool_calls.py` (new), plus added cases in `test_tool_loop.py` (a failing call does not abort the batch) and `test_routes.py` (missing `claim_text` is 422; a use-case exception propagates).
 
-**Notable libraries:** none new — same pytest/`monkeypatch`/`TestClient` patterns as the existing route tests.
-
-**Decisions/trade-offs:** the max-turns-exceeded `RuntimeError` is asserted to propagate as-is (via `pytest.raises`) rather than expecting a translated 500 response — the route currently has no exception handler, so this test documents current behavior rather than asserting a design that doesn't exist yet.
-**Follow-up:** if `routes.py` later gets an explicit exception handler mapping use-case errors to a specific HTTP status, update this propagation test to assert on the response instead.
+**Decisions:** the max-turns `RuntimeError` is asserted to propagate, documenting the behaviour at the time. Escalation replaced it in W2.
 
 ---
 
 ### Implement streaming (SSE) + buffered JSON parsing
 
 **Week:** W1
-**Goal:** Stream the triage answer and tool calls to the client as they happen instead of blocking until the whole tool-use loop finishes, and correctly assemble a tool call's arguments from the partial JSON fragments a streaming provider sends them in.
-**Source:** follow-up from the FastAPI `/triage` endpoint task
+**Goal:** Stream the answer and tool calls as they happen, and assemble a tool call's arguments from the partial JSON fragments a streaming provider sends.
+**Source:** ADR-0007
 
-**Files & responsibilities:**
-- `streaming.py` — `StreamEvent` union (`TextDelta`, `ToolCallDelta`, `ToolResultEvent`, `TurnDone`) that any provider's stream is normalized to; `JSONBuffer` accumulates one tool call's `input_json_delta` fragments (keyed by call id) and parses them into a dict once that content block closes.
-- `base.py` — `LLMProvider` Protocol gains `stream_turn()` alongside the existing `run_turn()`, returning `Iterator[StreamEvent]`.
-- `anthropic.py` — `AnthropicProvider.stream_turn()` uses `client.messages.stream()`, yielding `TextDelta`/`ToolCallDelta` as raw SDK events arrive, then a final `TurnDone` built from `stream.get_final_message()` (not the accumulated deltas) so it matches `run_turn()`'s output exactly regardless of chunking.
-- `triage_use_case.py` — `stream_triage()`: the same tool-use loop as `run_triage()`, but yields every `StreamEvent` from each turn plus a `ToolResultEvent` per dispatched tool call, instead of returning one final `TriageResult`.
-- `routes.py` — `POST /claims/triage/stream`: `StreamingResponse` over `text/event-stream`, formatting each `StreamEvent` as one `data: <json>\n\n` frame. The original blocking `POST /claims/triage` is unchanged and kept alongside it.
-- `test_streaming.py` (new) — `JSONBuffer` fragment assembly, independent tracking per call id, and the malformed/non-object-JSON error paths.
-- `test_triage_use_case.py` — `_FakeProvider.stream_turn()` added so `stream_triage()` can be tested against the same fixtures as `run_triage()`, without a real API call.
-- `test_routes.py` — SSE frame shape for the streaming endpoint, via `monkeypatch`ing `stream_triage` the same way `run_triage` is monkeypatched elsewhere.
+**Files:**
+- `streaming.py` — the `StreamEvent` union (`TextDelta`, `ToolCallDelta`, `ToolResultEvent`, `TurnDone`) and `JSONBuffer`, which accumulates one call's `input_json_delta` fragments keyed by call id and parses them when the block closes.
+- `anthropic.py` — `stream_turn()` over `client.messages.stream()`; the final `TurnDone` is built from `get_final_message()`, not the deltas, so it always matches `run_turn()`.
+- `routes.py` — `POST /claims/triage/stream`, a `StreamingResponse` of `data: <json>\n\n` frames. The blocking endpoint is unchanged.
 
-**Notable libraries:** `anthropic`'s `messages.stream()` context manager (`MessageStreamManager`) and its raw event types (`content_block_start`/`_delta`/`_stop`) — distinct from the `messages.create()` path `run_turn()` uses.
-
-**Decisions/trade-offs:** `stream_turn()`'s final `TurnDone` is rebuilt from `get_final_message()` rather than trusted to the deltas accumulated during the loop, so a provider-SDK quirk in delta chunking can't silently diverge the streamed result from what `run_turn()` would have returned for the same request. No unit test mocks the raw Anthropic SDK stream events directly (there's no existing precedent for that in this codebase, and the SDK's event types are a lot of surface to fake) — coverage instead treats `LLMProvider.stream_turn()` as the tested boundary, same as `run_turn()`/`ProviderTurn` today. Why the endpoint is SSE rather than a WebSocket is recorded in [ADR-0007](../decisions/0007-sse-over-websockets-for-triage-streaming.md).
-**Follow-up:** structured-output validation with retry/repair, and retries/backoff/fallback-model, are still open W1 tasks; a streaming path adds a new failure mode worth covering there (a stream that drops mid-tool-call).
+**Notable libraries:** `anthropic`'s `messages.stream()` and its raw content-block events.
+**Decisions:** no test fakes the raw SDK stream events (too much surface); `LLMProvider.stream_turn()` is the tested boundary. A stream that drops mid-tool-call was left for the resilience task.
 
 ---
 
 ### Add structured output validation with Pydantic + retry/repair
 
 **Week:** W1
-**Goal:** Stop trusting the model's final reply as free-form text once it has a decision — force it into a validated `TriageDecision` shape, and give it a chance to fix its own mistake instead of failing the whole triage the first time it emits malformed JSON.
+**Goal:** Force the model's final reply into a validated `TriageDecision`, and give it a chance to fix malformed JSON instead of failing the triage.
+**Source:** ADR-0005
 
-**Files & responsibilities:**
-- `structured_output.py` (new) — `parse_structured_output(text, schema)`: extracts the outermost `{...}` span from a reply (models wrap JSON in prose or a ```json fence even when told not to), `json.loads`s it, then `schema.model_validate`s it. Both failure modes raise one `StructuredOutputError` with a message written to be resent to the model verbatim.
-- `decision.py` (new) — `TriageDecision`: the required final shape (`eligible`, `compensation_amount_eur`, `reason_codes`, `explanation`).
-- `v3.txt` (new, now active) — same rules as v2, plus a "final answer format" section telling the model to reply with only that JSON object once it has a decision, and to resend a corrected object if told its JSON didn't validate. Plain-text replies (e.g. asking the passenger for a missing fact) are still allowed.
-- `triage_use_case.py` — `run_triage()`: a final reply with no `{` in it is passed through unchanged as a plain-text answer (`decision=None`); one that contains `{` but fails to parse/validate triggers a repair turn (the validation error appended as the next user message) up to `MAX_REPAIR_ATTEMPTS` (2), after which `StructuredOutputError` propagates instead of being swallowed. `TriageResult` gained a `decision: TriageDecision | None` field.
-- `schemas.py`, `api/routes.py` — `TriageResponse` and `POST /claims/triage` now surface `decision` alongside `answer`.
-- `test_structured_output.py` (new) — clean JSON, JSON-in-prose extraction, no-JSON-object / malformed-JSON / schema-validation-failure error paths.
-- `test_triage_use_case.py` — added: a plain-text final reply still returns `decision=None`; an invalid-then-valid JSON pair proves the repair loop recovers; exhausting `MAX_REPAIR_ATTEMPTS` raises `StructuredOutputError`.
-- `test_routes.py` — updated fixtures to include `decision` in both the request and the serialized response.
+**Files:**
+- `structured_output.py` — `parse_structured_output(text, schema)`: takes the outermost `{...}`, `json.loads`, then `model_validate`. Both failures raise one `StructuredOutputError` whose message is written to be sent back to the model.
+- `decision.py`, `v3.txt` — `TriageDecision` (`eligible`, `compensation_amount_eur`, `reason_codes`, `explanation`) and the prompt's final-answer format. Plain-text replies, such as a question to the passenger, are still allowed.
+- `triage_use_case.py` — a reply without `{` passes through (`decision=None`); one that fails validation triggers a repair turn, up to `MAX_REPAIR_ATTEMPTS` (2).
 
-**Notable libraries:** `pydantic.ValidationError` (surfaced as the repair-prompt text) and `typing.TypeVar` (`parse_structured_output` is generic over the schema so callers get back the concrete type they asked for, not a bare `BaseModel`) — see glossary.
-
-**Decisions/trade-offs:** why prompted JSON + client-side repair was chosen over native structured-output enforcement is recorded in [ADR-0005](../decisions/0005-prompted-json-with-repair-over-native-structured-output.md). `stream_triage()`/SSE was deliberately left unchanged: doing the same validation there would need a feature-specific event type inside `platform/ai/streaming.py`, which would break the `platform` → `features` import-direction rule in `AGENTS.md` (platform code can't know about a feature's `TriageDecision`). Bumped the active prompt straight to v3 rather than gating it behind `evals/` per `AGENTS.md`'s prompt-versioning rule, since `evals/run_evals.py` is still a no-op placeholder — there's nothing to gate against yet.
-**Follow-up:** if `evals/` gets built out, re-validate v3 against it properly rather than treating this bump as final; `stream_triage()` still has no structured-output validation on its final turn.
-**Correction (pre-W2 hardening, 2026-09-27):** this task's validation was shape-only — a reply that parsed as a valid `TriageDecision` was accepted even if it disagreed with `check_eligibility`'s actual result, or if `check_eligibility` was never called (W1 review finding F-01; the README's core claim, "the LLM never becomes the source of truth for the claim's outcome", was not actually true of the returned decision). Added `verify_decision()` in `application/decision.py`, checked against the latest successful `check_eligibility` result through the same repair loop this task built, and reworked `log_claim`'s arguments to take flight facts rather than an eligibility judgment so a model-authored `EligibilityResult` can never reach it either. Bumped the active prompt to v4 (same eval-gate caveat as v3's bump above — `evals/run_evals.py` is still a no-op placeholder). See ADR-0005's updated Consequences.
+**Notable libraries:** `pydantic.ValidationError` (its text becomes the repair prompt), `typing.TypeVar`.
+**Decisions:** prompted JSON plus client-side repair instead of native structured output (ADR-0005). `stream_triage()` was left unvalidated because validating there needs a feature-specific event inside `platform/`, which breaks the import direction. The prompt went straight to v3 because `evals/` was still a placeholder.
+**Correction (pre-W2, 2026-09-27):** validation was shape-only, so a valid `TriageDecision` that disagreed with `check_eligibility`, or never called it, was accepted (W1 review F-01). `verify_decision()` now checks it against the latest `check_eligibility` result through the same repair loop, `log_claim` takes flight facts rather than a model-authored `EligibilityResult`, and the prompt moved to v4.
 
 ---
 
 ### Add retries/backoff, timeouts, fallback model, idempotency
 
 **Week:** W1
-**Goal:** Stop treating the Anthropic call as always-succeeds — add timeouts and backoff-retries for transient failures, fail over to a cheaper/secondary model if the primary keeps failing, and make retried requests idempotent so a retry (ours or the SDK's own) can't double-execute the same logical call.
+**Goal:** Stop treating the Anthropic call as always-succeeds: timeouts, retries for transient failures, and a fallback model.
+**Source:** ADR-0006
 
-**Files & responsibilities:**
-- `anthropic.py` — `AnthropicProvider.__init__` now builds its `anthropic.Anthropic` client with `timeout`/`max_retries` (defaults 30s / 2 retries), delegating transient connection/429/5xx handling to the SDK's own exponential backoff instead of hand-rolling it. Added `_idempotency_key()`: a sha256 of `(model, system, messages, tool names)` sent as the `idempotency-key` header on both `run_turn()` and `stream_turn()`, so the same logical request (SDK retry, or a same-model retry from the layer below) dedupes server-side instead of re-running; a new turn (grown conversation) naturally gets a new key.
-- `fallback.py` — `FallbackProvider`: wraps a `primary` and `fallback` `LLMProvider`, retrying `run_turn()` against `primary` with its own exponential backoff (`max_attempts`, default 3) before failing over to `fallback` entirely. `stream_turn()` does the same, but only fails over if the primary errors *before* any event has reached the caller — once output has started, a mid-stream failure is re-raised as-is rather than risking duplicate/replayed output. Also provides `build_default_provider()`, composing `ANTHROPIC_MODEL` as primary and `ANTHROPIC_FALLBACK_MODEL` as fallback from `config.py`.
-- `config.py`, `.env.example` — new `ANTHROPIC_FALLBACK_MODEL` (default `claude-haiku-4-5`), `ANTHROPIC_TIMEOUT_SECONDS` (30), `ANTHROPIC_MAX_RETRIES` (2).
-- `triage_use_case.py` — `run_triage()`/`stream_triage()` now default to `build_default_provider()` instead of a bare `AnthropicProvider()`, so triage gets retry/fallback behavior without callers changing anything (tests still inject `_FakeProvider` directly).
-- `test_fallback.py` (new) — primary succeeds without retry; primary recovers within its retry budget; primary exhausts retries and `fallback` answers instead; a streaming failure before any output falls back; a streaming failure after output has started is re-raised, not swallowed. Uses an injectable `sleep` callable so backoff delays don't slow the test suite.
-- `test_anthropic.py` (new) — `_idempotency_key()` is stable for an identical request, changes once the conversation grows, and changes with model.
+**Files:**
+- `anthropic.py` — the client is built with `timeout` and `max_retries` (30 s / 2), so the SDK does the exponential backoff.
+- `fallback.py` — `FallbackProvider`: retries the primary with its own backoff (`max_attempts` 3), then fails over to the fallback model. A stream fails over only if nothing has reached the caller yet; a mid-stream failure is re-raised rather than risking replayed output. `build_default_provider()` composes the two models from config.
+- `test_fallback.py` — injectable `sleep`, so backoff does not slow the suite.
 
-**Notable libraries:** `anthropic.Anthropic(timeout=, max_retries=)` — the SDK's built-in httpx-based timeout/retry handling; no new third-party retry/backoff library was added since one layer's needs (client-level transient-error retry) were already covered by the SDK, and the other (cross-model fallback) needed custom fallover logic a generic decorator wouldn't express well.
-
-**Decisions/trade-offs:** why the work is split into two resilience layers (SDK-level retries vs. `FallbackProvider`'s model fallover) instead of one retry library, and why `FallbackProvider` catches bare `Exception` (the one intentional exception to the no-bare-except rule in `docs/code-style.md`), is recorded in [ADR-0006](../decisions/0006-two-layer-resilience-over-a-retry-library.md). Idempotency is scoped to the Anthropic provider's own header (derived from request content, not a random key), rather than a cross-provider idempotency scheme, since retrying against `fallback` is already a different model/request and doesn't need to dedupe against `primary`'s attempts.
-**Follow-up:** `OpenAIProvider`/`fallback.py`'s provider-agnosticism is still untested against a live second provider (only two `AnthropicProvider` instances are composed today, since `OpenAIProvider` remains a stub); wiring OpenAI in as the fallback instead of a cheaper Anthropic model is a natural next step once that provider is implemented.
-**Correction (pre-W2 hardening, 2026-09-27):** the `idempotency-key` header this task added was checked against the official Messages API reference and confirmed unsupported — Anthropic's Messages API does not document idempotency-key handling the way Stripe's API does, so `_idempotency_key()` and its header were doing nothing server-side. Removed from `anthropic.py` along with its tests. Idempotency belongs at the point where a duplicate call would actually cause harm — the state-changing tools (`log_claim`, `issue_payment`) landing in W2, keyed by `claim_id` — not at the LLM-call layer, which has no side effects to double-execute. See W1 review finding F-04.
+**Decisions:** two resilience layers (SDK retries, then model failover) instead of a retry library, and `FallbackProvider` is the one place allowed to catch bare `Exception` (ADR-0006).
+**Correction (pre-W2, 2026-09-27):** the `idempotency-key` header added here is not supported by Anthropic's Messages API, so it did nothing and was removed. Idempotency belongs where a duplicate causes harm: the state-changing tools, keyed by `claim_id` (W1 review F-04).
 
 ---
 
 ### Rebuild tool-calling loop in LangGraph
 
 **Week:** W2
-**Goal:** Replace the W1 hand-rolled `for`-loop tool-use orchestration with an explicit LangGraph `StateGraph`, so the agentic loop is graph-native and later W2 nodes (classify/retrieve/decide/escalate_retry) have a graph to hang off of.
-**Source:** `tasks.md` Week 2 checklist
+**Goal:** Replace the hand-rolled loop with an explicit `StateGraph`.
+**Source:** ADR-0001
 
-**Files & responsibilities:**
-- `state.py` — `AgentState`: the `TypedDict` threaded through every node (messages, accumulated `tool_results`, `pending_tool_calls`/`text` staging the latest model turn, `turns`/`repair_attempts` counters, `answer`/`decision`, `done`).
-- `graph.py` — `build_triage_graph(provider, registry, system)`: compiles a 3-node graph — `call_model` (one provider turn) → routes to `dispatch_tools` (runs `ToolRegistry.dispatch_all`, loops back to `call_model`) or `finalize` (validates/verifies the final reply, either returning `answer`/`decision` or looping back to `call_model` with a repair message). Also hosts `tool_result_message()`, `_repair_message()`, `_parse_final_turn()` — moved here from `triage_use_case.py` since the loop now lives in this module.
-- `triage_use_case.py` — `run_triage()` now builds and `.invoke()`s the compiled graph instead of a manual loop; same `TriageResult` contract, same `MAX_TOOL_TURNS`/`MAX_REPAIR_ATTEMPTS` bounds (now re-exported from `agent/graph.py`). `stream_triage()` is unchanged (streaming isn't threaded through the graph yet) but now imports `tool_result_message()` instead of duplicating it.
-- `test_triage_use_case.py` — unchanged; passes against the graph-backed `run_triage()` with no test edits, confirming behavior parity (tool dispatch, repair-on-bad-JSON, repair-on-`verify_decision`-mismatch, unknown-tool error, non-convergence after `MAX_TOOL_TURNS`).
-- `pyproject.toml` — added `langgraph>=0.2`.
+**Files:**
+- `state.py` — `AgentState`, the `TypedDict` threaded through the nodes (messages, tool results, staged turn, counters, `answer`/`decision`, `done`).
+- `graph.py` — `build_triage_graph(provider, registry, system)`: `call_model` → `dispatch_tools` (loops back) or `finalize` (verify the reply, or loop back with a repair message).
+- `triage_use_case.py` — `run_triage()` invokes the compiled graph; the same `TriageResult` contract and bounds, and the existing tests passed with no edits.
 
-**Notable libraries:** LangGraph (`StateGraph`, `CompiledStateGraph`, `END`) — see glossary.
-
-**Decisions/trade-offs:** `stream_triage()` was deliberately left on the old manual loop rather than also rebuilt on the graph — streaming events (`TextDelta`/`ToolCallDelta`/`TurnDone`) aren't yet a first-class graph concept here, and folding them in would have doubled this task's scope for no behavior change; picked up as a later W2/W3 follow-up if streaming needs the same node structure. The tool-loop nodes (`call_model`/`dispatch_tools`/`finalize`) were written directly in `agent/graph.py` rather than split across `agent/nodes/*.py` (`classify.py`/`decide.py`/`retrieve.py`/`escalate_retry.py` per `AGENTS.md`'s layout) — those stubs are for the broader classify→retrieve→decide pipeline, which doesn't exist yet; wiring the tool loop into that node package is deferred to whichever task builds that pipeline, rather than guessing its shape now.
-**Follow-up:** `agent/nodes/classify.py`, `retrieve.py`, `decide.py`, `escalate_retry.py` remain empty stubs — not wired into this graph. `stream_triage()` still bypasses the graph. *(Resolved later: `escalate_retry` was built, the other stubs were deleted, and `stream_triage` runs the same graph — see "Pre-W3 hardening" and the W3 RAG entry.)*
+**Notable libraries:** LangGraph (`StateGraph`, `END`).
+**Decisions:** the nodes live in `graph.py` rather than `agent/nodes/*.py`, because the classify → retrieve → decide pipeline those stubs were for never existed. `stream_triage()` stayed on the old loop for the moment.
+**Follow-up:** resolved later: `escalate_retry` was built, the other stubs were deleted, and `stream_triage` runs the same graph (see "Pre-W3 hardening").
 
 ---
 
 ### Stand up MCP server (`search_kb`, `check_eligibility`, `log_claim`, `issue_payment`)
 
 **Week:** W2
-**Goal:** Expose the claims-triage tool catalogue over MCP, not just as an in-process `ToolRegistry`, so any MCP client (Claude Desktop, a future LangGraph MCP adapter) can list and call `search_kb`, `check_eligibility`, `log_claim` and `issue_payment` without knowing this feature exists.
+**Goal:** Expose the tool catalogue over MCP so any MCP client can list and call it without knowing this feature exists.
+**Source:** ADR-0003
 
-**Files & responsibilities:**
-- `search_kb.py` (new) — `SearchKbArgs`/`SearchKbResult`/`SEARCH_KB_TOOL`. Read-only, no approval gate. `search_kb()` always raises `ToolExecutionError`: `rag/retriever.py` is still a stub, so there's no real index to search yet — raising keeps that gap visible instead of returning empty or fabricated hits.
-- `issue_payment.py` (new) — `IssuePaymentArgs`/`IssuePaymentResult`/`ISSUE_PAYMENT_TOOL`. State-changing; mirrors `log_claim`'s shape exactly: calls `check_approval(GuardedAction.ISSUE_PAYMENT)` first (denied unconditionally by the deny-all stub), then would raise `ToolExecutionError` for the disbursement path once approved — unreachable until the real approval gate lands.
-- `__init__.py` — `build_tool_registry()` now registers all four tools instead of two.
-- `tool_bindings.py` — `build_mcp_server(registry)`: builds an MCP `Server`, implementing `list_tools()`/`call_tool()` by reading straight from the given `ToolRegistry` — each tool's MCP `inputSchema` comes from `ToolDefinition.input_schema()`, so there's exactly one schema per tool, not a second one hand-written for MCP. `call_tool()` re-raises a `ToolRegistry.dispatch()` error result as a plain exception, which the MCP `Server` turns into an `isError=True` `CallToolResult` for the client.
-- `server.py` — `python -m ombuds.platform.mcp.server`: the composition root (ADR-0003) that builds `claims_triage.tools.build_tool_registry()` and hands it to `build_mcp_server()`, then serves it over stdio via `mcp.server.stdio.stdio_server()`.
-- `pyproject.toml` — added `mcp<2` (pinned below the newer, differently-shaped v2 SDK — `mcp==2.x` renamed `FastMCP`→`MCPServer` and moved the low-level `Server` to a callback-based constructor instead of `@server.list_tools()`/`@server.call_tool()` decorators) and `pytest-asyncio`, with `asyncio_mode = "auto"` so `async def test_...` needs no per-test marker.
-- `test_search_kb.py`, `test_issue_payment.py` (new) — same shape as the existing `log_claim` tests: gate-denied result, `ToolExecutionError` once approved/for retrieval, argument validation, `ToolDefinition.args_model` identity.
-- `test_tool_registry.py` — updated to assert all four tool names, not two.
-- `test_tool_bindings.py` (new) — drives `build_mcp_server()` through a real in-memory MCP client/server session (`mcp.shared.memory.create_connected_server_and_client_session`) rather than calling `list_tools`/`call_tool` as bare functions, so the test exercises the actual MCP protocol layer (request/response (de)serialization included), not just the handler logic.
+**Files:**
+- `search_kb.py`, `issue_payment.py` — new tools. `search_kb` raised until RAG existed; `issue_payment` mirrored `log_claim` behind the gate.
+- `tool_bindings.py` — `build_mcp_server(registry)`: `list_tools`/`call_tool` read straight from the registry, so each tool has exactly one schema (`ToolDefinition.input_schema()`). A failed dispatch is re-raised so MCP returns `isError=True`.
+- `server.py` — `python -m ombuds.platform.mcp.server`: the composition root, serving over stdio.
+- `test_tool_bindings.py` — drives a real in-memory MCP client/server session, so the protocol layer is exercised, not just the handlers.
 
-**Notable libraries:** `mcp` (the official Python MCP SDK) — see glossary for `Server`, the `list_tools`/`call_tool` decorators, `stdio_server`, and the in-memory test session helper. `anyio` — the async runtime `mcp`'s stdio transport is built on; `server.py`'s `main()` uses `anyio.run()` rather than `asyncio.run()` so it stays consistent with the library it's driving.
-
-**Decisions/trade-offs:** verified the server for real, not just via the in-memory test — ran `python -m ombuds.platform.mcp.server` as an actual subprocess over stdio through `mcp.client.stdio.stdio_client()` and confirmed `list_tools`/`call_tool` round-trip correctly, since the in-memory session test alone wouldn't catch a stdio-transport-specific bug. Pinned `mcp<2` rather than adopting the newly-released v2 SDK: v2's low-level `Server` replaced the decorator API with constructor callbacks (`on_list_tools`/`on_call_tool`), a bigger, less-documented API surface change than this task needed to take on. `search_kb` and `issue_payment` are wired into the registry and reachable over MCP, but both are honest stubs (deny-all / retrieval-not-implemented) — same posture W1 left `log_claim` in; nothing here pretends the RAG pipeline or a payment provider exists yet.
-**Follow-up:** "Connect LangGraph agent to tools over MCP" (next W2 task) should replace `application/triage_use_case.py`'s direct `ToolRegistry` use — now the graph built in "Rebuild tool-calling loop in LangGraph" above — with an MCP client. `search_kb` and `issue_payment` need real implementations once `rag/retriever.py` and the real approval gate land — this task only stood up the transport, not those backends.
+**Notable libraries:** `mcp` (low-level `Server`, `stdio_server`), `anyio`, `pytest-asyncio` with `asyncio_mode = "auto"`.
+**Decisions:** pinned `mcp<2`, because v2 replaced the decorator API with constructor callbacks, a bigger change than this task needed. Also checked the server as a real subprocess over stdio, which the in-memory test cannot catch.
 
 ---
 
 ### Connect LangGraph agent to tools over MCP
 
 **Week:** W2
-**Goal:** Give the LangGraph tool-calling loop (`agent/graph.py`) a real MCP-connected path to the claims-triage tools, so `search_kb`/`check_eligibility`/`log_claim`/`issue_payment` can be dispatched over the actual MCP transport stood up in the previous task, not just the in-process `ToolRegistry`.
-**Source:** `tasks.md` Week 2 checklist
+**Goal:** Let the graph dispatch tools over the real MCP transport, not just the in-process registry.
 
-**Files & responsibilities:**
-- `client.py` (new) — `McpToolClient`: a synchronous context manager wrapping an MCP `ClientSession` connected over stdio to `python -m ombuds.platform.mcp.server` (spawned as a subprocess). `definitions()` lists the server's tools and converts each to a `ToolDefinition` carrying the server's own JSON schema; `dispatch_all()` runs a batch of `ToolCall`s over the session, in order, converting each `CallToolResult` back to a `ToolResult`. Bridges LangGraph's synchronous nodes to the async-only `ClientSession` via an `anyio` blocking portal — `_connect()` opens the stdio transport and the session as one nested async context manager so enter/exit happen in the single task the portal keeps alive for it (`portal.wrap_async_context_manager`), avoiding a cancel-scope task-affinity error a naive `__aenter__`/`__aexit__` split hit during development.
-- `tool_loop.py` — new `ToolDispatcher` `Protocol` (`definitions()`, `dispatch_all()`): the shape `agent/graph.py` actually needs from a tool source. `ToolRegistry` and `McpToolClient` both satisfy it structurally, so the graph doesn't know or care which one it's holding.
-- `graph.py` — `build_triage_graph`'s `registry` parameter is now typed `ToolDispatcher` instead of `ToolRegistry`.
-- `tool_calls.py` — `ToolDefinition` gained an optional `raw_schema` field; `input_schema()` returns it verbatim when set, falling back to `args_model.model_json_schema()` otherwise. An MCP-sourced definition has no local `args_model` to derive a schema from (validation happens server-side, inside the registry `platform/mcp/server.py` already wraps) — `raw_schema` lets it carry the server's schema through without a dummy model pretending to validate anything.
-- `triage_use_case.py` — `run_triage()` gained a `use_mcp: bool = False` parameter; `True` runs the graph against an `McpToolClient` (spawning the server subprocess) instead of the default in-process `build_tool_registry()`. Both paths now share a `_invoke_graph()` helper instead of duplicating the `app.invoke()` call.
-- `base.py`, `anthropic.py`, `fallback.py` — `run_turn`/`stream_turn`'s `tools` parameter widened from `list[ToolDefinition]` to `Sequence[ToolDefinition]`, so a `list[ToolDefinition]` from `ToolRegistry.definitions()` and one built by `McpToolClient.definitions()` are both accepted without either registry needing to match the other's exact list type.
-- `test_client.py` (new) — real round-trip against the actual server subprocess (not the in-memory test session `test_tool_bindings.py` uses): lists the tool catalogue, dispatches `check_eligibility` and gets a real result back, and confirms an unknown tool name comes back as an `is_error` result rather than raising.
-- `test_fallback.py`, `test_triage_use_case.py` — fake `LLMProvider` implementations' type hints updated to match the widened `Sequence[ToolDefinition]` signature; no behavior changes.
+**Files:**
+- `client.py` — `McpToolClient`: a synchronous context manager over an MCP `ClientSession` connected by stdio to the server subprocess. An `anyio` blocking portal bridges LangGraph's sync nodes to the async-only session; `wrap_async_context_manager` keeps enter and exit in one task, which avoids a cancel-scope error.
+- `tool_loop.py` — the `ToolDispatcher` Protocol (`definitions()`, `dispatch_all()`); `ToolRegistry` and `McpToolClient` both satisfy it, so the graph does not care which it holds.
+- `tool_calls.py` — `ToolDefinition.raw_schema`: an MCP-sourced tool carries the server's schema, with no dummy `args_model`.
+- `triage_use_case.py` — `run_triage(use_mcp=False)`; `True` spawns the server.
+- `test_client.py` — a real round trip against the actual subprocess.
+
+**Notable libraries:** `anyio.from_thread.start_blocking_portal`.
+**Decisions:** `use_mcp` defaults to false: the in-process registry has no startup cost and is what the tests exercise. One optional `raw_schema` field instead of a new spec type across the provider layer.
 
 ---
 
 ### Add short-term + long-term memory to agent state
 
 **Week:** W2
-**Goal:** Give the tool-calling loop somewhere to carry facts forward — within one run, and across separate runs for the same claimant — instead of only the raw `messages` transcript.
-**Source:** `tasks.md` Week 2 checklist
+**Goal:** Carry facts forward within a run and across runs for the same claimant, instead of only the raw transcript.
 
-**Files & responsibilities:**
-- `short_term.py` — `ShortTermMemory`: a frozen, dict-of-facts Pydantic model scoped to one triage run. `remember()` returns a new instance (never mutates); `as_context()` renders the facts as a system-prompt block, or `None` if empty.
-- `long_term.py` — `LongTermMemory` (same shape as `ShortTermMemory`, but meant to survive across runs) plus `LongTermMemoryStore`, a `Protocol` (`load(claimant_id)`/`save(claimant_id, memory)`) and `InMemoryLongTermMemoryStore`, a dict-backed default implementation that only lives for the process's lifetime — a placeholder until Postgres lands in W3.
-- `state.py` — `AgentState` gained `short_term: ShortTermMemory` and `long_term: LongTermMemory`.
-- `graph.py` — `call_model` now builds its system prompt via `_augmented_system()`, which appends `long_term.as_context()` then `short_term.as_context()` after the base prompt when either has facts. `dispatch_tools` records each successful tool result into `short_term` (keyed `f"{tool_name}_result"`) so later turns in the same run see it as plain context, not just buried in the tool-result message history.
-- `triage_use_case.py` — `run_triage()` gained optional `claimant_id: str | None` and `long_term_store: LongTermMemoryStore | None` parameters. When both are given: the claimant's prior `LongTermMemory` is loaded before the run, the run's final decision is remembered under `"last_decision"`, and the result is saved back after. Omit either and the run only gets in-run `ShortTermMemory` — no cross-run recall, no behavior change from before this task. `_invoke_graph()` now returns `(TriageResult, LongTermMemory)` so the caller can persist the updated memory.
-- `test_short_term.py`, `test_long_term.py` (new) — cover immutability of `remember()`, per-claimant isolation in `InMemoryLongTermMemoryStore`, and `as_context()` rendering/empty-case.
-- `test_triage_use_case.py` — new cases: a decision is saved to the store under a claimant id; a later run for the same claimant sees the prior decision injected into its system prompt; no context is injected and nothing is touched when `claimant_id` is omitted.
+**Files:**
+- `short_term.py` — `ShortTermMemory`: frozen facts for one run; `remember()` returns a new instance.
+- `long_term.py` — `LongTermMemory`, the `LongTermMemoryStore` Protocol and an in-memory store, a placeholder until Postgres.
+- `graph.py`, `triage_use_case.py` — the context is added to the prompt; `run_triage` takes optional `claimant_id` and `long_term_store` and saves the final decision.
 
-**Decisions/trade-offs:** the API (`api/routes.py`) is deliberately left unwired to this — `TriageRequest` has no claimant identity field yet, and there's no real persistent store until W3's Postgres lands, so wiring the endpoint now would mean inventing an identity scheme just to plug it into an in-memory dict that resets on every server restart. `LongTermMemoryStore` is a protocol precisely so that wiring is a drop-in swap later, not a rewrite. Facts are stored as plain strings (not typed evidence) — this is prompt context for the model, not the source of truth for eligibility, which still comes from `check_eligibility` (`verify_decision`, ADR-0004/F-01) regardless of what memory says.
-
-**Notable libraries:** `anyio.from_thread.start_blocking_portal` / `BlockingPortal.wrap_async_context_manager` — see glossary.
-
-**Decisions/trade-offs:** `run_triage()` defaults to `use_mcp=False` rather than switching the whole app over to the MCP path — the in-process registry has no subprocess-startup cost and is what every existing test exercises; the MCP-connected path is opt-in and proven end-to-end (an integration test plus a manual run with a fake provider driving a real `check_eligibility` call over the subprocess), but nothing yet depends on it being the default. `ToolDefinition.raw_schema` was chosen over introducing a separate `ToolSpec` protocol type across the provider layer (which would have meant widening `LLMProvider.run_turn`/`stream_turn` and every implementer to a structurally-different type) — one optional field keeps `ToolDefinition` as the single currency both registries hand to a provider.
-**Follow-up:** none of `run_triage`'s callers (the FastAPI `/triage` route) pass `use_mcp=True` yet — flipping that default, or exposing it as a request/config option, is a later decision once there's a reason to prefer the MCP path in production rather than just having it available and tested.
+**Decisions:** the API is not wired to this: `TriageRequest` has no claimant identity, and inventing one for an in-memory dict would be wrong. Memory is prompt context only; eligibility still comes from `check_eligibility` and `verify_decision`.
 
 ---
 
 ### Add escalation/retry loop on low confidence
 
 **Week:** W2
-**Goal:** Give the tool-calling graph a graceful "hand this to a human" outcome instead of raising a bare exception when it can't reach a confident decision — non-convergence, repeated repair/verification failure, or a stop_reason it can't recover from (F-09/F-10 from the pre-W2 review).
-**Source:** `tasks.md` Week 2 checklist
+**Goal:** Hand a run to a human instead of raising when it cannot reach a verified decision.
 
-**Files & responsibilities:**
-- `escalate_retry.py` — no longer an empty stub. `UNRECOVERABLE_STOP_REASONS = {"max_tokens", "refusal"}` and `escalate(state)`, the terminal node: marks the run `done`/`escalated`, keeps `escalation_reason`, and falls back to a human-review message if there's no model text to return. First of the `agent/nodes/*.py` stubs to actually get wired into `agent/graph.py`.
-- `graph.py` — `call_model` no longer raises `RuntimeError` past `MAX_TOOL_TURNS`; it returns an `escalation_reason` and lets `route_after_model` send the run to the new `escalate` node instead. It also checks each turn's `stop_reason` against `UNRECOVERABLE_STOP_REASONS`. `finalize`'s repair-exhaustion branch no longer re-raises `StructuredOutputError`; it sets `escalation_reason` and `route_after_finalize` routes to `escalate`.
-- `state.py` — `AgentState` gained `stop_reason: str`, `escalated: bool`, `escalation_reason: str | None`.
-- `triage_use_case.py` — `TriageResult` gained `escalated`/`escalation_reason` (defaulted `False`/`None` so existing construction sites don't need updating); `_invoke_graph` passes them through from the final graph state.
-- `schemas.py`, `api/routes.py` — `TriageResponse` and the `/claims/triage` handler surface the same two fields to callers.
-- `test_triage_use_case.py` — the three tests that used to assert a raised exception (`RuntimeError` on non-convergence, `StructuredOutputError` on repair exhaustion, both plain-mismatch and persistent-`verify_decision`-mismatch variants) now assert `result.escalated is True` with a matching `escalation_reason` instead; added a case for an unrecoverable `stop_reason="max_tokens"`.
-- `test_routes.py` — updated the existing happy-path assertion for the two new response fields; added a case asserting an escalated `TriageResult` comes back as `escalated: true` with its reason.
+**Files:**
+- `escalate_retry.py` — `UNRECOVERABLE_STOP_REASONS` (`max_tokens`, `refusal`) and the terminal `escalate` node.
+- `graph.py`, `state.py` — non-convergence, repair exhaustion and an unrecoverable stop reason route to `escalate` instead of raising.
+- `triage_use_case.py`, `schemas.py`, `routes.py` — `escalated` and `escalation_reason` on `TriageResult` and `TriageResponse`.
 
-**Decisions/trade-offs:** there's no model-reported confidence score anywhere in the schema (`TriageDecision` has none), so "low confidence" is operationalized as the three failure modes the pre-W2 review already flagged as escalation candidates (F-09 stop_reason, F-10 non-convergence/repair exhaustion) rather than inventing a confidence field the model would have to self-report and that nothing downstream could verify — `verify_decision` (ADR-0004/F-01) is still the only source of truth for eligibility, so a "low confidence" signal from the model itself wouldn't be trustworthy either. Escalation is expressed as normal graph state (`escalated`/`escalation_reason` fields on the final state, `TriageResult`, `TriageResponse`), not a raised exception — the F-10 write-up considered typed errors (`TriageDidNotConverge`, `DecisionInvalid`) with FastAPI exception handlers, but "the agent couldn't reach a confident decision" is a business outcome the caller needs to route to a human, not a 500; a typed-exception version would have needed the handler layer anyway to turn it back into a 200-with-a-flag response. `stream_triage()` (the raw, non-graph loop) is left untouched — it's already documented as a separate, deferred rebuild target, and folding escalation into it now would mean re-solving the same problem twice for a code path nothing currently depends on going through the graph.
-**Follow-up:** `stream_triage()` still raises `RuntimeError` on non-convergence and has no escalation path — picked up whenever it's rebuilt on the graph. `agent/nodes/classify.py`, `retrieve.py`, `decide.py` remain empty stubs. *(Resolved later: the stubs were deleted and `stream_triage` runs the graph — see "Pre-W3 hardening".)*
+**Decisions:** there is no model-reported confidence in the schema, so "low confidence" means the failure modes the pre-W2 review listed (stop reason, non-convergence, repair exhaustion). Escalation is normal state, a 200 with a flag, not an exception: it is a business outcome the caller routes to a human.
 
 ---
 
 ### Replace deny-all stub with human-approval gate before state-changing tool calls
 
 **Week:** W2
-**Goal:** Replace the W1 deny-all `approval_gate` stub (ADR-0004) with a real, if minimal, human-approval workflow — `log_claim`/`issue_payment` still can't disburse or persist anything without a human explicitly signing off, but there's now a way for that sign-off to actually happen.
-**Source:** `tasks.md` Week 2 checklist; ADR-0008
+**Goal:** Replace the deny-all stub with a minimal human-approval workflow, so a sign-off can actually happen.
+**Source:** ADR-0008 (superseded by ADR-0009)
 
-**Files & responsibilities:**
-- `approval_gate.py` — `check_approval(action, context)` now dedupes on `(action, context)` (e.g. `{"claim_id": ...}`) via a module-level `ApprovalGate`: the first call for a given action/context creates a `PENDING` `ApprovalRequest` and denies; a later call with the same action/context sees whatever a human resolved it to. `ApprovalGate` (`check`/`approve`/`deny`/`list_pending`/`get`) is the store's interface, in-memory and `threading.Lock`-guarded; `ApprovalStatus` (`PENDING`/`APPROVED`/`DENIED`) and `ApprovalNotFoundError` are new. Module-level `check_approval`/`list_pending_approvals`/`get_approval_request`/`approve_request`/`deny_request` wrap a single process-lifetime `_GATE` singleton.
-- `api.py` (new) — `GET /approvals` (list pending), `POST /approvals/{id}/approve`, `POST /approvals/{id}/deny` (body: `approver`, optional `note`); 404s via `ApprovalNotFoundError`. Feature-agnostic, like `approval_gate.py` itself.
-- `api_app.py` — mounts the new `approvals` router alongside the claims-triage feature's routes; this is one of the composition roots allowed to wire a platform-level router in directly (AGENTS.md).
-- `log_claim.py`, `issue_payment.py` — `check_approval` calls now pass `{"claim_id": ...}` / `{"claim_id": ..., "amount_eur": ...}` as context, so the pending request a human sees is scoped to that specific claim rather than a bare action name.
-- `test_approval_gate.py` — rewritten against a fresh `ApprovalGate()` per test (not the global singleton): first-check-creates-pending, same-context dedupes onto one request, different context creates a separate one, approve/deny resolve and are reflected on the next check, unknown request id raises.
-- `test_api.py` (new) — drives the FastAPI routes through `TestClient`, monkeypatching `platform.guardrails.api`'s module-level functions to a scratch `ApprovalGate` per test so tests don't share state through the real singleton.
-- `test_log_claim.py`, `test_issue_payment.py` — updated for the new denial message ("awaiting human approval" instead of "approval_gate stub"); the "approved → raises `ToolExecutionError`" monkeypatches now stub a two-arg `check_approval(action, context=None)`.
+**Files:**
+- `approval_gate.py` — `check_approval(action, context)` deduped on `(action, context)`: the first call creates a `PENDING` request and denies, a later call sees what a human resolved. `ApprovalGate` was in-memory and lock-guarded.
+- `guardrails/api.py` — `GET /approvals`, `POST /approvals/{id}/approve|deny`.
+- `log_claim.py`, `issue_payment.py` — pass the claim id as context.
 
-**Decisions/trade-offs:** In-memory store, not Postgres — the interview asked to choose between the two; in-memory was picked because `ApprovalGate`'s interface doesn't change if the backing store later does, so moving to Postgres (mirroring `audit_repository.py`) is a swap, not a rewrite, and there's no multi-worker deployment yet to make in-memory state actually wrong. First-sight behavior was the other explicit choice: `check_approval` auto-creates a `PENDING` request rather than requiring `log_claim`/`issue_payment` to create one explicitly first — keeps the tools themselves unchanged (same call site, same return shape) and puts request-creation in exactly one place. See ADR-0008 for the full write-up, including why this is necessarily poll-based (SSE, ADR-0007, is one-directional — a human's decision can't be pushed back into an in-flight triage run, only picked up on the *next* call).
-
-**Notable libraries:** `threading.Lock` — see glossary.
-
-**Follow-up:** The W2 task description also named idempotency on `claim_id` (W1 review F-04) as a requirement — `check_approval`'s dedup key already makes *approval requests* idempotent (a retried call for the same claim doesn't spawn a second pending request), but `log_claim`/`issue_payment` still don't persist anything (both still end in `raise ToolExecutionError(...not implemented...)` once approved), so true double-log/double-pay prevention at the persistence layer is still deferred to whenever W3's Postgres repository work lands — there's nothing to double-write yet. `approver` on `/approvals/*` is a free-text field with no authentication; fine for this demo, flagged in ADR-0008 as a gap a real deployment would need to close.
+**Notable libraries:** `threading.Lock`.
+**Decisions:** in-memory store behind an interface, so Postgres was a swap, not a rewrite. The workflow is poll-based, because SSE is one-directional and a decision cannot be pushed into an in-flight run.
+**Follow-up:** idempotency on `claim_id` at the persistence layer, and `approver` authentication, were deferred (done in the pre-W4 refactor and W5).
 
 ---
 
 ### Pre-W3 hardening
 
 **Week:** W2 → W3 boundary
-**Goal:** Fix the W2 governance-path gaps found in the pre-W3 review before W3 builds persistence, RAG and guardrails on top of them.
-**Source:** `w2_review_pre_w3_plan.md` (removed; see git history) (T-1 to T-6, O-7); ADR-0009 (supersedes ADR-0008); ADR-0007 amendment
+**Goal:** Fix the governance-path gaps found in the pre-W3 review before building persistence, RAG and guardrails on top.
+**Source:** the W2 review (T-1 to T-6, O-7; git history); ADR-0009 (supersedes ADR-0008); ADR-0007 amendment
 
-**Files & responsibilities:**
-- `escalate_retry.py` — escalated runs return a fixed `ESCALATION_ANSWER`, never the model's last text, which on every escalation path was a rejected verdict, a stale preamble or a truncated reply (T-1, F-01).
-- `short_term.py`, `long_term.py`, `graph.py`, `triage_use_case.py` — short-term memory holds only rules-derived eligibility fields and is never injected into a prompt; long-term memory consolidates those fields on a verified decision (no more model `explanation`) and is shown as a context block in the first user turn. The system prompt is now constant across a run (T-5, F-06).
-- `0009-approval-request-is-the-pending-action.md` — the approval request *is* the pending action: tools only submit, an approved request executes exactly once via an executor, `claim_id` is server-issued, the agent isn't offered `issue_payment`, and `log_claim` is meant to auto-run under the W4 policy (T-2, F-05). README step 6 and AGENTS.md updated to match.
-- `tools/__init__.py` — `scope_for_agent(dispatcher, claim_id)` wraps any `ToolDispatcher` (in-process or MCP): it offers only `search_kb`/`check_eligibility`/`log_claim`, refuses other calls without dispatching them, and overwrites `claim_id` with the run's (T-3/T-4, F-03).
-- `approval_gate.py`, `guardrails/api.py` — `submit(action, payload)` dedupes on the canonical payload; `approve`/`deny` only from `PENDING` (409 otherwise); `claim_for_execution` is the single-use `APPROVED → EXECUTED` transition; `ApprovalRequest` is frozen; new `GET /approvals/{id}` (T-4, F-02).
-- `log_claim.py`, `issue_payment.py` — both only submit. The payload is `claim_id` plus the rules-derived outcome plus the structured facts; `issue_payment` takes facts, not an amount, and derives the amount from `evaluate()` (T-4, F-04).
-- `graph.py`, `triage_use_case.py`, `routes.py` — `/claims/triage/stream` runs the same graph (`build_triage_graph(stream=True)`); SSE frames are `tool_call`, `tool_result`, then one `final` frame with the `/triage` response fields, or `error` on `ProviderUnavailableError`. Unverified model text is never streamed; the W1 manual loop is deleted (T-6, F-07).
-- `client.py`, `schemas.py`, `fallback.py`, `pyproject.toml` — the MCP client no longer leaks its portal thread on a failed connect; `claim_text` is capped at 10,000 chars; the `FallbackProvider` docstring is corrected; `openai` moved to a `scripts` dependency group (O-7).
+**Files:**
+- `escalate_retry.py` — escalated runs return a fixed `ESCALATION_ANSWER`, never the model's last text.
+- `short_term.py`, `long_term.py`, `graph.py` — memory holds only rules-derived fields; the system prompt is constant across a run.
+- `0009-approval-request-is-the-pending-action.md` — the approval request *is* the pending action: tools only submit, an approved request executes exactly once, `claim_id` is server-issued, and the agent is not offered `issue_payment`.
+- `tools/__init__.py` — `scope_for_agent(dispatcher, claim_id)` offers only `search_kb`/`check_eligibility`/`log_claim`, refuses other calls without dispatching them, and overwrites `claim_id` with the run's.
+- `approval_gate.py`, `guardrails/api.py` — `submit(action, payload)` dedupes on the canonical payload; approve/deny only from `PENDING` (409 otherwise); a single-use `APPROVED → EXECUTED` transition.
+- `log_claim.py`, `issue_payment.py` — both only submit; `issue_payment` takes facts and derives the amount from `evaluate()`.
+- `graph.py`, `triage_use_case.py`, `routes.py` — `/claims/triage/stream` runs the same graph; frames are `tool_call`, `tool_result`, one `final` (or `error`). The manual loop is deleted.
+- `client.py`, `schemas.py` — no portal-thread leak on a failed connect; `claim_text` capped at 10,000 chars.
 
-**Notable libraries:** `langgraph.config.get_stream_writer`, `pydantic.JsonValue`, `contextlib.ExitStack` — see glossary.
-
-**Decisions/trade-offs:** `claim_id` stays in the tools' argument schemas (MCP clients need it) and is *overwritten* for the agent rather than rejected, so no prompt change was needed and a model that guesses an id can't loop on errors. The stream dropped `text_delta`/`turn_done` frames rather than streaming the final reply's tokens, because until `finalize` verifies it, that reply is an unverified verdict. The prompt stayed on v4: the tool results are self-describing ("submitted for human approval"), and v5 waits for the W3 eval set. A separate style commit fixed 11 pre-existing lint findings that blocked `make lint` on HEAD.
-**Follow-up:** executors and a Postgres-backed approval store (W3, per ADR-0009); DI at the composition root (O-1), the RAG entry point decision (O-2) and prompt v5 (O-3) stay in their W3 tasks. Commit `1c0ea0b` still has a placeholder message; rewording it needs a force-push to `origin/w2_final_review`.
+**Notable libraries:** `langgraph.config.get_stream_writer`, `pydantic.JsonValue`, `contextlib.ExitStack`.
+**Decisions:** `claim_id` stays in the tool schemas (MCP clients need it) and is overwritten for the agent, so a model that guesses an id cannot loop on errors. The stream dropped `text_delta` frames because the final reply is an unverified verdict until `finalize` checks it.
 
 ---
 
 ### Set up Postgres (relational) + pgvector/Chroma (embeddings)
 
 **Week:** W3
-**Goal:** Give the system a durable, cross-process data layer: Postgres for relational state and pgvector for KB embeddings, behind the existing store interfaces.
-**Source:** ADR-0009 (shared approval store), ADR-0010 (pgvector over Chroma, psycopg3 over an ORM), W2 review O-1
+**Goal:** A durable, cross-process data layer: Postgres for relational state and pgvector for KB embeddings.
+**Source:** ADR-0009, ADR-0010 (pgvector over Chroma, psycopg3 over an ORM)
 
-**Files & responsibilities:**
-- `0010-pgvector-in-postgres-over-chroma.md` — records the vector-store and DB-access choices.
-- `docker-compose.yml` — `db` service (`pgvector/pgvector:pg16`, host port 5433 because 5432 is often taken locally), with a healthcheck.
-- `config.py`, `.env.example` — `DATABASE_URL` and pool size; the unused `VECTOR_DB_URL` is gone.
-- `postgres.py` — connection pool and the numbered-SQL migration runner (advisory-locked, tracked in `schema_migrations`).
-- `0001_init.sql` — `approval_requests` (UNIQUE `(action, payload_key)`), `claims`, `long_term_memory`, `kb_chunks` with an HNSW cosine index.
-- `repositories.py` — `PostgresApprovalStore` (upsert dedup, compare-and-set transitions) and `PostgresClaimantFactsRepository`.
-- `approval_gate.py` — extracted the `ApprovalStore` Protocol; `dedup_key` is now public so both stores share one canonical key.
-- `vector_store.py` — `VectorStore` Protocol, `PgVectorStore`, `EMBEDDING_DIM`.
-- `postgres_long_term.py` — adapts the facts repository to `LongTermMemoryStore` (kept in `features/` so `platform/` never imports it).
-- `tests/integration/` — `conftest.py` (session pool, per-test truncate, auto `integration` marker, skips if Postgres is down) plus store, vector and migration tests including concurrent-claim races.
+**Files:**
+- `docker-compose.yml`, `config.py` — the `db` service (`pgvector/pgvector:pg16`, host port 5433) and `DATABASE_URL`.
+- `postgres.py`, `0001_init.sql` — pool and a numbered-SQL migration runner (advisory-locked); `approval_requests` (UNIQUE `(action, payload_key)`), `claims`, `long_term_memory`, `kb_chunks` with an HNSW cosine index.
+- `repositories.py` — `PostgresApprovalStore` (upsert dedup, compare-and-set transitions) and the claimant-facts repository.
+- `vector_store.py` — `VectorStore` Protocol and `PgVectorStore`.
+- `tests/integration/` — session pool, per-test truncate, and concurrent-claim race tests.
 
-**Notable libraries:** `psycopg` / `psycopg_pool`, pgvector, HNSW, `INSERT ... ON CONFLICT` — see glossary.
-
-**Decisions/trade-offs:** Vectors go in as text literals (`%s::vector`), so the `pgvector` Python package and numpy aren't needed. `EMBEDDING_DIM = 1536` is a placeholder until the RAG task picks an embedding provider; changing it needs a new migration. Nothing is wired into `create_app` yet.
-**Follow-up:** DI at the composition root (O-1) to swap in these stores; executors that run `claim_for_execution` in the same transaction as their write (ADR-0009); `claims` is created but unused until `log_claim` has an executor.
+**Notable libraries:** `psycopg`/`psycopg_pool`, pgvector, HNSW, `INSERT ... ON CONFLICT`.
+**Decisions:** vectors go in as text literals (`%s::vector`), so neither the `pgvector` package nor numpy is needed.
 
 ---
 
 ### Build RAG pipeline — chunk → embed → store → retrieve → cite
 
 **Week:** W3
-**Goal:** Let the agent look up airline policy through `search_kb` and get back passages it can cite.
-**Source:** ADR-0010 (pgvector), ADR-0011 (chunking + embeddings), W2 review F-10 / F-06
+**Goal:** Let the agent look up airline policy through `search_kb` and get passages it can cite.
+**Source:** ADR-0010, ADR-0011
 
-**Files & responsibilities:**
-- `platform/ai/embeddings.py` — `Embedder` Protocol and `OpenAIEmbedder` (batching, retryable errors → `ProviderUnavailableError`).
-- `rag/chunking.py` — heading-aware markdown splitter returning frozen `Chunk`s.
-- `verticals/airline/kb_seed/*.md` — three EU261 policy documents (scope and amounts, delays and cancellations, extraordinary circumstances and claims).
-- `rag/ingest.py` — chunk, embed and `replace_source` per document; `make ingest` runs it.
-- `vector_store.py` — new `replace_source` (delete + insert in one transaction).
-- `rag/retriever.py`, `rag/citation.py` — `Retriever` with a relevance floor, `Citation` model, lazy `default_retriever()`.
-- `tools/search_kb.py`, `tools/__init__.py` — `search_kb` takes an injected retriever; `build_tool_registry(retriever_factory)`; hits now carry `chunk_index` and `score`.
-- `tests/fakes.py` — `FakeEmbedder` (deterministic bag-of-words) and `DownEmbedder`.
-- Deleted the unused `classify` / `retrieve` / `decide` node stubs (O-2).
+**Files:**
+- `platform/ai/embeddings.py` — `Embedder` Protocol and `OpenAIEmbedder`.
+- `rag/chunking.py`, `kb_seed/*.md`, `rag/ingest.py` — heading-aware chunking of three EU261 documents; `make ingest` replaces a source's chunks in one transaction.
+- `rag/retriever.py`, `rag/citation.py` — `Retriever` with a relevance floor and a `Citation` model.
+- `tools/search_kb.py` — takes an injected retriever; hits carry `chunk_index` and `score`.
 
-**Notable libraries:** `openai` SDK (embeddings endpoint) — see glossary.
-
-**Decisions/trade-offs:** see ADR-0011. The retriever is built lazily so the registry needs no DB or API key.
-**Follow-up:** the retrieval eval set tunes `DEFAULT_MIN_SCORE`; prompt v5 must teach the model to call `search_kb` (nothing in v4 mentions it); `Citation`s are not yet part of `TriageDecision`; integration tests still truncate the dev `kb_chunks` (needs a separate `ombuds_test` database), so re-run `make ingest` afterwards.
+**Notable libraries:** the `openai` SDK (embeddings endpoint).
+**Decisions:** the retriever is built lazily, so the registry needs no database or API key. The unused `classify`/`retrieve`/`decide` node stubs were deleted.
 
 ---
 
 ### Build small eval set (20–30 Q/A pairs), measure retrieval quality
 
 **Week:** W3
-**Goal:** Measure how well `search_kb` finds the right policy section, and choose the relevance floor from data instead of a guess.
-**Source:** ADR-0012 (floor), ADR-0011 (floor was a starting guess), W2 review O-3
+**Goal:** Measure how well `search_kb` finds the right section, and pick the relevance floor from data.
+**Source:** ADR-0012
 
-**Files & responsibilities:**
-- `evals/datasets/airline_retrieval.jsonl` — 30 questions: 26 answerable (gold = file + heading, including 3 multi-section), 4 off-topic.
-- `evals/dataset.py` — loads and validates the questions, resolves gold headings to `(source, chunk_index)` against the KB seed.
-- `evals/retrieval_metrics.py` — hit@k, MRR, off-topic rejection rate (pure functions).
-- `evals/run_evals.py` — one unfloored search per question, then the floor sweep, score separation and misses; `make eval` runs it after `make ingest`.
+**Files:**
+- `evals/datasets/airline_retrieval.jsonl` — 30 questions: 26 answerable (gold = file + heading) and 4 off-topic.
+- `evals/retrieval_metrics.py`, `evals/run_evals.py` — hit@k, MRR and off-topic rejection; `make eval` sweeps the floor.
 - `rag/retriever.py` — `DEFAULT_MIN_SCORE` 0.2 → 0.35.
 
-**Notable libraries:** none new.
-
-**Decisions/trade-offs:** see ADR-0012. Gold is labelled by heading, not chunk index, so re-chunking doesn't invalidate it. Results: hit@5 0.96, MRR 0.84; the floor mostly can't separate off-topic from answerable because the scores overlap (0.384 vs 0.389).
-**Follow-up:** `scope-2` (a late check-in phrased without the word "scope") misses at every floor; grow the off-topic set; prompt v5 can now be gated on this set; `Citation`s are not yet part of `TriageDecision`; separate `ombuds_test` database (integration tests truncate dev `kb_chunks`, so run `make ingest` before `make eval`).
+**Decisions:** gold is labelled by heading, not chunk index, so re-chunking does not invalidate it. Result: hit@5 0.96, MRR 0.84. The floor mostly cannot separate off-topic from answerable because the scores overlap (0.384 vs 0.389).
+**Follow-up:** `scope-2` misses at every floor; grow the off-topic set.
 
 ---
 
 ### Add PII filtering on inputs/outputs
 
 **Week:** W3
-**Goal:** Keep personal identifiers out of the LLM and embedding APIs, the response, logs and approval records.
-**Source:** ADR-0013, AGENTS.md "Security", W2 review F-07
+**Goal:** Keep personal identifiers out of the LLM and embedding APIs, the response, the logs and the approval records.
+**Source:** ADR-0013
 
-**Files & responsibilities:**
-- `platform/guardrails/pii_filter.py` — `redact` / `redact_value`: regex detection with Luhn and mod-97 checks, typed placeholders, per-kind counts.
-- `platform/guardrails/guarded_dispatcher.py` — `GuardedDispatcher` redacts the arguments of every tool call for any `ToolDispatcher`.
-- `application/triage_use_case.py` — redacts `claim_text` on the way in, and the answer, decision explanation, escalation reason and streamed tool-call frames on the way out.
-- `platform/guardrails/approval_gate.py` — approver `note` stored redacted.
-- `platform/mcp/server.py` + `tool_bindings.py` — `build_server()` guards external MCP clients; `build_mcp_server` takes any `ToolDispatcher`.
-- `platform/observability/logging.py` — `PiiRedactingFilter` and `configure_logging()`, called from `api_app.py` and the MCP `main()`.
+**Files:**
+- `pii_filter.py` — `redact`/`redact_value`: regex detection with Luhn and mod-97 checks, typed placeholders, per-kind counts.
+- `guarded_dispatcher.py` — redacts the arguments of every tool call for any `ToolDispatcher`.
+- `triage_use_case.py` — redacts `claim_text` on the way in; the answer, explanation, escalation reason and streamed frames on the way out.
+- `approval_gate.py`, `mcp/server.py`, `logging.py` — redacted approver note; the MCP server guards external clients; `PiiRedactingFilter` on log handlers.
 
-**Notable libraries:** stdlib `re` and `logging` only — see glossary.
-
-**Decisions/trade-offs:** see ADR-0013. Regex and checksums rather than Presidio, so names and addresses are not covered. Redaction is one-way and has no off switch. Passport and booking references only after a keyword, to protect flight numbers.
-**Follow-up:** names/addresses (Presidio behind the same `redact()` signature); the W4 audit log should store redacted text plus `findings` counts; prompt v5 may need a line about placeholders; `escalation_reason` redaction has no dedicated test; the uvicorn handler wiring is untested against a running server.
+**Notable libraries:** stdlib `re` and `logging` only.
+**Decisions:** regex and checksums instead of Presidio, so names and addresses are not covered. Redaction is one-way with no off switch.
 
 ---
 
@@ -453,158 +347,128 @@ Template — copy this block per finished task, filling in the fields (omit **De
 
 **Week:** W3
 **Goal:** Stop passenger text that tries to instruct the model from reaching it, and prove the structural guardrails hold when detection misses.
-**Source:** ADR-0014, AGENTS.md "Guardrails", W2 review F-06, `build_and_explain.md` Q11
+**Source:** ADR-0014
 
-**Files & responsibilities:**
-- `platform/guardrails/injection_detection.py` — `detect()`: normalise, regex per kind, base64 decode-and-rescan; counts only.
-- `application/triage_use_case.py` — `run_triage` / `stream_triage` escalate a flagged claim before any model call, tool dispatch or memory write.
-- `tests/unit/platform/guardrails/test_injection_detection.py` — attacks per kind, obfuscation, false-positive corpus including the KB seed.
-- `tests/unit/features/claims_triage/application/test_triage_use_case.py` — no provider call on a hit; a paraphrase that evades detection still cannot trigger `issue_payment`.
+**Files:**
+- `injection_detection.py` — `detect()`: normalise, regex per kind, base64 decode and rescan; counts only.
+- `triage_use_case.py` — a flagged claim is escalated before any model call, tool dispatch or memory write.
+- tests — attacks per kind, obfuscation, a false-positive corpus including the KB seed, and a paraphrase that evades detection still cannot trigger `issue_payment`.
 
-**Notable libraries:** stdlib `unicodedata` and `base64` — see glossary.
-
-**Decisions/trade-offs:** see ADR-0014. Heuristics rather than an LLM classifier; escalate rather than reject. The structural limits (tool scope, server-issued `claim_id`, approval gate) are the real defence.
-**Follow-up:** paraphrase and non-EN/DE/FR/ES attacks are missed; an agent-level eval set of injected claims (`airline_claims.jsonl` is still empty); scan tool results if a tool ever returns third-party text; the audit log (W4) should record the `findings` counts.
+**Notable libraries:** stdlib `unicodedata` and `base64`.
+**Decisions:** heuristics, not an LLM classifier; escalate, not reject. The structural limits (tool scope, server-issued `claim_id`, approval gate) are the real defence.
+**Follow-up:** paraphrase and non-EN/DE/FR/ES attacks are missed. The agent-level injection case was later added to the eval set.
 
 ---
 
 ### Write integration test for `/triage` end-to-end
 
 **Week:** W3
-**Goal:** Prove HTTP → `run_triage` → LangGraph → scoped/guarded tools → Postgres works as one path; the unit tests fake everything below the route.
-**Source:** AGENTS.md "Testing" (integration: real Postgres, mock the LLM)
+**Goal:** Prove HTTP → `run_triage` → LangGraph → scoped, guarded tools → Postgres works as one path.
 
-**Files & responsibilities:**
-- `tests/integration/api/test_triage_endpoint.py` — drives the real `create_app()` through `TestClient`: verified decision after a real pgvector `search_kb`, `log_claim` parked in the approval gate under the server-issued `claim_id`, clarifying question, injection escalation, repeated rules-engine contradiction escalating, SSE frames matching the JSON endpoint, 422 on empty input.
+**Files:**
+- `tests/integration/api/test_triage_endpoint.py` — the real `create_app()` through `TestClient`: a verified decision after a real pgvector `search_kb`, `log_claim` parked under the server-issued `claim_id`, a clarifying question, injection and contradiction escalations, SSE frames matching the JSON endpoint, 422 on empty input.
 - `tests/fakes.py` — `ScriptedProvider`, a replay-only `LLMProvider`.
 
-**Notable libraries:** `fastapi.testclient.TestClient` — already in the glossary's FastAPI entry; nothing new.
-
-**Decisions/trade-offs:** Only the LLM and the embedder are faked; seams are `triage_use_case.build_default_provider` / `build_tool_registry`, patched with `monkeypatch`, so no production code changed. The approval gate is still in-memory, so each test swaps in a fresh one. Checked the test can fail by breaking `scope_for_agent`'s `claim_id` binding.
-**Follow-up:** the MCP-dispatch path (`use_mcp=True`) is not reached via HTTP; the Docker Compose task should rerun this against the containerised stack.
+**Decisions:** only the LLM and the embedder are faked. Checked the test can fail by breaking `scope_for_agent`'s `claim_id` binding.
 
 ---
 
 ### Write Docker Compose for full stack, verify `docker compose up`
 
 **Week:** W3
-**Goal:** One command brings up db, schema + KB, and the API, and `/claims/triage` works against it.
-**Source:** AGENTS.md "Commands" (`make up` was a placeholder)
+**Goal:** One command brings up the database, the schema and KB, and the API.
 
-**Files & responsibilities:**
-- `Dockerfile` — `python:3.11-slim` + `uv sync --frozen --no-dev` (deps layer, then `src/`), non-root, uvicorn on :8000.
-- `.dockerignore` — keeps `.env`, `.git`, tests, docs out of the build context and image.
-- `docker-compose.yml` — adds `migrate-ingest` (one-shot, runs `rag.ingest`, which applies migrations first) and `api` (waits for it via `service_completed_successfully`; healthcheck on `/openapi.json`). Both share the `ombuds` image and override `DATABASE_URL` to the `db` service.
-- `Makefile` — `up` / `down` wired.
-- `platform/observability/logging.py` — bug found by the stack: the PII filter set `record.args = None`, which broke uvicorn's access-log formatter ("Logging error" on every request). It now redacts the template and each string arg and keeps the args' shape.
+**Files:**
+- `Dockerfile`, `.dockerignore` — `python:3.11-slim` with `uv sync --frozen --no-dev`, non-root, uvicorn on :8000.
+- `docker-compose.yml`, `Makefile` — a one-shot `migrate-ingest` and the `api` service (waits via `service_completed_successfully`; healthcheck on `/openapi.json`); `make up` and `make down`.
+- `logging.py` — fixed a bug the stack exposed: the PII filter set `record.args = None`, which broke uvicorn's access log.
 
-**Notable libraries:** `uv` (in the image build) and Docker Compose `depends_on` conditions; nothing new for the glossary beyond that.
+**Decisions:** the API does not migrate on startup; the one-shot service owns schema and KB. No separate MCP service: the stdio server is a subprocess of the API container (ADR-0003).
+**Verified:** clean `down -v` → `make up` → real triage with `log_claim` parked; a second `make up` is idempotent.
 
-**Decisions/trade-offs:** The API doesn't migrate on startup (unchanged); the one-shot service owns schema + KB so the API stays stateless to start. No separate MCP service: the stdio server is a subprocess of the API container (ADR-0003); verified `McpToolClient` lists all four tools in-container. No ADR: compose was already the stated deployment shape.
-**Verified:** clean `down -v` → `make up`: db healthy → ingest 12 chunks, exit 0 → api healthy; real triage returned a decision with `log_claim` parked for approval; injection claim escalated; a second `make up` is idempotent.
-**Follow-up:** no `/health` endpoint (healthcheck uses `/openapi.json`); the approval gate is still in-memory so keep one replica *(resolved by the Pre-W4 refactor: approvals live in Postgres)*; `use_mcp=True` isn't reachable over HTTP, only checked via `McpToolClient`.
+---
 
 ### Pre-W4 refactor (W3 review)
 
 **Week:** W3 → W4 boundary
-**Goal:** Finish the approval path W3 left open, so W4's tracing, audit trail and Rego policy attach to a real, durable, executing path.
-**Source:** `w3_review_pre_w4_plan.md` (removed; see git history) (P-1 to P-4; F-01, F-02, F-04, F-06); ADR-0009 addendum
+**Goal:** Finish the approval path W3 left open, so W4's tracing, audit and policy attach to a durable, executing path.
+**Source:** the W3 review (P-1 to P-4; git history); ADR-0009 addendum
 
-**Files & responsibilities:**
-- `approval_gate.py` — the module-level `_GATE` and its wrapper functions are gone; `ApprovalGate` stays as the in-memory fake for tests.
-- `api_app.py` — `create_app()` is the composition root: a lifespan opens the Postgres pool, builds the runtime, and closes the pool on shutdown; tests inject an in-memory store/registry instead. Routes reach them through `Depends` (`get_approval_store`, `get_registry`).
-- `application/runtime.py`, `platform/mcp/server.py` — `build_runtime(pool)` builds the Postgres-backed approval store and the tool registry once; the API and the MCP subprocess both use it, so they share approvals.
-- `platform/guardrails/executing_store.py` — `ExecutingApprovalStore`: `approve` wins `PENDING → APPROVED`, runs the action's executor, then wins `APPROVED → EXECUTED`; `execute_approved` is the recovery path for a request left `APPROVED`.
-- `application/executors.py`, `migrations/0002_payments.sql`, `repositories.py` — `log_claim` writes `claims`; `issue_payment` needs a logged claim with a matching amount (at request time and again at execution) and writes a simulated `payments` row. Both writes are idempotent on `claim_id`.
-- `triage_use_case.py` — `_prepare_run` and `_agent_tools` are the single preamble for `run_triage` and `stream_triage`; the injection escalation now returns `ESCALATION_ANSWER`; `_to_result`/`_consolidate` take `AgentState`.
+**Files:**
+- `approval_gate.py`, `api_app.py` — the module-level `_GATE` is gone; `create_app()` is the composition root (a lifespan opens the Postgres pool; routes use `Depends`).
+- `application/runtime.py`, `mcp/server.py` — `build_runtime(pool)` builds the Postgres approval store and the registry once; the API and the MCP subprocess share approvals.
+- `executing_store.py` — `ExecutingApprovalStore.approve` wins `PENDING → APPROVED`, runs the executor, then wins `APPROVED → EXECUTED`; `execute_approved` is the recovery path.
+- `executors.py`, `0002_payments.sql` — `log_claim` writes `claims`; `issue_payment` needs a logged claim with a matching amount and writes a simulated `payments` row. Both are idempotent on `claim_id`.
+- `triage_use_case.py` — `_prepare_run` is the one preamble for `run_triage` and `stream_triage`.
 
-**Notable libraries:** FastAPI `lifespan` and `Depends` (new glossary entries).
-
-**Decisions/trade-offs:** Idempotent-write-then-claim rather than one transaction (ADR-0009 addendum): simpler store protocol, but a failed executor leaves the request `APPROVED` until `execute_approved` is called. `run_triage`/`stream_triage` now take the `registry` instead of building it, which also removed the tests' `monkeypatch` of `build_tool_registry`.
-**Verified:** unit + integration suites; against `make up`: a real triage parked a `log_claim` request, it survived an API restart, approving it wrote exactly one `claims` row, and a second approve returned 409.
-**Follow-up:** nothing calls `execute_approved` automatically; `default_retriever()` still owns a separate pool; the `/approvals` endpoints are still unauthenticated (F-03, W4 audit task).
+**Notable libraries:** FastAPI `lifespan` and `Depends`.
+**Decisions:** idempotent write, then claim, instead of one transaction (ADR-0009 addendum): a simpler store protocol, at the cost that a failed executor leaves the request `APPROVED` until `execute_approved` runs (made reachable in W5).
+**Verified:** a real triage parked a request, it survived an API restart, approving it wrote exactly one `claims` row, and a second approve returned 409.
 
 ---
 
 ### Write architecture diagram + README (problem, design, trade-offs)
 
 **Week:** W4
-**Goal:** Give the project a readable front door: two diagrams traced from the code (plus a development-overview board, added afterwards), and a README that states the problem, the design and the trade-offs without claiming anything unbuilt.
+**Goal:** Give the project a readable front door: diagrams traced from the code, and a README that states the problem, design and trade-offs without claiming anything unbuilt.
 
-**Files & responsibilities:**
-- `docs/diagrams/architecture/architecture.json`, `architecture.png` — component view (archify `architecture`), pinned to commit `7342b6c` with source lines per component.
-- `docs/diagrams/triage-approval-flow/triage-approval-flow.json`, `triage-approval-flow.png` — sequence view (archify `sequence`) of one triage and the later human approval.
-- `docs/diagrams/development-overview/development-overview.*` and `development-overview-v2.*` — build timeline boards (archify `architecture`): v1 shows steps and ADR decisions; v2 shows steps only, each linked to its code at a pinned commit. Every diagram now has `.json`, `.html` and `.png`.
-- `docs/architecture.md` — was an empty stub; now embeds both diagrams, a component table, layering, deployment and what is not built.
-- `README.md` — restructured into Problem, Design, Trade-offs (table linking each ADR) and Known limitations; Week 4 items are marked as not built.
+**Files:**
+- `docs/diagrams/architecture/`, `claim-sequence/` — a component view and a sequence view (archify; the sequence was first drawn as `triage-approval-flow`, later merged into `claim-sequence`), pinned to a commit. The development-overview board was added afterwards (since redrawn as one board, v2.0).
+- `docs/architecture.md`, `README.md` — embeds the diagrams and a component table; the README is Problem, Design, Trade-offs (linking each ADR) and Known limitations.
 
-**Notable libraries:** archify (Claude Code skill) for the diagrams.
-
-**Decisions/trade-offs:** The generated interactive HTML (~800-900 KB each) was first left out because the repo's `check-added-large-files` hook capped files at 500 KB; the hook limit is now 1000 KB (`.pre-commit-config.yaml`), so the HTML is committed alongside the JSON source. `docs/architecture.md` still has the command to regenerate it. Under archify 3.1.0 the triage-flow notes no longer fit beside the arrows, so their text moved into a card. PNGs are headless-Chrome screenshots of the diagram area of that HTML. OTel, Rego and audit are listed as planned rather than drawn as components.
-**Verified:** both diagrams pass archify `finalize` (validate, deliver, check, browser-check); README links resolve; claims checked against the code and ADRs. Visual review was done by eye on the screenshots only.
-**Follow-up:** redraw the diagram when tracing, the policy engine and the audit trail land; `docs/demo-script.md` is still a stub.
+**Notable libraries:** archify (Claude Code skill).
+**Decisions:** the generated HTML was first left out under a 500 KB hook limit, then committed after the limit moved to 1000 KB, and later dropped as a build output (only `.json` and `.png` are kept). OTel, Rego and audit were listed as planned rather than drawn.
 
 ---
 
 ### Write one OPA/Rego policy (block auto-payout above €X)
 
 **Week:** W4
-**Goal:** A real policy-as-code check in front of state-changing actions: a payout above the configured ceiling is refused before any approval request exists.
+**Goal:** A real policy-as-code check in front of state-changing actions: a payout above the ceiling is refused before any approval request exists.
+**Source:** ADR-0015
 
-**Files & responsibilities:**
-- `platform/guardrails/policies/payout_approval.rego` (+ `payout_approval_test.rego`) — package `ombuds.payout`; denies `issue_payment` above `input.limits.max_payout_eur` or with a missing/non-numeric amount; exposes `decision` = `{allow, reasons, policy_version}`.
-- `platform/guardrails/policy_engine.py` — `PolicyEngine` protocol, `PolicyDecision`, `OpaHttpPolicyEngine` (stdlib HTTP, fails closed with `policy_unavailable`).
-- `platform/guardrails/policy_checked_store.py` — `ApprovalStore` decorator that evaluates on `submit` and raises `PolicyDeniedError` (`domain/errors.py`).
-- `application/runtime.py`, `api_app.py`, `platform/mcp/server.py` — `build_runtime` now requires the engine and limit; roots inject them from `config.OPA_URL` / `PAYOUT_LIMIT_EUR`.
-- `docker-compose.yml` (`opa` service), `Makefile` (`opa-up`, `test-policy`), `.env.example`, ADR-0015.
+**Files:**
+- `policies/payout_approval.rego` (+ `_test.rego`) — denies `issue_payment` above `input.limits.max_payout_eur` or with a missing or non-numeric amount; exposes `decision` = `{allow, reasons, policy_version}`.
+- `policy_engine.py` — `PolicyEngine` Protocol and `OpaHttpPolicyEngine` (stdlib HTTP, fails closed with `policy_unavailable`).
+- `policy_checked_store.py` — an `ApprovalStore` decorator that evaluates on `submit` and raises `PolicyDeniedError`.
+- `runtime.py`, `docker-compose.yml`, `Makefile` — the engine and limit are injected by the roots; an `opa` service; `opa-up` and `test-policy`.
 
-**Notable libraries:** OPA / Rego (new glossary entry); `urllib.request` from the standard library.
-
-**Decisions/trade-offs:** OPA server sidecar rather than an embedded engine (none installable in Python); the limit is passed in as input from config so the Rego holds no number; denial happens at submit, so nothing over the limit reaches the human queue. See ADR-0015.
-**Verified:** `make test` (lint + 326 unit tests), `make test-policy` (8/8 Rego tests, `opa check --strict`), `make test-integration` (42 passed, including the real policy against a live OPA).
-**Follow-up:** policy runs at submit only (not again at approve); `log_claim` is allowed but still needs a human; the decision (`reasons`, `policy_version`) is not yet persisted: that is the audit-trail task. Redraw the architecture and guardrails diagrams when W4 lands.
+**Notable libraries:** OPA / Rego; `urllib.request`.
+**Decisions:** an OPA server sidecar, since no embedded engine is installable in Python. The limit is passed in as input, so the Rego holds no number. Denial at submit means nothing over the limit reaches the human queue.
+**Follow-up:** the policy runs at submit only, not again at approve.
 
 ---
 
 ### Build audit trail — log every tool call + decision
 
 **Week:** W4
-**Goal:** A durable, tamper-resistant record of what the system did for a claim: every tool call, every policy verdict, every approval transition.
+**Goal:** A durable, tamper-resistant record of every tool call, policy verdict and approval transition for a claim.
+**Source:** ADR-0016
 
-**Files & responsibilities:**
-- `platform/infrastructure/migrations/0003_audit_log.sql` — `audit_log` table; triggers reject UPDATE/DELETE/TRUNCATE; nullable `trace_id` for tracing.
-- `platform/guardrails/audit_log.py` — `AuditEvent`, `AuditKind`, `AuditLog` protocol.
-- `platform/guardrails/audited_dispatcher.py` — records each tool call (redacted arguments, truncated redacted result, ok/error).
-- `platform/guardrails/audited_store.py` — records submit/approve/deny/execute transitions (ids and approver only).
-- `platform/guardrails/policy_checked_store.py` — now also records each policy verdict with reasons and `policy_version`.
-- `platform/infrastructure/audit_repository.py` — `PostgresAuditLog` (`record`, `for_claim`).
-- `application/runtime.py` — wires all three; `platform/mcp/server.py` takes a `ToolDispatcher`. ADR-0016.
+**Files:**
+- `0003_audit_log.sql` — the `audit_log` table; triggers reject UPDATE/DELETE/TRUNCATE; nullable `trace_id`.
+- `audit_log.py`, `audit_repository.py` — `AuditEvent`, `AuditKind`, the `AuditLog` Protocol and `PostgresAuditLog`.
+- `audited_dispatcher.py`, `audited_store.py`, `policy_checked_store.py` — record tool calls (redacted arguments, truncated result), approval transitions (ids and approver only) and policy verdicts.
+- `runtime.py` — wires all three.
 
-**Decisions/trade-offs:** decorators at existing seams rather than calls inside tools; immutability enforced by DB triggers; audit insert is a separate transaction from the state change (documented gap); fail closed on audit write errors. See ADR-0016.
-**Verified:** `make test` (lint + 334 unit tests), `make test-integration` (46 passed, including the full lifecycle trail, a policy denial with no request, and immutability).
-**Follow-up:** record the pre-model injection escalation; add a read endpoint; make the audit write atomic with the state change if needed; redraw diagrams when W4 lands. (`trace_id` is now filled, see the tracing entry.)
+**Decisions:** decorators at the existing seams rather than calls inside tools; immutability enforced by database triggers; the audit insert is a separate transaction from the state change (a documented gap); it fails closed on write errors.
 
 ---
 
 ### Add OpenTelemetry tracing (span per LLM/tool call)
 
 **Week:** W4
-**Goal:** One claim is one trace: a span per LLM turn, tool call and policy check, with no claim content in any attribute, and every audit row linked to its trace.
+**Goal:** One claim is one trace: a span per LLM turn, tool call and policy check, with no claim content in any attribute, and each audit row linked to its trace.
 **Source:** ADR-0017
 
-**Files & responsibilities:**
-- `platform/observability/tracing.py` — `configure_tracing` (`none` | `console` | `otlp`), `start_span`, `trace_stream` for SSE; no-op by default.
-- `platform/ai/providers/traced.py` — `TracedProvider` wraps each concrete adapter (`llm.turn`); a failover shows as two sibling spans.
-- `platform/observability/traced_dispatcher.py` — `TracedDispatcher` outside `AuditedDispatcher` (`tool.<name>`).
-- `policy_checked_store.py` — `policy.check` span; `triage_use_case.py` — `triage.run` root span for sync and streaming.
-- `audit_repository.py` — stamps `trace_id` from the active span on every audit row.
-- `api_app.py`, `platform/mcp/server.py` — the two composition roots call `configure_tracing(config.OTEL_TRACES_EXPORTER)`; `.env.example`, `pyproject.toml`.
+**Files:**
+- `tracing.py` — `configure_tracing` (`none` | `console` | `otlp`), `start_span`, `trace_stream` for SSE; a no-op by default.
+- `traced.py`, `traced_dispatcher.py` — `TracedProvider` wraps each concrete adapter (a failover shows as two sibling spans); `TracedDispatcher` sits outside `AuditedDispatcher`.
+- `policy_checked_store.py`, `triage_use_case.py`, `audit_repository.py` — `policy.check`, a `triage.run` root span, and `trace_id` stamped on every audit row.
 
-**Notable libraries:** `opentelemetry-api` / `-sdk` / OTLP exporter (new glossary entry).
-
-**Decisions/trade-offs:** spans carry ids, model, stop reason, counts and verdicts only, never prompts, arguments or results, and an exception sets the status to its type, not its message, so the backend needs no PII handling. Decorators at the existing seams, as for audit. `trace_stream` makes the span current only while the source produces an event, because FastAPI resumes sync generators on different threads. See ADR-0017.
-**Verified:** `make test` (355 unit tests at the time of this update), in-memory exporter assertions for spans, provider failover and the audit `trace_id`.
-**Follow-up:** the MCP stdio subprocess starts its own traces (no context propagation); no HTTP request spans, token-usage attributes or collector in compose; approvals routes opened no span at the time (closed in W6, see "Complete the audit trail").
+**Notable libraries:** `opentelemetry-api`/`-sdk`/OTLP exporter.
+**Decisions:** spans carry ids, model, stop reason, counts and verdicts only; an exception sets the status to its type, not its message. `trace_stream` makes the span current only while the source produces an event, because FastAPI resumes sync generators on different threads.
+**Follow-up:** the MCP subprocess starts its own traces (no propagation).
 
 ---
 
@@ -612,37 +476,32 @@ Template — copy this block per finished task, filling in the fields (omit **De
 
 **Week:** W5
 **Goal:** Give the ADR-0009 "failed executor is recoverable" guarantee a reachable code path.
-**Source:** `w4_review_pre_w5_plan_rev2.md` (F-01); ADR-0009 addendum
+**Source:** ADR-0009 addendum
 
-**Files & responsibilities:**
-- `approval_gate.py` — `ExecutableApprovalStore(ApprovalStore)` adds `execute_approved`; `ApprovalGate` is unchanged.
-- `policy_checked_store.py` — delegates `execute_approved`; `ExecutingApprovalStore` implements it. `build_runtime` and `create_app` type `approvals` as the new protocol.
-- `platform/guardrails/api.py` — `approve` maps an executor `ToolExecutionError` to a 502 body `{detail, request_id, status: approved}`; new `POST /approvals/{id}/execute` retries (409 for a non-approved request). Other exceptions propagate as 500s, logged with the request id.
+**Files:**
+- `approval_gate.py`, `policy_checked_store.py` — `ExecutableApprovalStore(ApprovalStore)` adds `execute_approved`; the decorators delegate it; `ApprovalGate` is unchanged.
+- `guardrails/api.py` — `approve` maps `ToolExecutionError` to a 502 body `{detail, request_id, status: approved}`; `POST /approvals/{id}/execute` retries (409 for a non-approved request). Other exceptions are 500s, logged with the request id.
 
-**Decisions/trade-offs:** 502 rather than 409 so a state conflict (already decided) stays distinguishable from a failed downstream effect. No automatic retry.
-**Verified:** `make lint`, unit tests through the real policy → executing → audited stack with a failing executor, and an integration test over Postgres (payment for an unlogged claim → 502, log the claim, `/execute` → one `payments` row, audit trail shows approved then executed).
-**Follow-up:** the `/approvals` routes were unauthenticated at the time; closed by ADR-0019.
+**Decisions:** 502 rather than 409, so a state conflict stays distinguishable from a failed downstream effect. No automatic retry.
+**Verified:** an integration test over Postgres: a payment for an unlogged claim returns 502, log the claim, `/execute` writes one `payments` row.
 
 ---
 
 ### Complete the audit trail
 
 **Week:** W6
-**Goal:** Record the two refusals the audit could not see, give approval decisions a trace id, and stop the docstring overpromising.
-**Source:** `w4_review_pre_w5_plan.md` (F-06)
+**Goal:** Record the two refusals the audit could not see, give approval decisions a trace id, and stop a docstring overpromising.
+**Source:** the first W4 review (F-06; git history); ADR-0016 (amended)
 
-**Files & responsibilities:**
-- `migrations/0004_audit_refusals.sql` — widens the `kind` `CHECK` with `tool_refused` and `injection_escalation`.
-- `audit_log.py` — the two new `AuditKind`s.
-- `tools/__init__.py` — `scope_for_agent(..., audit)` records a `tool_refused` event (redacted arguments, capped name) for a call outside the agent's set.
-- `triage_use_case.py` — `audit` parameter on `run_triage`/`stream_triage`; records `injection_escalation` (counts per kind) inside a `triage.injection_escalation` span.
-- `runtime.py`, `api_app.py`, `api/routes.py` — `ClaimsTriageRuntime.audit` is put on `app.state.audit` and handed to the use case.
+**Files:**
+- `0004_audit_refusals.sql`, `audit_log.py` — `tool_refused` and `injection_escalation` kinds.
+- `tools/__init__.py` — `scope_for_agent(..., audit)` records a call outside the agent's set (redacted arguments, capped name).
+- `triage_use_case.py`, `runtime.py`, `routes.py` — an `audit` parameter; the injection escalation is recorded inside a `triage.injection_escalation` span.
 - `guardrails/api.py` — `approvals.approve|deny|execute` spans.
-- `audit_repository.py` — docstring no longer claims an action cannot proceed unaudited.
+- `audit_repository.py` — the docstring no longer claims an action cannot proceed unaudited.
 
-**Decisions/trade-offs:** the sink is passed in rather than wrapped around the scope, because the refusal happens in feature code outside the audited dispatcher. `audit` is optional so unit tests and callers without a database need nothing. No new ADR: this completes ADR-0016, which is amended.
-**Verified:** `make test` (unit tests for both events, the span names and the route wiring) and `make test-integration` (both kinds round-trip through migration 0004 against Postgres).
+**Decisions:** the sink is passed in rather than wrapped around the scope, because the refusal happens in feature code outside the audited dispatcher. `audit` is optional, so unit tests need no database.
 
 ---
 
-Library/framework/stdlib-concept entries live in [`glossary.md`](glossary.md) — append there, not here, whenever a summary's **Notable libraries** introduces something not already listed.
+Library, framework and concept entries live in [`glossary.md`](glossary.md) — append there, not here, whenever a summary's **Notable libraries** introduces something not already listed. The other W5–W6 tasks (network lockdown, bearer-token auth, DB default, CI and gitleaks, agent eval, spend cap) have no entry here: their record is in [ADR-0018](../decisions/0018-process-wide-llm-spend-cap-in-a-provider-decorator.md), [ADR-0019](../decisions/0019-static-bearer-tokens-per-router.md) and `tasks.md`.

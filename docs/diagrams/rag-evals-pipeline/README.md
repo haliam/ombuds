@@ -6,7 +6,7 @@
 
 ![rag-evals-pipeline](rag-evals-pipeline.png)
 
-Interactive version: [`rag-evals-pipeline.html`](rag-evals-pipeline.html) · Source: [`rag-evals-pipeline.json`](rag-evals-pipeline.json)
+Source: [`rag-evals-pipeline.json`](rag-evals-pipeline.json)
 
 ## What it shows
 
@@ -32,7 +32,7 @@ Edit [`rag-evals-pipeline.json`](rag-evals-pipeline.json) (bump the version and 
 python docs/diagrams/render_archify.py rag-evals-pipeline
 ```
 
-This runs `archify finalize dataflow` and rewrites the `.html` and `.png` next to the JSON. The HTML stays under the repo's 1000 KB `check-added-large-files` limit.
+This runs `archify finalize dataflow` and rewrites the `.png` next to the JSON.
 
 ## Change log
 
