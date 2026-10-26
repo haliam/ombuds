@@ -1,6 +1,6 @@
 # Plan: End-to-end real-case test with 3 claims
 
-**Status: proposed (2026-10-26).** Nothing here has been run yet.
+**Status: done (2026-10-26).** Results and findings: [e2e-report-2026-10-26.md](../progress/e2e-report-2026-10-26.md).
 
 ## Context
 All Week 1-6 tasks are done. Unit tests, integration tests and evals each cover a piece, but nothing has driven the full stack with real keys: `make up` → auth → `POST /claims/triage` → approval queue → execute → audit trail. This run is read-only on the code: no source edits and no commits. A bug found is reported as a follow-up task, not fixed in the same run.
