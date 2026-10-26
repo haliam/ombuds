@@ -37,6 +37,8 @@ Each diagram is `MAJOR.MINOR` with a date, shown in the page header and in the d
 | [Prompt Versioning](prompt-versioning/README.md) | 1.1 | 2026-10-23 | Mermaid | none |
 | [Injection Detection Internals](injection-detection/README.md) | 1.0 | 2026-10-18 | Mermaid | ADR-0014 |
 
+Not drawn yet: Rego payout policy and audit trail internals, tracing, and an end-to-end agent eval flow.
+
 ## Which tool
 
 - **Mermaid**: small diagrams (state machines, flowcharts, ER, short sequences). The diagram lives in its page's ```mermaid block, with front-matter `title:`; GitHub renders it, no binaries.

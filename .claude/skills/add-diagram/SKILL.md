@@ -28,7 +28,6 @@ Copy `_template.md` and fill every section; the template holds the layout and th
 ## 4. Wire it in (same commit)
 - Add a row to the index table in `docs/diagrams/README.md` (title, version, date, tool, decisions).
 - Add `Diagram: [Title vX.Y](../diagrams/<slug>/README.md)` to the ADR it illustrates (and `architecture.md` if relevant). Link, never paste the diagram.
-- Don't touch `docs/proposals/diagram-plan.md`; it is history.
 
 ## 5. Updating an existing diagram (`--update <slug>`)
 Bump MINOR for a redraw or accuracy fix, MAJOR when the system's shape changed. Update the version and date in the page header, the diagram's own title, the index row and the change log. Re-pin the commit. Regenerate archify output.
