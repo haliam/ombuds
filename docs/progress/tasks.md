@@ -50,7 +50,7 @@ Extracted from the "🤖 AI Build" view of the AI Interview Notion database (sna
 
 ## Week 5 — Close the governance holes (mandatory)
 
-Each bullet is one goal: one branch, one chat, as many commits as it needs. Review notes: [w4_review_pre_w5_plan_rev2.md](w4_review_pre_w5_plan_rev2.md). Do them in the order listed (the ports and DB-default tasks both edit `docker-compose.yml`).
+Each bullet is one goal: one branch, one chat, as many commits as it needs. Review notes are in git history (`w4_review_pre_w5_plan_rev2.md`, added in `87f7fa4`). Do them in the order listed (the ports and DB-default tasks both edit `docker-compose.yml`).
 
 - [x] Make `make lint` green again: wrap the two over-long docstring lines (`api/routes.py:76`, `audit_repository.py:25`)
 - [x] Lock down network exposure: bind db, OPA and API ports to `127.0.0.1`, add an OPA healthcheck so `api` waits on it
