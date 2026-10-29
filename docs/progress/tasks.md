@@ -22,7 +22,7 @@ This file is the source of truth for the build tasks; the repo, not Notion, is w
 - [x] Connect LangGraph agent to tools over MCP — [summary](task_summaries.md#connect-langgraph-agent-to-tools-over-mcp)
 - [x] Add short-term + long-term memory to agent state — [summary](task_summaries.md#add-short-term--long-term-memory-to-agent-state)
 - [x] Add escalation/retry loop on low confidence — [summary](task_summaries.md#add-escalationretry-loop-on-low-confidence)
-- [x] Replace deny-all stub with human-approval gate before state-changing tool calls — `log_claim`/`issue_payment` must be idempotent on `claim_id` (a retried or re-sent approval can't double-log/double-pay); see W1 review finding F-04 — [summary](task_summaries.md#replace-deny-all-stub-with-human-approval-gate-before-state-changing-tool-calls)
+- [x] Replace deny-all stub with human-approval gate before state-changing tool calls — `log_claim`/`issue_payment` must be idempotent on `claim_id` (a retried or re-sent approval can't double-log/double-pay); see foundations review finding F-04 — [summary](task_summaries.md#replace-deny-all-stub-with-human-approval-gate-before-state-changing-tool-calls)
 
 ## 3. Data layer, RAG and guardrails
 
@@ -91,7 +91,7 @@ Open items with no home yet, from the earlier reviews and the [e2e run](../repor
 
 - [ ] Prompt v5: require `log_claim` after an eligible decision (v4 only says it "records a decision", so a plain "do I get compensation?" claim persisted nothing). Run `make eval-agent` before it goes live
 - [ ] Stamp the run's `claim_id` on every audit row (`scope_for_agent`), so `check_eligibility` and `search_kb` rows can be tied to their claim
-- [ ] Frozen settings object built once in `create_app()` instead of import-time env reads in `config.py` (W3 F-09)
+- [ ] Frozen settings object built once in `create_app()` instead of import-time env reads in `config.py` (data-layer review F-09)
 - [ ] Unverified small hygiene items from the first two sections: `McpToolClient` enter leak, `FallbackProvider` docstring
 
 ---

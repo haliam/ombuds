@@ -567,7 +567,7 @@
     },
     {
       "dot": "emerald",
-      "title": "Built in Week 4",
+      "title": "Built: observability and governance",
       "items": [
         "OPA/Rego payout policy denies at submit, fails closed (ADR-0015)",
         "Append-only audit log at dispatch, policy and approvals (ADR-0016)",
@@ -576,7 +576,7 @@
     },
     {
       "dot": "amber",
-      "title": "Hardened in Week 5",
+      "title": "Hardened: governance holes",
       "items": [
         "Separate triage and approver bearer tokens; approver comes from config (ADR-0019)",
         "Ports bind to 127.0.0.1 and the DB password has no default",

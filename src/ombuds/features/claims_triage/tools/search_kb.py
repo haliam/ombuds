@@ -1,6 +1,6 @@
 """Tool: search_kb. Read-only — retrieves airline policy KB passages relevant to a query.
 
-The single retrieval entry point (W2 review F-10): the agent decides when to look something up, and the
+The single retrieval entry point (agent-loop review F-10): the agent decides when to look something up, and the
 passages come back only as a tool result, never in the system prompt (F-06), so retrieved text can't
 masquerade as instructions.
 """

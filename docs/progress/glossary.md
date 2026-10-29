@@ -103,8 +103,8 @@ Grouped by category; append new terms under the matching section.
 
 | Term | What it is |
 |---|---|
-| **pre-commit** | Runs a fixed set of checks (formatting, ruff, mypy, large-file and private-key checks, gitleaks) on every commit. Installed once with `uv run pre-commit install`; CI runs the same checks.<br>↳ *First seen:* [tasks.md, Week 6](tasks.md) |
-| **gitleaks** | A secret scanner that looks for API keys and tokens in staged changes (pre-commit) and in the repo history (CI), complementing GitHub push protection.<br>↳ *First seen:* [tasks.md, Week 6](tasks.md) |
+| **pre-commit** | Runs a fixed set of checks (formatting, ruff, mypy, large-file and private-key checks, gitleaks) on every commit. Installed once with `uv run pre-commit install`; CI runs the same checks.<br>↳ *First seen:* [tasks.md, Automated guards, evals and cleanup](tasks.md) |
+| **gitleaks** | A secret scanner that looks for API keys and tokens in staged changes (pre-commit) and in the repo history (CI), complementing GitHub push protection.<br>↳ *First seen:* [tasks.md, Automated guards, evals and cleanup](tasks.md) |
 
 ## Documentation tooling
 

@@ -24,7 +24,7 @@ class ClaimLookup(Protocol):
 class IssuePaymentArgs(BaseModel):
     """The claim to pay and the flight facts its compensation is derived from — never an amount.
 
-    The amount comes from the rules engine, not the caller (W2 review F-04), and a payment requires a logged
+    The amount comes from the rules engine, not the caller (agent-loop review F-04), and a payment requires a logged
     claim whose recorded amount matches it (ADR-0009).
     """
 

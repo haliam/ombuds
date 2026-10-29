@@ -4,7 +4,7 @@
 **Date:** 2026-10-06
 
 ## Context
-Week 3 needs durable state (approval requests, claims, long-term memory) and a vector store for the RAG knowledge base. ADR-0009 requires the approval store to be shared across processes (the MCP subprocess and the API) and the `APPROVED → EXECUTED` transition to share a transaction with the executor's write. The options were a separate vector DB (Chroma) next to Postgres, or the pgvector extension inside the same Postgres; and for access, an ORM (SQLAlchemy + Alembic) or a plain driver (psycopg3) with SQL migrations.
+The data-layer stage needs durable state (approval requests, claims, long-term memory) and a vector store for the RAG knowledge base. ADR-0009 requires the approval store to be shared across processes (the MCP subprocess and the API) and the `APPROVED → EXECUTED` transition to share a transaction with the executor's write. The options were a separate vector DB (Chroma) next to Postgres, or the pgvector extension inside the same Postgres; and for access, an ORM (SQLAlchemy + Alembic) or a plain driver (psycopg3) with SQL migrations.
 
 ## Decision
 Store embeddings in a `kb_chunks` table using pgvector in the same Postgres as the relational data, and access it through psycopg3 with hand-written SQL and numbered `.sql` migrations.

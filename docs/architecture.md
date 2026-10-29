@@ -93,6 +93,6 @@ Two boards show how the project was built, week by week: [Ombuds Development Boa
 
 ## Not built yet
 
-The Week 4 pieces are built and drawn: OpenTelemetry spans ([ADR-0017](decisions/0017-opentelemetry-spans-at-the-existing-seams.md)), the append-only audit trail ([ADR-0016](decisions/0016-append-only-postgres-audit-log-at-the-governance-seams.md)) and the OPA/Rego payout policy ([ADR-0015](decisions/0015-opa-sidecar-over-embedded-evaluation.md)). So are the Week 5 governance fixes: API bearer tokens ([ADR-0019](decisions/0019-static-bearer-tokens-per-router.md)), loopback ports, no default DB password and a retry route for approved-but-failed requests.
+The observability and governance pieces are built and drawn: OpenTelemetry spans ([ADR-0017](decisions/0017-opentelemetry-spans-at-the-existing-seams.md)), the append-only audit trail ([ADR-0016](decisions/0016-append-only-postgres-audit-log-at-the-governance-seams.md)) and the OPA/Rego payout policy ([ADR-0015](decisions/0015-opa-sidecar-over-embedded-evaluation.md)). So are the governance-hole fixes: API bearer tokens ([ADR-0019](decisions/0019-static-bearer-tokens-per-router.md)), loopback ports, no default DB password and a retry route for approved-but-failed requests.
 
 Not gated: the agent eval (`make eval-agent`) reports and never fails CI, so a score drop blocks a prompt or model change only by convention. Nothing retries a failed execution automatically, and approvers share one token and one recorded name.

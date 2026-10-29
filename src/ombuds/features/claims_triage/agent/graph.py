@@ -1,7 +1,7 @@
 """LangGraph tool-calling loop: model turn -> dispatch tool calls -> repeat until a final answer.
 
-Replaces the hand-rolled `for` loop `application/triage_use_case.py` used in W1. The graph structure is
-the same loop, just expressed as nodes and conditional edges: `call_model` -> (tool calls present?)
+Replaces the hand-rolled `for` loop `application/triage_use_case.py` used in the foundations stage. The graph
+structure is the same loop, just expressed as nodes and conditional edges: `call_model` -> (tool calls present?)
 `dispatch_tools` -> back to `call_model`; or (no tool calls) `finalize`, which either returns the answer
 or, on a validation/verification failure, loops back to `call_model` with a repair message. A run that
 can't converge or can't produce a verified decision within budget routes to `escalate`
@@ -10,7 +10,7 @@ can't converge or can't produce a verified decision within budget routes to `esc
 Both triage endpoints run this same graph. Compiled with `stream=True`, `call_model` uses the provider's
 streaming API and the nodes forward progress through LangGraph's stream writer: each completed tool call
 (`ToolCallDelta`) and each tool result (`ToolResultEvent`). Model text is deliberately never forwarded —
-a final reply is an unverified verdict until `finalize` has checked it (W2 review F-07).
+a final reply is an unverified verdict until `finalize` has checked it (agent-loop review F-07).
 """
 
 from collections.abc import Sequence

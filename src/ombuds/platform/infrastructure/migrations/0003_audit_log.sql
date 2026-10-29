@@ -1,7 +1,7 @@
 -- Append-only audit trail (ADR-0016): one row per tool call, policy verdict and approval transition. Rows are
 -- never updated or deleted; the triggers make that a database guarantee, not a convention. `claim_id` and
 -- `approval_request_id` are plain text with no foreign keys, so an event is recorded even for a claim that was
--- never logged or a request that was never created (a policy denial). `trace_id` is filled by W4 tracing.
+-- never logged or a request that was never created (a policy denial). `trace_id` is filled by OpenTelemetry tracing.
 CREATE TABLE audit_log (
     id                  BIGSERIAL PRIMARY KEY,
     occurred_at         TIMESTAMPTZ NOT NULL DEFAULT now(),

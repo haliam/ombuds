@@ -1,6 +1,6 @@
 # Demo script
 
-A 10-minute live walkthrough of ombuds as it works today (end of Week 6). It shows one idea: the agent proposes, deterministic code decides, a human approves, and everything is on the record.
+A 10-minute live walkthrough of ombuds as it works today (after the automated-guards stage). It shows one idea: the agent proposes, deterministic code decides, a human approves, and everything is on the record.
 
 Commands and URLs come from the [developer guide](developer-guide.md); queries from [db-queries.md](db-queries.md). Model wording varies between runs, so what to look for is the tool calls and the outcome, not the exact text.
 

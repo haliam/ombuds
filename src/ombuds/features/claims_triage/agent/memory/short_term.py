@@ -4,7 +4,7 @@ Kept in `AgentState` alongside the raw `messages` transcript. It holds only fact
 today, the latest successful `check_eligibility` result's fields, rendered by `agent/graph.py` — never raw
 tool output or model-written text. It is not injected into any prompt: the model already sees every tool
 result in `messages`. It is the run's working memory that `application/triage_use_case.py` consolidates
-into `LongTermMemory` when a run ends with a verified decision (W2 review F-06).
+into `LongTermMemory` when a run ends with a verified decision (agent-loop review F-06).
 """
 
 from pydantic import BaseModel, ConfigDict

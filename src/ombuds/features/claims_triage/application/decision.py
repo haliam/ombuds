@@ -49,7 +49,7 @@ def verify_decision(decision: TriageDecision, tool_results: Sequence[ToolResult]
 
     `parse_structured_output`/`TriageDecision` only checks that the model's reply has the *shape* of a
     verdict — this is the check that it's the *right* verdict: the LLM is never the source of truth for
-    eligibility or the amount (see AGENTS.md, ADR-0004, W1 review finding F-01). Raising the same error
+    eligibility or the amount (see AGENTS.md, ADR-0004, foundations review finding F-01). Raising the same error
     type `triage_use_case.py` already repairs a malformed reply with means a content mismatch goes through
     that same repair loop, with the same `MAX_REPAIR_ATTEMPTS` budget, rather than needing a second one.
     """

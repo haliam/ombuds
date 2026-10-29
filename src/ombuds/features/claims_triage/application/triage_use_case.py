@@ -2,7 +2,7 @@
 
 `run_triage` returns one `TriageResult`; `stream_triage` runs the *same* graph and yields progress events
 followed by the same `TriageResult`, so both endpoints share one verification/repair/escalation path
-(W2 review F-07).
+(agent-loop review F-07).
 """
 
 import uuid
@@ -272,7 +272,7 @@ def _first_user_message(claim_text: str, long_term: LongTermMemory) -> dict[str,
     """The claim as the opening user turn, preceded by any cross-run facts as a separate context block.
 
     Memory goes here rather than in the system prompt so nothing a past run stored is ever promoted to
-    system-level trust, and the system prompt stays the constant versioned prompt (W2 review F-06).
+    system-level trust, and the system prompt stays the constant versioned prompt (agent-loop review F-06).
     """
     context = long_term.as_context()
     if context is None:

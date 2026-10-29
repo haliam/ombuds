@@ -4,7 +4,7 @@
 **Date:** 2026-10-18
 
 ## Context
-W4 asks for a span per LLM call and per tool call. The seams already exist as decorators (ADR-0013, ADR-0015, ADR-0016), and the audit table has a nullable `trace_id` waiting for this task.
+The tracing task asks for a span per LLM call and per tool call. The seams already exist as decorators (ADR-0013, ADR-0015, ADR-0016), and the audit table has a nullable `trace_id` waiting for this task.
 
 ## Decision
 - **Global OTel API, no-op by default.** Code calls `start_span`; `configure_tracing(config.OTEL_TRACES_EXPORTER)` in the two composition roots (`api_app.py`, the MCP server) installs a provider. `none` (default), `console` (stderr, since MCP owns stdout) or `otlp` (standard `OTEL_EXPORTER_OTLP_*` variables).

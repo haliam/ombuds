@@ -46,7 +46,7 @@ def test_issue_payment_submits_a_pending_request_instead_of_paying(gate: Approva
 
 def test_the_amount_comes_from_the_rules_engine_not_the_caller(gate: ApprovalGate, claims: InMemoryClaims) -> None:
     """A caller-supplied amount can't reach the approver: the args carry no amount at all, and anything
-    extra (e.g. a model-invented `amount_eur`) is ignored. See W2 review F-04."""
+    extra (e.g. a model-invented `amount_eur`) is ignored. See agent-loop review F-04."""
     args = IssuePaymentArgs.model_validate(
         {"claim_id": "claim-1", "amount_eur": 9999, "disruption": _disruption().model_dump(mode="json")}
     )

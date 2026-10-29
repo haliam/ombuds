@@ -37,7 +37,7 @@ def test_log_claim_submits_a_pending_request_instead_of_recording(gate: Approval
 
 def test_the_approval_payload_is_the_rules_derived_outcome_and_the_facts(gate: ApprovalGate) -> None:
     """What the human approves is the rules engine's output for these facts, never a model-supplied verdict.
-    See W1 review F-01 and ADR-0009."""
+    See foundations review F-01 and ADR-0009."""
     result = log_claim(_args(), gate)
 
     payload = gate.get(result.approval_request_id).payload

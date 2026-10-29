@@ -1,6 +1,6 @@
 """Compare raw Anthropic, OpenAI, and DeepSeek outputs on the same prompt.
 
-Throwaway exploration script for W1 — not part of the app's runtime provider
+Throwaway exploration script for the foundations stage — not part of the app's runtime provider
 layer (platform/ai/providers/). Prints text, latency, and an estimated cost
 side by side so the SDKs can be eyeballed before any shared abstraction gets
 built over them.

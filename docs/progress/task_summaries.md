@@ -156,7 +156,7 @@ Template (omit **Decisions** and **Follow-up** when there is nothing non-obvious
 - `test_fallback.py` — injectable `sleep`, so backoff does not slow the suite.
 
 **Decisions:** two resilience layers (SDK retries, then model failover) instead of a retry library, and `FallbackProvider` is the one place allowed to catch bare `Exception` (ADR-0006).
-**Correction (before the agent-loop stage, 2026-09-27):** the `idempotency-key` header added here is not supported by Anthropic's Messages API, so it did nothing and was removed. Idempotency belongs where a duplicate causes harm: the state-changing tools, keyed by `claim_id` (W1 review F-04).
+**Correction (before the agent-loop stage, 2026-09-27):** the `idempotency-key` header added here is not supported by Anthropic's Messages API, so it did nothing and was removed. Idempotency belongs where a duplicate causes harm: the state-changing tools, keyed by `claim_id` (foundations review F-04).
 
 ---
 

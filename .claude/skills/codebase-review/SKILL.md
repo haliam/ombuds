@@ -10,7 +10,7 @@ argument-hint: "[stage-just-finished] [next-stage] [--scope <path>]"
 Perform a senior Python/AI engineer review of the project as it exists now, and write one report. **Do not modify code.** The report is the only file you create.
 
 ## Inputs (`$ARGUMENTS`)
-- `<done> <next>` — e.g. `W4 W5`: the stage just finished and the one about to start. If missing, infer from `docs/progress/tasks.md` (last fully checked week and the next), and say what you inferred.
+- `<done> <next>` — e.g. `4 5`, the section numbers in `docs/progress/tasks.md`: the stage just finished and the one about to start. If missing, infer from `docs/progress/tasks.md` (last fully checked section and the next), and say what you inferred.
 - `--scope <path>` — optional: audit only that area (e.g. `src/ombuds/platform/guardrails`). Without it, review the whole project.
 - Output: `docs/progress/<done>_review_pre_<next>_plan.md` (lowercase stage names, matching earlier reviews there). With `--scope`: `docs/progress/review_<scope-slug>.md`.
 

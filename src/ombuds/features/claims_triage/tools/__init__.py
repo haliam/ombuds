@@ -100,7 +100,7 @@ def scope_for_agent(dispatcher: ToolDispatcher, claim_id: str, audit: AuditLog |
       With `audit`, the refusal is recorded as a `tool_refused` event (ADR-0016): the call never reaches the
       audited dispatcher inside, so this is the only place it can be seen.
     - Any `claim_id` the model passes to a claim-scoped tool is replaced with the run's server-issued
-      `claim_id`, the key approvals and, from W3, persistence dedupe on.
+      `claim_id`, the key approvals and, since the data-layer stage, persistence dedupe on.
 
     Works over any `ToolDispatcher`, so the in-process registry and the MCP client path are scoped the same way.
     """

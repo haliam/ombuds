@@ -4,21 +4,21 @@ import sys
 W = 146
 lanes = [
     ("start_d", "Project start · decisions"),
-    ("w1_d", "Week 1 · decisions"),
-    ("w1_d2", "Week 1 · decisions (2)"),
-    ("w1", "Week 1 · build"),
-    ("w2_d", "Week 2 · decisions"),
-    ("w2", "Week 2 · build"),
-    ("w3_d", "Week 3 · decisions"),
-    ("w3", "Week 3 · build"),
-    ("pw4", "Pre-W4 refactor"),
-    ("w4_d", "Week 4 · decisions"),
-    ("w4", "Week 4 · build"),
-    ("w5_d", "Week 5 · decisions"),
-    ("w5", "Week 5 · build"),
-    ("w6_d", "Week 6 · decisions"),
-    ("w6", "Week 6 · build"),
-    ("w7", "Week 7 · now"),
+    ("w1_d", "Foundations · decisions"),
+    ("w1_d2", "Foundations · decisions (2)"),
+    ("w1", "Foundations · build"),
+    ("w2_d", "Agent loop · decisions"),
+    ("w2", "Agent loop · build"),
+    ("w3_d", "Data layer · decisions"),
+    ("w3", "Data layer · build"),
+    ("pw4", "Durable approvals · refactor"),
+    ("w4_d", "Governance · decisions"),
+    ("w4", "Governance · build"),
+    ("w5_d", "Governance holes · decisions"),
+    ("w5", "Governance holes · build"),
+    ("w6_d", "Guards and evals · decisions"),
+    ("w6", "Guards and evals · build"),
+    ("w7", "Provider composition · now"),
 ]
 nodes = []
 edges = []
@@ -41,7 +41,7 @@ def dec(id, lane, col, label, sub, date, to=None, elabel=None):
 dec("d2", "start_d", 0, "ADR-2 Feature-sliced", "code grouped by feature", "Sep 23", "w1_rules")
 dec("d1", "start_d", 1, "ADR-1 LangGraph", "visible, auditable flow", "Sep 23")
 dec("d3", "start_d", 2, "ADR-3 MCP in repo", "one repo, one deploy", "Sep 23")
-# W1
+# Foundations
 step("w1_rules", "w1", 0, "Folders + rules", "EU261 rules, tested")
 step("w1_api", "w1", 1, "Call AI APIs directly", "OpenAI vs Anthropic")
 step("w1_tools", "w1", 2, "Tools + deny-all gate", "stub blocks all actions")
@@ -52,7 +52,7 @@ dec("d4", "w1_d", 2, "ADR-4 EU261 tools", "real law, real money", "Sep 24", "w1_
 dec("d7", "w1_d", 4, "ADR-7 SSE", "one-way, plain HTTP", "Sep 26", "w1_stream")
 dec("d5", "w1_d", 5, "ADR-5 Prompted JSON", "check reply, then fix", "Sep 26", "w1_reply")
 dec("d6", "w1_d2", 5, "ADR-6 Two-layer retry", "retry, then switch model", "Sep 26", "w1_reply")
-# W2
+# Agent loop
 step("w2_loop", "w2", 0, "Agent loop", "rebuilt in LangGraph")
 step("w2_mcp", "w2", 1, "MCP tool server", "4 tools exposed")
 step("w2_amcp", "w2", 2, "Agent uses MCP", "tools called over MCP")
@@ -62,7 +62,7 @@ step("w2_gate", "w2", 5, "Human approval gate", "replaces deny-all stub")
 dec("d8", "w2_d", 4, "ADR-8 Memory approval", "simple; replaced", "Sep 28")
 dec("d9", "w2_d", 5, "ADR-9 Approve once", "approve once, run once", "Sep 28", "w2_gate")
 edges.append(dict(id="e_d8d9", **{"from": "d8", "to": "d9"}, label="replaced by", variant="dashed", role="branch"))
-# W3
+# Data layer
 step("w3_pg", "w3", 0, "Postgres + pgvector", "durable data + vectors")
 step("w3_rag", "w3", 1, "RAG search", "chunk, embed, retrieve")
 step("w3_eval", "w3", 2, "Retrieval eval", "30 labelled questions")
@@ -74,12 +74,12 @@ dec("d11", "w3_d", 1, "ADR-11 Chunking", "whole sections, cited", "Oct 7", "w3_r
 dec("d12", "w3_d", 2, "ADR-12 Score floor", "best cut-off, no loss", "Oct 8", "w3_eval")
 dec("d13", "w3_d", 4, "ADR-13 PII redaction", "hide personal data", "Oct 8", "w3_guard")
 dec("d14", "w3_d", 5, "ADR-14 Injection", "a hit goes to human", "Oct 8", "w3_guard")
-# Pre-W4
+# Durable approvals
 step("p1", "pw4", 0, "P-1 Wiring", "approval store injected")
 step("p2", "pw4", 1, "P-2 Executors", "claims + payments saved")
 step("p3", "pw4", 2, "P-3 Shared preamble", "one setup, two paths")
 step("p4", "pw4", 3, "P-4 Docs fixed", "docs match the code")
-# W4
+# Governance
 step("w4_otel", "w4", 0, "Tracing (OTel)", "span per AI/tool call")
 step("w4_rego", "w4", 1, "Payout policy (Rego)", "block big auto-payouts")
 step("w4_audit", "w4", 2, "Audit trail", "every call + decision")
@@ -87,7 +87,7 @@ step("w4_doc", "w4", 3, "Diagram + README", "design + trade-offs")
 dec("d17", "w4_d", 0, "ADR-17 Tracing", "spans at existing seams", "Oct 18", "w4_otel")
 dec("d15", "w4_d", 1, "ADR-15 OPA sidecar", "policy outside the code", "Oct 18", "w4_rego")
 dec("d16", "w4_d", 2, "ADR-16 Audit log", "append-only, in Postgres", "Oct 18", "w4_audit")
-# W5
+# Governance holes
 step("w5_net", "w5", 0, "Ports locked down", "localhost only + healthcheck")
 step("w5_rec", "w5", 1, "Recoverable approvals", "retry route, no stuck requests")
 step("w5_auth", "w5", 2, "API authentication", "two bearer tokens, fail closed")
@@ -95,7 +95,7 @@ step("w5_db", "w5", 3, "No default DB password", "set in .env or refuse")
 step("w5_lint", "w5", 4, "Lint green again", "two long lines fixed")
 step("w5_docs", "w5", 5, "Docs match the code", "README, diagrams, architecture")
 dec("d19", "w5_d", 2, "ADR-19 Bearer tokens", "one per role, per router", "Oct 22", "w5_auth")
-# W6
+# Guards and evals
 step("w6_ci", "w6", 0, "CI + secret scans", "lint, tests, gitleaks")
 step("w6_audit", "w6", 1, "Audit completed", "refusals + injection recorded")
 step("w6_eval", "w6", 2, "Agent eval", "real agent on 15-25 claims")
@@ -103,7 +103,7 @@ step("w6_cfg", "w6", 3, "MCP env + 4096 tokens", "child inherits config")
 step("w6_cap", "w6", 4, "Spend-cap tests", "no failover, one ledger")
 step("w6_tidy", "w6", 5, "Tidy + final checks", "dead stubs gone, limits set")
 dec("d18", "w6_d", 4, "ADR-18 Spend cap", "budget in a provider wrapper", "Oct 18", "w6_cap")
-# W7
+# Provider composition
 nodes.append(
     dict(
         id="here",
@@ -111,7 +111,7 @@ nodes.append(
         col=0,
         type="frontend",
         label="YOU ARE HERE",
-        sublabel="Week 7: 0 of 1 done",
+        sublabel="Stage 7: 0 of 1 done",
         tag="now",
         width=W,
     )
@@ -130,20 +130,20 @@ cards = [
         dot="amber",
         title="Current stage",
         items=[
-            "Weeks 1-6 and the pre-W4 refactor are finished; Week 7 has one task left.",
+            "Sections 1 to 6 and the durable-approvals refactor are finished; Provider composition has one task left.",
             "Next: build the LLM provider and spend budget once in the composition roots and inject them.",
-            "Open items without a week are in the Later list of tasks.md.",
+            "Open items without a section are in the Later list of tasks.md.",
         ],
     ),
     dict(
         dot="rose",
         title="Flagged gaps",
         items=[
-            "tasks.md has no 'in progress' state; Week 7 is shown as current because it is the first with open work.",
+            "tasks.md has no 'in progress' state; Provider composition is shown as current because it is the first with open work.",
             "tasks.md carries no dates. Order follows the task list; decision dates come from the ADRs.",
             "The repo is the source of truth; the Notion board is no longer synced.",
-            "Weeks 1-3 merge some related tasks into one box (e.g. stub + tool schemas), and Weeks 5-6 group small tasks.",
-            "ADR-18 (spend cap) was not a board task; it is shown beside the W6 tests that pin it.",
+            "The Foundations, Agent loop and Data layer sections merge some related tasks into one box (e.g. stub + tool schemas), and the last two sections group small tasks.",
+            "ADR-18 (spend cap) was not a board task; it is shown beside the Guards and evals tests that pin it.",
         ],
     ),
     dict(
@@ -188,7 +188,7 @@ cards = [
         title="Key terms · the problem",
         items=[
             "EU261: the EU flight-compensation rule; rules.py holds its tiers and exemptions → Folders + rules engine, ADR-4.",
-            "Triage: reading a claim and deciding what happens next → Week 1 /triage endpoint.",
+            "Triage: reading a claim and deciding what happens next → Foundations /triage endpoint.",
             "Escalation: handing a claim to a human instead of deciding → Escalate / retry, ADR-14.",
         ],
     ),
@@ -236,7 +236,7 @@ cards = [
     ),
 ]
 meta = dict(
-    title="Ombuds Development Board · v2.0 · 2026-10-26",
+    title="Ombuds Development Board · v2.1 · 2026-10-29",
     output="docs/diagrams/development-overview/development-overview.html",
     quality_profile="showcase",
     legend=dict(

@@ -11,7 +11,7 @@ from ombuds.platform.guardrails.approval_gate import ApprovalStatus, ApprovalSto
 class LogClaimArgs(BaseModel):
     """Facts needed to log a claim decision. `disruption` is the same flight facts given to
     `check_eligibility` — never the model's own eligibility judgment, which `log_claim` recomputes itself
-    (see AGENTS.md, ADR-0004, W1 review finding F-01). In a triage run, `claim_id` is overwritten with the
+    (see AGENTS.md, ADR-0004, foundations review finding F-01). In a triage run, `claim_id` is overwritten with the
     run's server-issued id before this tool sees it (`tools.scope_for_agent`, ADR-0009)."""
 
     model_config = ConfigDict(frozen=True)
@@ -52,7 +52,7 @@ def log_claim(args: LogClaimArgs, approvals: ApprovalStore) -> LogClaimResult:
     """Submit a claim decision for human approval.
 
     Recomputes eligibility from `args.disruption` via the rules engine itself — it never trusts a
-    model-supplied eligibility judgment (see AGENTS.md, ADR-0004, W1 review finding F-01). The approval
+    model-supplied eligibility judgment (see AGENTS.md, ADR-0004, foundations review finding F-01). The approval
     payload is exactly what the human approves and what will be executed once approved: the `claim_id`, the
     rules-derived outcome, and the flight facts it was derived from — so different facts are a different
     request. Re-submitting identical facts returns the existing request, whatever its status (ADR-0009).

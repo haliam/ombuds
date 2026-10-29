@@ -15,7 +15,7 @@ The only free-text PII source is the passenger's `claim_text`. It went unmodifie
 - **Output:** `_to_result` redacts `answer`, `decision.explanation` and `escalation_reason`; streamed `tool_call` frames carry redacted arguments.
 - **Approvals:** `ApprovalGate.approve`/`deny` store the approver's `note` redacted.
 - **Logs:** `PiiRedactingFilter` on every root and uvicorn handler (`configure_logging()`, called from both composition roots).
-- **Audit log (W4):** nothing built here. The audit trail should store redacted text and `RedactionResult.findings` counts.
+- **Audit log (governance stage):** nothing built here. The audit trail should store redacted text and `RedactionResult.findings` counts.
 
 Detection is regex plus a checksum where one exists (Luhn for cards, mod-97 for IBANs). Phones need an international prefix or a separated national format. Passport and booking references are only redacted after a keyword, because a bare 6-character code collides with flight numbers such as `LH1234` and mangling flight facts would break eligibility. There is no config switch to turn the filter off.
 

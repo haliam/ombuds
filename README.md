@@ -104,17 +104,18 @@ The architecture is deliberately domain-agnostic underneath: `features/claims_tr
 - Not integrated with a real airline/claims vendor — tools are mocked against a local Postgres, proving the *pattern* (agent → MCP → deterministic backend), not a vendor integration.
 - Not multi-agent — one LangGraph agent, one tool set.
 
-## Status: Weeks 1–5 built, Week 6 next
+## Status: stages 1–6 built, 7 next
 
-The agent, RAG, Postgres-backed approvals and execution, MCP server, Docker Compose stack, PII/injection guardrails, OPA payout policy, audit trail and OpenTelemetry spans work. Week 5 closed the governance holes: authenticated API, loopback ports, no default DB credential and a retry route for failed executions. Week 6 adds CI and secret scanning, a fuller audit trail, an agent-level eval and cleanup.
+The agent, RAG, Postgres-backed approvals and execution, MCP server, Docker Compose stack, PII/injection guardrails, OPA payout policy, audit trail and OpenTelemetry spans work. Stage 5 closed the governance holes: authenticated API, loopback ports, no default DB credential and a retry route for failed executions. Stage 6 adds CI and secret scanning, a fuller audit trail, an agent-level eval and cleanup.
 
-| Week | Focus |
+| Stage | Focus |
 |---|---|
-| 1 | Raw LLM API calls, tool-calling loop, structured output, `/triage` endpoint, tests |
-| 2 | LangGraph agent, MCP server, agent memory, human-approval gate |
-| 3 | RAG pipeline, Postgres + vector store, Docker Compose, PII/injection guardrails |
-| 4 | Observability (OpenTelemetry), OPA/Rego policy, audit trail, architecture docs |
-| 5 | Governance holes: API auth, network exposure, DB credential, recoverable approvals |
-| 6 | CI and secret scanning, complete audit trail, agent-level eval, cleanup (planned) |
+| 1. Foundations | Raw LLM API calls, tool-calling loop, structured output, `/triage` endpoint, tests |
+| 2. Agent loop, MCP and approval | LangGraph agent, MCP server, agent memory, human-approval gate |
+| 3. Data layer, RAG, guardrails | RAG pipeline, Postgres + vector store, Docker Compose, PII/injection guardrails |
+| 4. Observability and governance | Observability (OpenTelemetry), OPA/Rego policy, audit trail, architecture docs |
+| 5. Closing the governance holes | Governance holes: API auth, network exposure, DB credential, recoverable approvals |
+| 6. Guards, evals, cleanup | CI and secret scanning, complete audit trail, agent-level eval, cleanup |
+| 7. Provider composition at the roots | Build providers and the spend budget once in the composition roots (planned) |
 
 Design decisions: [`docs/decisions/`](docs/decisions). Architecture detail: [`docs/architecture.md`](docs/architecture.md).

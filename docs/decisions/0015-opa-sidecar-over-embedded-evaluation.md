@@ -4,7 +4,7 @@
 **Date:** 2026-10-18
 
 ## Context
-AGENTS.md requires every state-changing tool to be checked against a policy engine, and the W4 plan calls for one Rego policy: block payouts above EUR X. `policy_engine.py` and `payout_approval.rego` were empty scaffolds. ADR-0009 already says a money-moving action always needs a human, so the policy is not a replacement for approval. It is a ceiling above which the automated path refuses to even ask.
+AGENTS.md requires every state-changing tool to be checked against a policy engine, and the governance plan calls for one Rego policy: block payouts above EUR X. `policy_engine.py` and `payout_approval.rego` were empty scaffolds. ADR-0009 already says a money-moving action always needs a human, so the policy is not a replacement for approval. It is a ceiling above which the automated path refuses to even ask.
 
 Open choices: how Rego is evaluated, what a denial means, and where the check sits.
 
@@ -14,7 +14,7 @@ Open choices: how Rego is evaluated, what a denial means, and where the check si
 - **Input is server-side only:** `action`, the rules-derived `payload` (including `amount_eur`) and `limits.max_payout_eur`. The limit comes from config (`PAYOUT_LIMIT_EUR`, default 400, which blocks the EUR 600 tier). Nothing the model authored is trusted (ADR-0009).
 - **A denial creates no approval request.** It raises `PolicyDeniedError` (a `ToolExecutionError`) with reason codes (`payout_above_limit`, `payout_amount_invalid`, `payout_limit_missing`), so a human cannot approve an over-limit payout from the queue.
 - **Fail closed:** if OPA is unreachable, times out, or returns no well-formed decision, the engine denies with `policy_unavailable`. Missing or non-numeric amounts and a missing limit are also denials inside the Rego.
-- The decision document carries `policy_version`, which the audit trail (next W4 task) will record.
+- The decision document carries `policy_version`, which the audit trail (next governance task) will record.
 
 ## Consequences
 - Easier: the rule is declarative, reviewable and testable on its own (`make test-policy` runs `opa check --strict` and the Rego tests in the container). Changing the limit is configuration, not code.

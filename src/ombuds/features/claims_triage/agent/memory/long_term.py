@@ -3,10 +3,10 @@
 Unlike `ShortTermMemory` (scoped to one run), a `LongTermMemory` survives between `run_triage` calls
 for the same claimant — e.g. how a past claim was decided. It holds only rules-derived facts consolidated
 from a run's `ShortTermMemory`, never model-written text, and is shown to the model as a context block in
-the first user turn rather than in the system prompt (W2 review F-06). `LongTermMemoryStore` is a
+the first user turn rather than in the system prompt (agent-loop review F-06). `LongTermMemoryStore` is a
 protocol so the process-lifetime `InMemoryLongTermMemoryStore` below can be swapped for a
-Postgres-backed store once one exists (see W3 in `docs/progress/tasks.md`) without changing any
-agent code — callers only ever depend on the protocol.
+Postgres-backed store once one exists (see "Data layer, RAG and guardrails" in `docs/progress/tasks.md`)
+without changing any agent code — callers only ever depend on the protocol.
 """
 
 from typing import Protocol

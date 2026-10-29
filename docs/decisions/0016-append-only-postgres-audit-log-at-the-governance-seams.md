@@ -4,7 +4,7 @@
 **Date:** 2026-10-18
 
 ## Context
-AGENTS.md calls ombuds "governed and observable", and the W4 task is "log every tool call + decision". Before this, the facts were scattered: tool calls lived only in the response (`tool_results`), approval rows were updated in place (so history was lost), and a policy verdict (ADR-0015) was either an exception or nothing. The question to answer afterwards is "what did the system do for claim X, and who allowed it?".
+AGENTS.md calls ombuds "governed and observable", and the audit-trail task is "log every tool call + decision". Before this, the facts were scattered: tool calls lived only in the response (`tool_results`), approval rows were updated in place (so history was lost), and a policy verdict (ADR-0015) was either an exception or nothing. The question to answer afterwards is "what did the system do for claim X, and who allowed it?".
 
 ## Decision
 - **One table, `audit_log`** (migration 0003), one row per event: `kind` (`tool_call`, `policy_decision`, `approval_submitted|approved|denied|executed`), `subject` (tool or action), `outcome`, `claim_id`, `approval_request_id`, a `detail` JSONB and a nullable `trace_id` (filled by the tracing task, no further migration).
