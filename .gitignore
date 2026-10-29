@@ -11,3 +11,6 @@ dist/
 build/
 *.db
 .archify/
+
+# py-review skill output
+review.md
