@@ -2,7 +2,7 @@
 
 This file is the source of truth for the build tasks; the repo, not Notion, is where progress is tracked. It started as an extract of the "🤖 AI Build" view of the AI Interview Notion database (last synced 2026-09-24); the Notion board has not been updated since and is no longer synced. Checkboxes track done vs. not.
 
-## Week 1 — Raw API Fundamentals + Engineering Foundation
+## 1. Foundations: rules engine, raw LLM APIs, tool calling
 
 - [x] Design the folder structure to the project
 - [x] Implement EU261 rules engine (`verticals/airline/rules.py`) + unit tests — [summary](task_summaries.md#implement-eu261-rules-engine-verticalsairlinerulespy--unit-tests)
@@ -15,7 +15,7 @@ This file is the source of truth for the build tasks; the repo, not Notion, is w
 - [x] Add structured output validation with Pydantic + retry/repair — [summary](task_summaries.md#add-structured-output-validation-with-pydantic--retryrepair)
 - [x] Add retries/backoff, timeouts, fallback model, idempotency — [summary](task_summaries.md#add-retriesbackoff-timeouts-fallback-model-idempotency)
 
-## Week 2 — Agentic Loop + MCP
+## 2. Agent loop, MCP and human approval
 
 - [x] Rebuild tool-calling loop in LangGraph — [summary](task_summaries.md#rebuild-tool-calling-loop-in-langgraph)
 - [x] Stand up MCP server (`search_kb`, `check_eligibility`, `log_claim`, `issue_payment`) — [summary](task_summaries.md#stand-up-mcp-server-search_kb-check_eligibility-log_claim-issue_payment)
@@ -24,7 +24,7 @@ This file is the source of truth for the build tasks; the repo, not Notion, is w
 - [x] Add escalation/retry loop on low confidence — [summary](task_summaries.md#add-escalationretry-loop-on-low-confidence)
 - [x] Replace deny-all stub with human-approval gate before state-changing tool calls — `log_claim`/`issue_payment` must be idempotent on `claim_id` (a retried or re-sent approval can't double-log/double-pay); see W1 review finding F-04 — [summary](task_summaries.md#replace-deny-all-stub-with-human-approval-gate-before-state-changing-tool-calls)
 
-## Week 3 — RAG, Data Layer, Docker, Guardrails
+## 3. Data layer, RAG and guardrails
 
 - [x] Set up Postgres (relational) + pgvector/Chroma (embeddings) — [summary](task_summaries.md#set-up-postgres-relational--pgvectorchroma-embeddings)
 - [x] Build RAG pipeline — chunk → embed → store → retrieve → cite — [summary](task_summaries.md#build-rag-pipeline--chunk--embed--store--retrieve--cite)
@@ -34,23 +34,23 @@ This file is the source of truth for the build tasks; the repo, not Notion, is w
 - [x] Add prompt-injection test cases — [summary](task_summaries.md#add-prompt-injection-test-cases)
 - [x] Write integration test for `/triage` end-to-end — [summary](task_summaries.md#write-integration-test-for-triage-end-to-end)
 
-## Pre-W4 refactor (W3 review) — plan removed, see git history; open leftovers in [Later](#later)
+## 3b. Durable approval path (composition-root refactor) — plan removed, see git history; open leftovers in [Later](#later)
 
-- [x] P-1 — Composition-root wiring: approval store, pool and registry injected, `_GATE` removed — [summary](task_summaries.md#pre-w4-refactor-w3-review)
-- [x] P-2 — Executors, durable `claims`, `payments` migration, ADR-0009 addendum — [summary](task_summaries.md#pre-w4-refactor-w3-review)
-- [x] P-3 — Shared triage-run preamble, consistent escalation `answer` — [summary](task_summaries.md#pre-w4-refactor-w3-review)
-- [x] P-4 — Docs reconciliation (AGENTS.md, README, tasks, summaries) — [summary](task_summaries.md#pre-w4-refactor-w3-review)
+- [x] P-1 — Composition-root wiring: approval store, pool and registry injected, `_GATE` removed — [summary](task_summaries.md#durable-approval-path-composition-root-refactor)
+- [x] P-2 — Executors, durable `claims`, `payments` migration, ADR-0009 addendum — [summary](task_summaries.md#durable-approval-path-composition-root-refactor)
+- [x] P-3 — Shared triage-run preamble, consistent escalation `answer` — [summary](task_summaries.md#durable-approval-path-composition-root-refactor)
+- [x] P-4 — Docs reconciliation (AGENTS.md, README, tasks, summaries) — [summary](task_summaries.md#durable-approval-path-composition-root-refactor)
 
-## Week 4 — Observability, Governance, Polish
+## 4. Observability and governance
 
 - [x] Add OpenTelemetry tracing (span per LLM/tool call) — [ADR-0017](../decisions/0017-opentelemetry-spans-at-the-existing-seams.md), [summary](task_summaries.md#add-opentelemetry-tracing-span-per-llmtool-call)
 - [x] Write one OPA/Rego policy (block auto-payout above €X) — [ADR-0015](../decisions/0015-opa-sidecar-over-embedded-evaluation.md), [summary](task_summaries.md#write-one-oparego-policy-block-auto-payout-above-x)
 - [x] Build audit trail — log every tool call + decision — [ADR-0016](../decisions/0016-append-only-postgres-audit-log-at-the-governance-seams.md), [summary](task_summaries.md#build-audit-trail--log-every-tool-call--decision)
 - [x] Write architecture diagram + README (problem, design, trade-offs) — [summary](task_summaries.md#write-architecture-diagram--readme-problem-design-trade-offs)
 
-## Week 5 — Close the governance holes (mandatory)
+## 5. Closing the governance holes (mandatory)
 
-Each bullet is one goal: one branch, one chat, as many commits as it needs. Review notes are in git history (`w4_review_pre_w5_plan_rev2.md`, added in `87f7fa4`). Do them in the order listed (the ports and DB-default tasks both edit `docker-compose.yml`).
+Each bullet is one goal: one branch, one chat, as many commits as it needs (the same holds for every later section). Review notes are in git history (`w4_review_pre_w5_plan_rev2.md`, added in `87f7fa4`). Do them in the order listed (the ports and DB-default tasks both edit `docker-compose.yml`).
 
 - [x] Make `make lint` green again: wrap the two over-long docstring lines (`api/routes.py:76`, `audit_repository.py:25`)
 - [x] Lock down network exposure: bind db, OPA and API ports to `127.0.0.1`, add an OPA healthcheck so `api` waits on it
@@ -64,11 +64,11 @@ Each bullet is one goal: one branch, one chat, as many commits as it needs. Revi
   - Remove `approver` from the request body; put the `GET /approvals*` reads behind the approver token too
 - [x] Remove the weak `ombuds:ombuds` DB default: require `DATABASE_URL` / `POSTGRES_PASSWORD` from `.env` unless an explicit dev flag is set
   - One `POSTGRES_PASSWORD` source in compose (`${POSTGRES_PASSWORD:?…}`); raise at point of use in `config.py`, not at import; keep `make db-up`, `ingest`, `eval` and the integration conftest working
-- [x] Reconcile docs with W4 and W5: README limitations and status, `architecture.md`, affected diagrams
+- [x] Reconcile docs with the observability and governance work: README limitations and status, `architecture.md`, affected diagrams
 
-## Week 6 — Guardrails, measurement and cleanup
+## 6. Automated guards, evals and cleanup
 
-Same rule: one bullet, one branch, one chat. Order is by importance.
+Order is by importance.
 
 - [x] Automated guards: CI workflow (`make lint` + unit tests, integration job with pgvector and OPA), gitleaks in CI and pre-commit, GitHub push protection
 - [x] Complete the audit trail: record out-of-scope tool calls and injection escalations (migration 0004), span the approvals routes, fix the "must not proceed unaudited" docstring — [ADR-0016](../decisions/0016-append-only-postgres-audit-log-at-the-governance-seams.md), [summary](task_summaries.md#complete-the-audit-trail)
@@ -79,20 +79,20 @@ Same rule: one bullet, one branch, one chat. Order is by importance.
 - [x] Repo tidy-up: delete the dead stubs (`db_models.py`, `application/policies.py`), pin the `uv` image and `@scalar/api-reference`, fix the `compare_providers.py` run line
 - [x] Final manual checks: skim `docs/diagrams/*.html` for internal paths (done: only `github.com/haliam/ombuds` repo URLs, the JetBrains Mono and archify credits, and w3.org/OFL namespaces; no local paths, hostnames, IPs, emails or keys), confirm provider spend limits (done 2026-10-26: keys renewed, monthly limits set in the Anthropic and OpenAI consoles)
 
-## Week 7 — Composition and cleanup
+## 7. Provider composition at the roots
 
-Same rule: one bullet, one branch, one chat. More items will land here.
+More items will land here.
 
 - [ ] Move provider construction to the composition roots: `build_default_provider()` and `process_budget()` leave `providers/fallback.py` for a `providers/factory.py`; `api_app.create_app()` (and the MCP server, if it needs an LLM) builds the provider and the `UsageBudget` once and injects them; `run_triage` requires a provider (drop the `provider or build_default_provider()` default and the `lru_cache` singleton), so tests stop patching globals
 
 ## Later
 
-Open items with no week yet, from the W1–W4 reviews and the [e2e run](../reports/e2e-report-2026-10-26.md). The review files are in git history.
+Open items with no home yet, from the earlier reviews and the [e2e run](../reports/e2e-report-2026-10-26.md). The review files are in git history.
 
 - [ ] Prompt v5: require `log_claim` after an eligible decision (v4 only says it "records a decision", so a plain "do I get compensation?" claim persisted nothing). Run `make eval-agent` before it goes live
 - [ ] Stamp the run's `claim_id` on every audit row (`scope_for_agent`), so `check_eligibility` and `search_kb` rows can be tied to their claim
 - [ ] Frozen settings object built once in `create_app()` instead of import-time env reads in `config.py` (W3 F-09)
-- [ ] Unverified small W1/W2 hygiene items: `McpToolClient` enter leak, `FallbackProvider` docstring
+- [ ] Unverified small hygiene items from the first two sections: `McpToolClient` enter leak, `FallbackProvider` docstring
 
 ---
 

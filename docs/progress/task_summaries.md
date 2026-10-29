@@ -7,7 +7,7 @@ Template (omit **Decisions** and **Follow-up** when there is nothing non-obvious
 ```
 ### <task name from checklist>
 
-**Week:** <W1…W7, matching the section in tasks.md>
+**Area:** <the section title in tasks.md>
 **Goal:** <one sentence — the problem this task solves>
 **Source:** <ADR # / review finding, if any>
 
@@ -21,9 +21,11 @@ Template (omit **Decisions** and **Follow-up** when there is nothing non-obvious
 
 ---
 
+## 1. Foundations: rules engine, raw LLM APIs, tool calling
+
 ### Implement EU261 rules engine (`verticals/airline/rules.py`) + unit tests
 
-**Week:** W1
+**Area:** Foundations: rules engine, raw LLM APIs, tool calling
 **Goal:** Give the agent a deterministic, legally grounded eligibility and compensation calculator, so the LLM never invents EU261 numbers.
 **Source:** ADR-0004; Regulation (EC) 261/2004; CJEU *Sturgeon* (C-402/07)
 
@@ -40,7 +42,7 @@ Template (omit **Decisions** and **Follow-up** when there is nothing non-obvious
 
 ### Call OpenAI & Anthropic APIs directly, compare outputs
 
-**Week:** W1
+**Area:** Foundations: rules engine, raw LLM APIs, tool calling
 **Goal:** Look at the raw provider SDKs (text, latency, cost) on the same prompt before building any shared abstraction.
 
 **Files:**
@@ -53,7 +55,7 @@ Template (omit **Decisions** and **Follow-up** when there is nothing non-obvious
 
 ### Stub `approval_gate` as deny-all before any state-changing tool is registered
 
-**Week:** W1
+**Area:** Foundations: rules engine, raw LLM APIs, tool calling
 **Goal:** Guarantee `log_claim` and `issue_payment` can never execute before a real approval mechanism exists.
 **Source:** ADR-0004
 
@@ -61,13 +63,13 @@ Template (omit **Decisions** and **Follow-up** when there is nothing non-obvious
 - `approval_gate.py` — `GuardedAction` and `check_approval()`, which denied every action unconditionally.
 - `test_approval_gate.py` — parametrized, so a new guarded action is covered automatically.
 
-**Follow-up:** replaced by the real human-approval gate in W2.
+**Follow-up:** replaced by the real human-approval gate in "Agent loop, MCP and human approval".
 
 ---
 
 ### Define tool schemas (`check_eligibility`, `log_claim`) + parse tool-use loop
 
-**Week:** W1
+**Area:** Foundations: rules engine, raw LLM APIs, tool calling
 **Goal:** Give both tools a provider-agnostic schema and a dispatcher that turns a model turn's tool calls into results without an if/elif per tool.
 **Source:** ADR-0004
 
@@ -83,7 +85,7 @@ Template (omit **Decisions** and **Follow-up** when there is nothing non-obvious
 
 ### Build FastAPI `/triage` endpoint (raw SDK, no framework)
 
-**Week:** W1
+**Area:** Foundations: rules engine, raw LLM APIs, tool calling
 **Goal:** Wire the registry to a real provider turn and expose it over HTTP, with a raw `anthropic` tool-use loop (not LangGraph yet).
 
 **Files:**
@@ -100,18 +102,18 @@ Template (omit **Decisions** and **Follow-up** when there is nothing non-obvious
 
 ### Write unit tests for tool-calling parser + endpoint
 
-**Week:** W1
+**Area:** Foundations: rules engine, raw LLM APIs, tool calling
 **Goal:** Close the edge-case gaps left by the `/triage` task: schemas, dispatch and the route had only happy-path coverage.
 
 **Files:** `test_tool_calls.py` (new), plus added cases in `test_tool_loop.py` (a failing call does not abort the batch) and `test_routes.py` (missing `claim_text` is 422; a use-case exception propagates).
 
-**Decisions:** the max-turns `RuntimeError` is asserted to propagate, documenting the behaviour at the time. Escalation replaced it in W2.
+**Decisions:** the max-turns `RuntimeError` is asserted to propagate, documenting the behaviour at the time. Escalation replaced it later, in "Agent loop, MCP and human approval".
 
 ---
 
 ### Implement streaming (SSE) + buffered JSON parsing
 
-**Week:** W1
+**Area:** Foundations: rules engine, raw LLM APIs, tool calling
 **Goal:** Stream the answer and tool calls as they happen, and assemble a tool call's arguments from the partial JSON fragments a streaming provider sends.
 **Source:** ADR-0007
 
@@ -127,7 +129,7 @@ Template (omit **Decisions** and **Follow-up** when there is nothing non-obvious
 
 ### Add structured output validation with Pydantic + retry/repair
 
-**Week:** W1
+**Area:** Foundations: rules engine, raw LLM APIs, tool calling
 **Goal:** Force the model's final reply into a validated `TriageDecision`, and give it a chance to fix malformed JSON instead of failing the triage.
 **Source:** ADR-0005
 
@@ -138,13 +140,13 @@ Template (omit **Decisions** and **Follow-up** when there is nothing non-obvious
 
 **Notable libraries:** `pydantic.ValidationError` (its text becomes the repair prompt), `typing.TypeVar`.
 **Decisions:** prompted JSON plus client-side repair instead of native structured output (ADR-0005). `stream_triage()` was left unvalidated because validating there needs a feature-specific event inside `platform/`, which breaks the import direction. The prompt went straight to v3 because `evals/` was still a placeholder.
-**Correction (pre-W2, 2026-09-27):** validation was shape-only, so a valid `TriageDecision` that disagreed with `check_eligibility`, or never called it, was accepted (W1 review F-01). `verify_decision()` now checks it against the latest `check_eligibility` result through the same repair loop, `log_claim` takes flight facts rather than a model-authored `EligibilityResult`, and the prompt moved to v4.
+**Correction (before the agent-loop stage, 2026-09-27):** validation was shape-only, so a valid `TriageDecision` that disagreed with `check_eligibility`, or never called it, was accepted (first review, F-01). `verify_decision()` now checks it against the latest `check_eligibility` result through the same repair loop, `log_claim` takes flight facts rather than a model-authored `EligibilityResult`, and the prompt moved to v4.
 
 ---
 
 ### Add retries/backoff, timeouts, fallback model, idempotency
 
-**Week:** W1
+**Area:** Foundations: rules engine, raw LLM APIs, tool calling
 **Goal:** Stop treating the Anthropic call as always-succeeds: timeouts, retries for transient failures, and a fallback model.
 **Source:** ADR-0006
 
@@ -154,13 +156,15 @@ Template (omit **Decisions** and **Follow-up** when there is nothing non-obvious
 - `test_fallback.py` — injectable `sleep`, so backoff does not slow the suite.
 
 **Decisions:** two resilience layers (SDK retries, then model failover) instead of a retry library, and `FallbackProvider` is the one place allowed to catch bare `Exception` (ADR-0006).
-**Correction (pre-W2, 2026-09-27):** the `idempotency-key` header added here is not supported by Anthropic's Messages API, so it did nothing and was removed. Idempotency belongs where a duplicate causes harm: the state-changing tools, keyed by `claim_id` (W1 review F-04).
+**Correction (before the agent-loop stage, 2026-09-27):** the `idempotency-key` header added here is not supported by Anthropic's Messages API, so it did nothing and was removed. Idempotency belongs where a duplicate causes harm: the state-changing tools, keyed by `claim_id` (W1 review F-04).
 
 ---
 
+## 2. Agent loop, MCP and human approval
+
 ### Rebuild tool-calling loop in LangGraph
 
-**Week:** W2
+**Area:** Agent loop, MCP and human approval
 **Goal:** Replace the hand-rolled loop with an explicit `StateGraph`.
 **Source:** ADR-0001
 
@@ -171,13 +175,13 @@ Template (omit **Decisions** and **Follow-up** when there is nothing non-obvious
 
 **Notable libraries:** LangGraph (`StateGraph`, `END`).
 **Decisions:** the nodes live in `graph.py` rather than `agent/nodes/*.py`, because the classify → retrieve → decide pipeline those stubs were for never existed. `stream_triage()` stayed on the old loop for the moment.
-**Follow-up:** resolved later: `escalate_retry` was built, the other stubs were deleted, and `stream_triage` runs the same graph (see "Pre-W3 hardening").
+**Follow-up:** resolved later: `escalate_retry` was built, the other stubs were deleted, and `stream_triage` runs the same graph (see "Pre-RAG hardening of the agent path").
 
 ---
 
 ### Stand up MCP server (`search_kb`, `check_eligibility`, `log_claim`, `issue_payment`)
 
-**Week:** W2
+**Area:** Agent loop, MCP and human approval
 **Goal:** Expose the tool catalogue over MCP so any MCP client can list and call it without knowing this feature exists.
 **Source:** ADR-0003
 
@@ -194,7 +198,7 @@ Template (omit **Decisions** and **Follow-up** when there is nothing non-obvious
 
 ### Connect LangGraph agent to tools over MCP
 
-**Week:** W2
+**Area:** Agent loop, MCP and human approval
 **Goal:** Let the graph dispatch tools over the real MCP transport, not just the in-process registry.
 
 **Files:**
@@ -211,7 +215,7 @@ Template (omit **Decisions** and **Follow-up** when there is nothing non-obvious
 
 ### Add short-term + long-term memory to agent state
 
-**Week:** W2
+**Area:** Agent loop, MCP and human approval
 **Goal:** Carry facts forward within a run and across runs for the same claimant, instead of only the raw transcript.
 
 **Files:**
@@ -225,7 +229,7 @@ Template (omit **Decisions** and **Follow-up** when there is nothing non-obvious
 
 ### Add escalation/retry loop on low confidence
 
-**Week:** W2
+**Area:** Agent loop, MCP and human approval
 **Goal:** Hand a run to a human instead of raising when it cannot reach a verified decision.
 
 **Files:**
@@ -233,13 +237,13 @@ Template (omit **Decisions** and **Follow-up** when there is nothing non-obvious
 - `graph.py`, `state.py` — non-convergence, repair exhaustion and an unrecoverable stop reason route to `escalate` instead of raising.
 - `triage_use_case.py`, `schemas.py`, `routes.py` — `escalated` and `escalation_reason` on `TriageResult` and `TriageResponse`.
 
-**Decisions:** there is no model-reported confidence in the schema, so "low confidence" means the failure modes the pre-W2 review listed (stop reason, non-convergence, repair exhaustion). Escalation is normal state, a 200 with a flag, not an exception: it is a business outcome the caller routes to a human.
+**Decisions:** there is no model-reported confidence in the schema, so "low confidence" means the failure modes the review before this stage listed (stop reason, non-convergence, repair exhaustion). Escalation is normal state, a 200 with a flag, not an exception: it is a business outcome the caller routes to a human.
 
 ---
 
 ### Replace deny-all stub with human-approval gate before state-changing tool calls
 
-**Week:** W2
+**Area:** Agent loop, MCP and human approval
 **Goal:** Replace the deny-all stub with a minimal human-approval workflow, so a sign-off can actually happen.
 **Source:** ADR-0008 (superseded by ADR-0009)
 
@@ -250,15 +254,15 @@ Template (omit **Decisions** and **Follow-up** when there is nothing non-obvious
 
 **Notable libraries:** `threading.Lock`.
 **Decisions:** in-memory store behind an interface, so Postgres was a swap, not a rewrite. The workflow is poll-based, because SSE is one-directional and a decision cannot be pushed into an in-flight run.
-**Follow-up:** idempotency on `claim_id` at the persistence layer, and `approver` authentication, were deferred (done in the pre-W4 refactor and W5).
+**Follow-up:** idempotency on `claim_id` at the persistence layer, and `approver` authentication, were deferred (done in "Durable approval path" and "Closing the governance holes").
 
 ---
 
-### Pre-W3 hardening
+### Pre-RAG hardening of the agent path
 
-**Week:** W2 → W3 boundary
-**Goal:** Fix the governance-path gaps found in the pre-W3 review before building persistence, RAG and guardrails on top.
-**Source:** the W2 review (T-1 to T-6, O-7; git history); ADR-0009 (supersedes ADR-0008); ADR-0007 amendment
+**Area:** Agent loop, MCP and human approval
+**Goal:** Fix the governance-path gaps found in the review of the agent-loop stage before building persistence, RAG and guardrails on top.
+**Source:** the agent-loop review (T-1 to T-6, O-7; git history); ADR-0009 (supersedes ADR-0008); ADR-0007 amendment
 
 **Files:**
 - `escalate_retry.py` — escalated runs return a fixed `ESCALATION_ANSWER`, never the model's last text.
@@ -275,9 +279,11 @@ Template (omit **Decisions** and **Follow-up** when there is nothing non-obvious
 
 ---
 
+## 3. Data layer, RAG and guardrails
+
 ### Set up Postgres (relational) + pgvector/Chroma (embeddings)
 
-**Week:** W3
+**Area:** Data layer, RAG and guardrails
 **Goal:** A durable, cross-process data layer: Postgres for relational state and pgvector for KB embeddings.
 **Source:** ADR-0009, ADR-0010 (pgvector over Chroma, psycopg3 over an ORM)
 
@@ -295,7 +301,7 @@ Template (omit **Decisions** and **Follow-up** when there is nothing non-obvious
 
 ### Build RAG pipeline — chunk → embed → store → retrieve → cite
 
-**Week:** W3
+**Area:** Data layer, RAG and guardrails
 **Goal:** Let the agent look up airline policy through `search_kb` and get passages it can cite.
 **Source:** ADR-0010, ADR-0011
 
@@ -312,7 +318,7 @@ Template (omit **Decisions** and **Follow-up** when there is nothing non-obvious
 
 ### Build small eval set (20–30 Q/A pairs), measure retrieval quality
 
-**Week:** W3
+**Area:** Data layer, RAG and guardrails
 **Goal:** Measure how well `search_kb` finds the right section, and pick the relevance floor from data.
 **Source:** ADR-0012
 
@@ -328,7 +334,7 @@ Template (omit **Decisions** and **Follow-up** when there is nothing non-obvious
 
 ### Add PII filtering on inputs/outputs
 
-**Week:** W3
+**Area:** Data layer, RAG and guardrails
 **Goal:** Keep personal identifiers out of the LLM and embedding APIs, the response, the logs and the approval records.
 **Source:** ADR-0013
 
@@ -345,7 +351,7 @@ Template (omit **Decisions** and **Follow-up** when there is nothing non-obvious
 
 ### Add prompt-injection test cases
 
-**Week:** W3
+**Area:** Data layer, RAG and guardrails
 **Goal:** Stop passenger text that tries to instruct the model from reaching it, and prove the structural guardrails hold when detection misses.
 **Source:** ADR-0014
 
@@ -362,7 +368,7 @@ Template (omit **Decisions** and **Follow-up** when there is nothing non-obvious
 
 ### Write integration test for `/triage` end-to-end
 
-**Week:** W3
+**Area:** Data layer, RAG and guardrails
 **Goal:** Prove HTTP → `run_triage` → LangGraph → scoped, guarded tools → Postgres works as one path.
 
 **Files:**
@@ -375,7 +381,7 @@ Template (omit **Decisions** and **Follow-up** when there is nothing non-obvious
 
 ### Write Docker Compose for full stack, verify `docker compose up`
 
-**Week:** W3
+**Area:** Data layer, RAG and guardrails
 **Goal:** One command brings up the database, the schema and KB, and the API.
 
 **Files:**
@@ -388,11 +394,13 @@ Template (omit **Decisions** and **Follow-up** when there is nothing non-obvious
 
 ---
 
-### Pre-W4 refactor (W3 review)
+## 3b. Durable approval path (composition-root refactor)
 
-**Week:** W3 → W4 boundary
-**Goal:** Finish the approval path W3 left open, so W4's tracing, audit and policy attach to a durable, executing path.
-**Source:** the W3 review (P-1 to P-4; git history); ADR-0009 addendum
+### Durable approval path (composition-root refactor)
+
+**Area:** Durable approval path (composition-root refactor)
+**Goal:** Finish the approval path the data-layer stage left open, so the tracing, audit and policy attach to a durable, executing path.
+**Source:** the data-layer review (P-1 to P-4; git history); ADR-0009 addendum
 
 **Files:**
 - `approval_gate.py`, `api_app.py` — the module-level `_GATE` is gone; `create_app()` is the composition root (a lifespan opens the Postgres pool; routes use `Depends`).
@@ -402,14 +410,16 @@ Template (omit **Decisions** and **Follow-up** when there is nothing non-obvious
 - `triage_use_case.py` — `_prepare_run` is the one preamble for `run_triage` and `stream_triage`.
 
 **Notable libraries:** FastAPI `lifespan` and `Depends`.
-**Decisions:** idempotent write, then claim, instead of one transaction (ADR-0009 addendum): a simpler store protocol, at the cost that a failed executor leaves the request `APPROVED` until `execute_approved` runs (made reachable in W5).
+**Decisions:** idempotent write, then claim, instead of one transaction (ADR-0009 addendum): a simpler store protocol, at the cost that a failed executor leaves the request `APPROVED` until `execute_approved` runs (made reachable in "Closing the governance holes").
 **Verified:** a real triage parked a request, it survived an API restart, approving it wrote exactly one `claims` row, and a second approve returned 409.
 
 ---
 
+## 4. Observability and governance
+
 ### Write architecture diagram + README (problem, design, trade-offs)
 
-**Week:** W4
+**Area:** Observability and governance
 **Goal:** Give the project a readable front door: diagrams traced from the code, and a README that states the problem, design and trade-offs without claiming anything unbuilt.
 
 **Files:**
@@ -423,7 +433,7 @@ Template (omit **Decisions** and **Follow-up** when there is nothing non-obvious
 
 ### Write one OPA/Rego policy (block auto-payout above €X)
 
-**Week:** W4
+**Area:** Observability and governance
 **Goal:** A real policy-as-code check in front of state-changing actions: a payout above the ceiling is refused before any approval request exists.
 **Source:** ADR-0015
 
@@ -441,7 +451,7 @@ Template (omit **Decisions** and **Follow-up** when there is nothing non-obvious
 
 ### Build audit trail — log every tool call + decision
 
-**Week:** W4
+**Area:** Observability and governance
 **Goal:** A durable, tamper-resistant record of every tool call, policy verdict and approval transition for a claim.
 **Source:** ADR-0016
 
@@ -457,7 +467,7 @@ Template (omit **Decisions** and **Follow-up** when there is nothing non-obvious
 
 ### Add OpenTelemetry tracing (span per LLM/tool call)
 
-**Week:** W4
+**Area:** Observability and governance
 **Goal:** One claim is one trace: a span per LLM turn, tool call and policy check, with no claim content in any attribute, and each audit row linked to its trace.
 **Source:** ADR-0017
 
@@ -472,9 +482,11 @@ Template (omit **Decisions** and **Follow-up** when there is nothing non-obvious
 
 ---
 
+## 5. Closing the governance holes
+
 ### Make approved-but-failed requests recoverable
 
-**Week:** W5
+**Area:** Closing the governance holes
 **Goal:** Give the ADR-0009 "failed executor is recoverable" guarantee a reachable code path.
 **Source:** ADR-0009 addendum
 
@@ -487,11 +499,13 @@ Template (omit **Decisions** and **Follow-up** when there is nothing non-obvious
 
 ---
 
+## 6. Automated guards, evals and cleanup
+
 ### Complete the audit trail
 
-**Week:** W6
+**Area:** Automated guards, evals and cleanup
 **Goal:** Record the two refusals the audit could not see, give approval decisions a trace id, and stop a docstring overpromising.
-**Source:** the first W4 review (F-06; git history); ADR-0016 (amended)
+**Source:** the first governance review (F-06; git history); ADR-0016 (amended)
 
 **Files:**
 - `0004_audit_refusals.sql`, `audit_log.py` — `tool_refused` and `injection_escalation` kinds.
@@ -504,4 +518,4 @@ Template (omit **Decisions** and **Follow-up** when there is nothing non-obvious
 
 ---
 
-Library, framework and concept entries live in [`glossary.md`](glossary.md) — append there, not here, whenever a summary's **Notable libraries** introduces something not already listed. The other W5–W6 tasks (network lockdown, bearer-token auth, DB default, CI and gitleaks, agent eval, spend cap) have no entry here: their record is in [ADR-0018](../decisions/0018-process-wide-llm-spend-cap-in-a-provider-decorator.md), [ADR-0019](../decisions/0019-static-bearer-tokens-per-router.md) and `tasks.md`.
+Library, framework and concept entries live in [`glossary.md`](glossary.md) — append there, not here, whenever a summary's **Notable libraries** introduces something not already listed. The other tasks in the last two sections (network lockdown, bearer-token auth, DB default, CI and gitleaks, agent eval, spend cap) have no entry here: their record is in [ADR-0018](../decisions/0018-process-wide-llm-spend-cap-in-a-provider-decorator.md), [ADR-0019](../decisions/0019-static-bearer-tokens-per-router.md) and `tasks.md`.
